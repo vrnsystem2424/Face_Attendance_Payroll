@@ -1,0 +1,210 @@
+// controllers/superAdminController.js
+
+const Employee = require('../models/Employee');
+const Company = require('../models/Company');
+const Leave = require('../models/Leave');
+const bcrypt = require('bcryptjs');
+
+// ── GLOBAL DASHBOARD STATS ──
+const getGlobalStats = async (req, res) => {
+  try {
+    const totalCompanies = await Company.countDocuments({ active: true });
+    const totalEmployees = await Employee.countDocuments({ role: 'employee' });
+    const totalManagers = await Employee.countDocuments({ role: 'manager' });
+    const totalAdmins = await Employee.countDocuments({ role: 'admin' });
+    const pendingApprovals = await Employee.countDocuments({ status: 'pending' });
+    const pendingLeaves = await Leave.countDocuments({ status: 'pending' });
+
+    res.json({
+      success: true,
+      data: {
+        total_companies: totalCompanies,
+        total_employees: totalEmployees,
+        total_managers: totalManagers,
+        total_admins: totalAdmins,
+        pending_approvals: pendingApprovals,
+        pending_leaves: pendingLeaves,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── CREATE ADMIN FOR ANY COMPANY ──
+const createAdmin = async (req, res) => {
+  try {
+    const { name, email, phone, password, company_id } = req.body;
+
+    if (!company_id) {
+      return res.status(400).json({ success: false, message: 'Company select karo' });
+    }
+
+    const company = await Company.findById(company_id);
+    if (!company) {
+      return res.status(400).json({ success: false, message: 'Invalid company' });
+    }
+
+    const exists = await Employee.findOne({ email: email.toLowerCase() });
+    if (exists) {
+      return res.status(400).json({ success: false, message: 'Email already exists' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const emp_code = `ADM-${company.code}-${Date.now().toString().slice(-4)}`;
+
+    const admin = await Employee.create({
+      name,
+      email: email.toLowerCase(),
+      phone,
+      password: hashedPassword,
+      emp_code,
+      company_id,
+      department: 'Management',
+      designation: 'Administrator',
+      role: 'admin',
+      status: 'approved',
+      face_registered: true,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Admin create ho gaya',
+      data: {
+        _id: admin._id,
+        name,
+        email,
+        emp_code,
+        company: { _id: company._id, name: company.name, code: company.code }
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── GET ALL ADMINS + MANAGERS (across companies) ──
+const getAllAdmins = async (req, res) => {
+  try {
+    const { role, company_id } = req.query;
+
+    const filter = {
+      role: role ? role : { $in: ['admin', 'manager'] }
+    };
+
+    if (company_id) filter.company_id = company_id;
+
+    const admins = await Employee.find(filter)
+      .populate('company_id', 'name code')
+      .select('-password -face_encoding -all_encodings')
+      .sort({ createdAt: -1 });
+
+    res.json({ success: true, data: admins });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── DELETE ADMIN ──
+const deleteAdmin = async (req, res) => {
+  try {
+    const admin = await Employee.findById(req.params.id);
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin nahi mila' });
+    }
+
+    if (admin.role === 'super_admin') {
+      return res.status(403).json({ success: false, message: 'Super admin delete nahi kar sakte' });
+    }
+
+    await Employee.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Admin delete ho gaya' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── PROMOTE EMPLOYEE TO MANAGER ──
+const promoteToManager = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee nahi mila' });
+    }
+
+    if (employee.role !== 'employee') {
+      return res.status(400).json({
+        success: false,
+        message: 'Sirf employees ko manager bana sakte ho'
+      });
+    }
+
+    employee.role = 'manager';
+    await employee.save();
+
+    res.json({
+      success: true,
+      message: `${employee.name} ab manager hai`,
+      data: employee
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── DEMOTE MANAGER TO EMPLOYEE ──
+const demoteToEmployee = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee nahi mila' });
+    }
+
+    if (employee.role !== 'manager') {
+      return res.status(400).json({ success: false, message: 'Yeh manager nahi hai' });
+    }
+
+    employee.role = 'employee';
+    await employee.save();
+
+    res.json({
+      success: true,
+      message: `${employee.name} ab employee hai`,
+      data: employee
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ── GET ALL EMPLOYEES ACROSS COMPANIES ──
+const getAllEmployees = async (req, res) => {
+  try {
+    const { company_id, status, role } = req.query;
+
+    const filter = {};
+    if (company_id) filter.company_id = company_id;
+    if (status) filter.status = status;
+    if (role) filter.role = role;
+
+    const employees = await Employee.find(filter)
+      .populate('company_id', 'name code')
+      .populate('leave_approval_manager', 'name')
+      .select('-password -face_encoding -all_encodings')
+      .sort({ createdAt: -1 });
+
+    res.json({ success: true, data: employees });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = {
+  getGlobalStats,
+  createAdmin,
+  getAllAdmins,
+  deleteAdmin,
+  promoteToManager,
+  demoteToEmployee,
+  getAllEmployees,
+};
