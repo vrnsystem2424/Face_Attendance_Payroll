@@ -257,7 +257,7 @@ const Attendance = () => {
 
         // Auto-stop after too many rejections
         if (rejectCount >= MAX_REJECTIONS - 1) {
-          setStatusMsg('❌ Bahut baar reject hua. Apna khud ka face dikhao.');
+          setStatusMsg('❌ Face not recognized......');
           setPhase('error');
           setScanningForAction(false);
           setTimeout(() => {

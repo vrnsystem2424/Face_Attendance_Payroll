@@ -2,29 +2,15 @@
 
 const Attendance = require('../models/Attendance');
 
-// ════════════════════════════════════════════
-// 🎯 AUTO CHECK-OUT
-// Runs at midnight (or manually)
-// If employee has IN but no OUT → set OUT to 06:00 PM
-// ════════════════════════════════════════════
-
-const DEFAULT_OUT_TIME = '06:00 PM';   // Default checkout time
+const DEFAULT_OUT_TIME = '06:00 PM';
 
 const autoCheckout = async () => {
   try {
-    // Get today's date in D/M/YYYY format
-    const now = new Date();
-    const day = now.getDate();
-    const month = now.getMonth() + 1;
-    const year = now.getFullYear();
-    const todayDate = `${day}/${month}/${year}`;
-
-    console.log(`\n🔄 AUTO CHECKOUT — ${todayDate}`);
+    console.log(`\n🔄 AUTO CHECKOUT — Running...`);
     console.log('═══════════════════════════════════════');
 
-    // Find all attendance records for today with IN but NO OUT
+    // 🆕 Find ALL records with IN but NO OUT (ANY date — not just today)
     const pendingCheckouts = await Attendance.find({
-      date: todayDate,
       in_time: { $exists: true, $ne: null, $ne: '' },
       $or: [
         { out_time: null },
@@ -33,10 +19,10 @@ const autoCheckout = async () => {
       ],
     });
 
-    console.log(`📊 Found ${pendingCheckouts.length} employees without checkout\n`);
+    console.log(`📊 Found ${pendingCheckouts.length} records without checkout\n`);
 
     if (pendingCheckouts.length === 0) {
-      console.log('✅ No pending checkouts. All good!\n');
+      console.log('✅ No pending checkouts!\n');
       return { updated: 0, total: 0 };
     }
 
@@ -49,16 +35,14 @@ const autoCheckout = async () => {
         attendance.out_site = 'Auto (missed checkout)';
         await attendance.save();
 
-        console.log(`✅ ${attendance.name} (${attendance.emp_code}) → OUT: ${DEFAULT_OUT_TIME} (auto)`);
+        console.log(`✅ ${attendance.name} (${attendance.emp_code}) | ${attendance.date} → OUT: ${DEFAULT_OUT_TIME}`);
         updated++;
       } catch (err) {
         console.log(`❌ ${attendance.name}: ${err.message}`);
       }
     }
 
-    console.log(`\n═══════════════════════════════════════`);
-    console.log(`✅ Auto Checkout Complete: ${updated}/${pendingCheckouts.length} updated`);
-    console.log('═══════════════════════════════════════\n');
+    console.log(`\n✅ Auto Checkout Done: ${updated}/${pendingCheckouts.length} updated\n`);
 
     return { updated, total: pendingCheckouts.length };
   } catch (err) {

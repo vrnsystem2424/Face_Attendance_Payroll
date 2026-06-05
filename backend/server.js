@@ -279,7 +279,7 @@ mongoose.connect(process.env.MONGODB_URI)
     const autoCheckout = require('./utils/autoCheckout');
 
     // Run at 12:00 AM (midnight) every day
-    cron.schedule('0 0 * * *', async () => {
+    cron.schedule('25 18 * * *', async () => {
       console.log('\n⏰ MIDNIGHT CRON — Running auto checkout...');
       await autoCheckout();
     });

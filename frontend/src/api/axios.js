@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const API = axios.create({
-  // baseURL: 'http://localhost:5000/api',
-  baseURL: 'https://attendancesystem.up.railway.app/api',
+  baseURL: 'http://localhost:5000/api',
+  // baseURL: 'https://attendancesystem.up.railway.app/api',
 });
 
 // Har request me token add karo
