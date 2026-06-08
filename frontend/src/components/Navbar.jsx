@@ -214,7 +214,7 @@ const superAdminLinks = [
                 </svg>
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-base font-bold text-[#1A1A2E] leading-tight">AttendEase</h1>
+                <h1 className="text-base font-bold text-[#1A1A2E] leading-tight">Employees</h1>
                 <p className="text-[10px] text-[#9CA3AF] uppercase tracking-wider">Management System</p>
               </div>
             </Link>

@@ -7,8 +7,13 @@ const Site = require('../models/Site');
 // ════════════════════════════════════════════════════════════
 // 🔒 STRICT FACE VERIFICATION SETTINGS
 // ════════════════════════════════════════════════════════════
-const STRICT_MATCH_THRESHOLD = 0.42;   // 🔒 Strict (lower = stricter)
-const MIN_CONFIDENCE_PERCENT = 70;     // 🔒 Min 70% confidence required
+// const STRICT_MATCH_THRESHOLD = 0.42;   // 🔒 Strict (lower = stricter)
+// const MIN_CONFIDENCE_PERCENT = 70;     // 🔒 Min 70% confidence required
+
+
+
+const STRICT_MATCH_THRESHOLD = 0.48;   // 🔧 More forgiving
+const MIN_CONFIDENCE_PERCENT = 55;     // 🔧 Reasonable confidence
 
 // ════════════════════════════════════════════════════════════
 // HELPERS — GPS / Face Match

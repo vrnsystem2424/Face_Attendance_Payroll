@@ -42,11 +42,24 @@ const Attendance = () => {
   const frameBufferRef = useRef({ descriptors: [], count: 0 });
 
   // 🔒 STRICT SETTINGS
-  const REQUIRED_FRAMES = 5;           // 🔒 More frames for accuracy
-  const MATCH_THRESHOLD = 0.42;        // 🔒 Stricter (was 0.50)
-  const MIN_CONFIDENCE = 70;           // 🔒 Min 70% confidence
+
+  // const REQUIRED_FRAMES = 5;           // 🔒 More frames for accuracy
+  // const MATCH_THRESHOLD = 0.42;        // 🔒 Stricter (was 0.50)
+  // const MIN_CONFIDENCE = 70;           // 🔒 Min 70% confidence
+
+
+
+  const REQUIRED_FRAMES = 3;          // 🔧 5 → 3 (faster)
+const MATCH_THRESHOLD = 0.48;       // 🔧 0.42 → 0.48 (more forgiving)
+const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
+
   const SPOOF_VARIANCE_THRESHOLD = 0.005;
   const MAX_REJECTIONS = 5;            // 🆕 Auto-stop after rejections
+
+
+
+
+
 
   useEffect(() => {
     dispatch(fetchTodayStatus());
