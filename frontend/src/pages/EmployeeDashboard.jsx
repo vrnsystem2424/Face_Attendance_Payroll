@@ -22,36 +22,45 @@ const EmployeeDashboard = () => {
   const [currentTime, setCurrentTime] = useState('');
   const [liveWorkingTime, setLiveWorkingTime] = useState('0h 0m');
 
-  // ── Live clock ──
+  // 🔧 FIXED - IST Time Clock
   useEffect(() => {
     const t = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString('en-IN', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Kolkata',  // ✅ Force IST
       }));
     }, 1000);
     return () => clearInterval(t);
   }, []);
 
-  // ── Fetch all data ──
-useEffect(() => {
-  dispatch(fetchTodayStatus());
-  dispatch(fetchMyLeaves());
-  dispatch(fetchMyBalance());        // 🆕
-}, [dispatch]);
+  useEffect(() => {
+    dispatch(fetchTodayStatus());
+    dispatch(fetchMyLeaves());
+    dispatch(fetchMyBalance());
+  }, [dispatch]);
 
   useEffect(() => {
     dispatch(fetchMonthlySummary({ month, year }));
     dispatch(fetchCalendar({ month, year }));
   }, [dispatch, month, year]);
 
-  // ── Live working timer ──
+  // 🔧 FIXED - Live Working Timer with IST
   useEffect(() => {
     if (todayStatus?.status === 'in-progress' && todayStatus?.in_time) {
       const updateTimer = () => {
         const inTime = todayStatus.in_time;
+        
+        // ✅ IST time
         const nowStr = new Date().toLocaleTimeString('en-IN', {
-          hour: '2-digit', minute: '2-digit', hour12: true
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'Asia/Kolkata',  // ✅ Force IST
         });
+        
         const parseTime = (t) => {
           const [time, period] = t.split(' ');
           let [h, m] = time.split(':').map(Number);
@@ -59,7 +68,13 @@ useEffect(() => {
           if (period === 'AM' && h === 12) h = 0;
           return h * 60 + m;
         };
-        const diff = parseTime(nowStr) - parseTime(inTime);
+        
+        let diff = parseTime(nowStr) - parseTime(inTime);
+        
+        // ✅ Safety check
+        if (diff < 0) diff = 0;
+        if (diff > 24 * 60) diff = 0;
+        
         const hours = Math.floor(diff / 60);
         const minutes = diff % 60;
         setLiveWorkingTime(`${hours}h ${minutes}m`);
@@ -70,18 +85,20 @@ useEffect(() => {
     }
   }, [todayStatus]);
 
-  // Greeting based on time
+  // Greeting based on IST time
   const greeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
+    const istHour = parseInt(new Date().toLocaleString('en-US', { 
+      hour: 'numeric', 
+      hour12: false, 
+      timeZone: 'Asia/Kolkata' 
+    }));
+    if (istHour < 12) return 'Good Morning';
+    if (istHour < 17) return 'Good Afternoon';
     return 'Good Evening';
   };
 
-  // Pending leaves count
   const pendingLeaves = (myLeaves || []).filter(l => l.status === 'pending').length;
 
-  // Stat cards
   const statCards = [
     {
       label: 'Hours This Month',
@@ -117,7 +134,6 @@ useEffect(() => {
     },
   ];
 
-  // Status colors for calendar
   const statusColors = {
     'present':         { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Present' },
     'in-progress':     { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Working' },
@@ -129,14 +145,10 @@ useEffect(() => {
     'future':          { bg: 'bg-white', text: 'text-gray-300', dot: '', label: '' },
   };
 
-  // Build calendar grid (with empty cells for first week alignment)
   const buildCalendarGrid = () => {
     if (!calendar?.days || calendar.days.length === 0) return [];
-
-    const firstDate = calendar.days[0];
-    const firstDay = new Date(year, month - 1, 1).getDay(); // 0=Sun
+    const firstDay = new Date(year, month - 1, 1).getDay();
     const emptyCells = Array(firstDay).fill(null);
-
     return [...emptyCells, ...calendar.days];
   };
 
@@ -146,7 +158,6 @@ useEffect(() => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#faf8f5]">
-      {/* Background blobs */}
       <div className="pointer-events-none fixed -top-32 -right-32 h-[420px] w-[420px] rounded-full bg-[#E8590C]/[0.04] blur-[100px]" />
       <div className="pointer-events-none fixed bottom-0 left-0 h-[360px] w-[360px] rounded-full bg-[#F4A261]/[0.06] blur-[90px]" />
       <div className="pointer-events-none fixed inset-0 opacity-[0.025]"
@@ -154,7 +165,7 @@ useEffect(() => {
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
 
-        {/* ════════ WELCOME HEADER ════════ */}
+        {/* WELCOME HEADER */}
         <div className="mb-6 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#1A1A2E] to-[#2A2A4E] shadow-[0_20px_70px_-10px_rgba(26,26,46,0.20)]">
           <div className="relative px-6 py-6 sm:px-8 sm:py-7">
             <div className="absolute -top-20 -right-20 h-48 w-48 rounded-full bg-[#E8590C]/15 blur-3xl" />
@@ -182,6 +193,7 @@ useEffect(() => {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
+                    timeZone: 'Asia/Kolkata',
                   })}
                 </p>
               </div>
@@ -189,13 +201,13 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* ════════ TODAY'S STATUS CARD ════════ */}
+        {/* TODAY'S STATUS */}
         <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
           <div className="border-b border-gray-100 px-6 py-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF3E8]">
                 <svg className="h-5 w-5 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25" />
                 </svg>
               </div>
               <div className="flex-1">
@@ -206,7 +218,6 @@ useEffect(() => {
           </div>
 
           <div className="p-6">
-            {/* Status: Not Started */}
             {(!todayStatus || todayStatus.status === 'not-started') && (
               <div className="text-center py-4">
                 <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100">
@@ -219,14 +230,10 @@ useEffect(() => {
                 <Link to="/attendance"
                   className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg">
                   Mark Attendance
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
                 </Link>
               </div>
             )}
 
-            {/* Status: In Progress */}
             {todayStatus?.status === 'in-progress' && (
               <div>
                 <div className="mb-4 flex items-center justify-between">
@@ -249,14 +256,10 @@ useEffect(() => {
                 <Link to="/attendance"
                   className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] px-5 py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg">
                   Check Out Now
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-                  </svg>
                 </Link>
               </div>
             )}
 
-            {/* Status: Complete */}
             {todayStatus?.status === 'complete' && (
               <div>
                 <div className="mb-4 flex items-center gap-3">
@@ -296,7 +299,7 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* ════════ STAT CARDS ════════ */}
+        {/* STAT CARDS */}
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {statCards.map((card) => (
             <div key={card.label} className="overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md">
@@ -315,8 +318,7 @@ useEffect(() => {
           ))}
         </div>
 
-        {/* ════════ PROGRESS BAR ════════ */}
-
+        {/* PROGRESS BAR */}
         {monthlySummary && (
           <div className="mb-6 overflow-hidden rounded-2xl bg-white p-5 shadow-sm shadow-gray-200/60">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -345,68 +347,68 @@ useEffect(() => {
           </div>
         )}
 
-
+        {/* LEAVE BANK */}
         {myBalance && (
-  <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
-    <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-cyan-500" />
-    <div className="p-6">
-      <div className="mb-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-            <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-            </svg>
+          <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
+            <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-cyan-500" />
+            <div className="p-6">
+              <div className="mb-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[#1A1A2E]">Leave Bank</h3>
+                    <p className="text-xs text-[#9CA3AF]">Your free leaves balance</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">Available</p>
+                  <p className="text-3xl font-extrabold text-blue-600">{myBalance.current_balance || 0}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="rounded-xl bg-blue-50/50 p-3 text-center">
+                  <p className="text-[10px] font-bold uppercase text-blue-700">Carried</p>
+                  <p className="mt-1 text-base font-extrabold text-blue-700">
+                    {myBalance.current_month?.opening_balance || 0}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-emerald-50/50 p-3 text-center">
+                  <p className="text-[10px] font-bold uppercase text-emerald-700">Credited</p>
+                  <p className="mt-1 text-base font-extrabold text-emerald-700">
+                    +{myBalance.current_month?.credited || 0}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-red-50/50 p-3 text-center">
+                  <p className="text-[10px] font-bold uppercase text-red-700">Used</p>
+                  <p className="mt-1 text-base font-extrabold text-red-700">
+                    -{myBalance.current_month?.used || 0}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-[#faf8f5] p-3 flex justify-between items-center">
+                <div>
+                  <p className="text-[10px] text-[#9CA3AF]">Lifetime Total</p>
+                  <p className="text-xs font-bold text-[#1A1A2E]">
+                    {myBalance.total_credited} credited · {myBalance.total_used} used
+                  </p>
+                </div>
+                <p className="text-[10px] text-[#9CA3AF]">
+                  {myBalance.current_balance > 0
+                    ? `${myBalance.current_balance} leaves saved`
+                    : 'No balance — leaves will be unpaid'}
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base font-bold text-[#1A1A2E]">Leave Bank</h3>
-            <p className="text-xs text-[#9CA3AF]">Your free leaves balance</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">Available</p>
-          <p className="text-3xl font-extrabold text-blue-600">{myBalance.current_balance || 0}</p>
-        </div>
-      </div>
+        )}
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="rounded-xl bg-blue-50/50 p-3 text-center">
-          <p className="text-[10px] font-bold uppercase text-blue-700">Carried</p>
-          <p className="mt-1 text-base font-extrabold text-blue-700">
-            {myBalance.current_month?.opening_balance || 0}
-          </p>
-        </div>
-        <div className="rounded-xl bg-emerald-50/50 p-3 text-center">
-          <p className="text-[10px] font-bold uppercase text-emerald-700">Credited</p>
-          <p className="mt-1 text-base font-extrabold text-emerald-700">
-            +{myBalance.current_month?.credited || 0}
-          </p>
-        </div>
-        <div className="rounded-xl bg-red-50/50 p-3 text-center">
-          <p className="text-[10px] font-bold uppercase text-red-700">Used</p>
-          <p className="mt-1 text-base font-extrabold text-red-700">
-            -{myBalance.current_month?.used || 0}
-          </p>
-        </div>
-      </div>
-
-      <div className="rounded-xl bg-[#faf8f5] p-3 flex justify-between items-center">
-        <div>
-          <p className="text-[10px] text-[#9CA3AF]">Lifetime Total</p>
-          <p className="text-xs font-bold text-[#1A1A2E]">
-            {myBalance.total_credited} credited · {myBalance.total_used} used
-          </p>
-        </div>
-        <p className="text-[10px] text-[#9CA3AF]">
-          {myBalance.current_balance > 0
-            ? `${myBalance.current_balance} leaves saved`
-            : 'No balance — leaves will be unpaid'}
-        </p>
-      </div>
-    </div>
-  </div>
-)}
-
-        {/* ════════ CALENDAR ════════ */}
+        {/* CALENDAR */}
         <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-6 py-4">
             <div className="flex items-center gap-3">
@@ -440,7 +442,6 @@ useEffect(() => {
           </div>
 
           <div className="p-4 sm:p-6">
-            {/* Weekday headers */}
             <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
                 <div key={d} className="py-2 text-center text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">
@@ -449,7 +450,6 @@ useEffect(() => {
               ))}
             </div>
 
-            {/* Calendar grid */}
             <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
               {grid.map((day, idx) => {
                 if (!day) {
@@ -471,7 +471,6 @@ useEffect(() => {
                     }`}
                   >
                     <div className="flex flex-col h-full">
-                      {/* Date number */}
                       <div className="flex items-start justify-between">
                         <span className={`text-xs font-bold sm:text-sm ${
                           isToday ? 'text-[#E8590C]' : sc.text
@@ -483,13 +482,10 @@ useEffect(() => {
                         )}
                       </div>
 
-                      {/* Hours / status text */}
                       {day.status !== 'future' && day.status !== 'weekend' && (
                         <div className="mt-auto">
                           {day.status === 'holiday' && (
-                            <span className="text-[8px] font-bold text-purple-700 sm:text-[9px]">
-                              🎉
-                            </span>
+                            <span className="text-[8px] font-bold text-purple-700 sm:text-[9px]">🎉</span>
                           )}
                           {(day.status === 'leave' || day.status === 'half-day-leave') && (
                             <span className="text-[8px] font-bold sm:text-[9px]" style={{ color: sc.text }}>
@@ -502,15 +498,12 @@ useEffect(() => {
                             </span>
                           )}
                           {day.status === 'absent' && (
-                            <span className="text-[8px] font-bold text-red-700 sm:text-[9px]">
-                              Absent
-                            </span>
+                            <span className="text-[8px] font-bold text-red-700 sm:text-[9px]">Absent</span>
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* Tooltip on hover */}
                     {day.status !== 'future' && (
                       <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[200px] -translate-x-1/2 rounded-lg bg-[#1A1A2E] px-3 py-2 text-xs text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
                         <p className="font-bold">{day.date}</p>
@@ -533,7 +526,6 @@ useEffect(() => {
               })}
             </div>
 
-            {/* Legend */}
             <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
               {[
                 { key: 'present', label: 'Present' },
@@ -555,7 +547,7 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* ════════ QUICK LINKS ════════ */}
+        {/* QUICK LINKS */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Link to="/attendance"
             className="group flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm shadow-gray-200/60 transition-all hover:-translate-y-0.5 hover:shadow-md">

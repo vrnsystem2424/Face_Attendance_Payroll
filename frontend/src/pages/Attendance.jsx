@@ -11,10 +11,21 @@ import {
   fetchTodayStatus,
 } from '../redux/slices/attendanceSlice';
 
+import { fetchCurrentUser } from '../redux/slices/authSlice';
+
 const Attendance = () => {
   const dispatch = useDispatch();
   const webcamRef = useRef(null);
   const { user } = useSelector((s) => s.auth);
+  useEffect(() => {
+    if (
+      user?.face_registered &&
+      (!user?.face_encoding || user.face_encoding.length === 0)
+    ) {
+      console.log('⚠️ face_encoding missing — fetching fresh user');
+      dispatch(fetchCurrentUser());
+    }
+  }, [dispatch, user?.face_registered, user?.face_encoding?.length]);
   const { loading, markResult, error, todayStatus } = useSelector((s) => s.attendance);
 
   const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -29,7 +40,8 @@ const Attendance = () => {
   const [scanningForAction, setScanningForAction] = useState(false);
   const [confirmCount, setConfirmCount] = useState(0);
   const [liveWorkingTime, setLiveWorkingTime] = useState('0h 0m');
-  const [rejectCount, setRejectCount] = useState(0);   // 🆕 Track rejections
+  const [rejectCount, setRejectCount] = useState(0);
+  const [capturedPhoto, setCapturedPhoto] = useState(null);
 
   const userFaceData = useMemo(() => {
     if (!user?.face_encoding || user.face_encoding.length === 0) return null;
@@ -41,46 +53,42 @@ const Attendance = () => {
 
   const frameBufferRef = useRef({ descriptors: [], count: 0 });
 
-  // 🔒 STRICT SETTINGS
-
-  // const REQUIRED_FRAMES = 5;           // 🔒 More frames for accuracy
-  // const MATCH_THRESHOLD = 0.42;        // 🔒 Stricter (was 0.50)
-  // const MIN_CONFIDENCE = 70;           // 🔒 Min 70% confidence
-
-
-
-  const REQUIRED_FRAMES = 3;          // 🔧 5 → 3 (faster)
-const MATCH_THRESHOLD = 0.48;       // 🔧 0.42 → 0.48 (more forgiving)
-const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
-
+  const REQUIRED_FRAMES = 3;
+  const MATCH_THRESHOLD = 0.48;
+  const MIN_CONFIDENCE = 55;
   const SPOOF_VARIANCE_THRESHOLD = 0.005;
-  const MAX_REJECTIONS = 5;            // 🆕 Auto-stop after rejections
-
-
-
-
-
+  const MAX_REJECTIONS = 5;
 
   useEffect(() => {
     dispatch(fetchTodayStatus());
   }, [dispatch]);
 
+  // 🔧 FIXED - IST Time
   useEffect(() => {
     const t = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString('en-IN', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Kolkata',  // ✅ Force IST
       }));
     }, 1000);
     return () => clearInterval(t);
   }, []);
 
+  // 🔧 FIXED - Live Working Timer with IST
   useEffect(() => {
     if (todayStatus?.status === 'in-progress' && todayStatus?.in_time) {
       const updateTimer = () => {
         const inTime = todayStatus.in_time;
-        const now = new Date();
-        const currentTimeStr = now.toLocaleTimeString('en-IN', {
-          hour: '2-digit', minute: '2-digit', hour12: true
+        
+        // ✅ IST time
+        const currentTimeStr = new Date().toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'Asia/Kolkata',  // ✅ Force IST
         });
 
         const parseTime = (t) => {
@@ -91,7 +99,12 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
           return h * 60 + m;
         };
 
-        const diff = parseTime(currentTimeStr) - parseTime(inTime);
+        let diff = parseTime(currentTimeStr) - parseTime(inTime);
+        
+        // ✅ Safety check
+        if (diff < 0) diff = 0;
+        if (diff > 24 * 60) diff = 0;
+        
         const hours = Math.floor(diff / 60);
         const minutes = diff % 60;
         setLiveWorkingTime(`${hours}h ${minutes}m`);
@@ -188,7 +201,6 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
     return Math.sqrt(sum);
   };
 
-  // 🔒 STRICT FACE MATCH
   const matchFace = useCallback((descriptor) => {
     if (!userFaceData) return { matched: false, distance: 999, confidence: 0 };
 
@@ -199,8 +211,6 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
     }
 
     const confidence = Math.round((1 - bestDistance) * 100);
-
-    // 🔒 STRICT — both distance AND confidence must pass
     const matched = bestDistance < MATCH_THRESHOLD && confidence >= MIN_CONFIDENCE;
 
     return {
@@ -223,6 +233,16 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
     }
     const avgVariance = totalVariance / (descriptors.length - 1);
     return { isSpoof: avgVariance < SPOOF_VARIANCE_THRESHOLD, variance: avgVariance };
+  }, []);
+
+  // Capture photo for proof
+  const capturePhoto = useCallback(() => {
+    if (webcamRef.current) {
+      const photo = webcamRef.current.getScreenshot({ width: 480, height: 360 });
+      setCapturedPhoto(photo);
+      return photo;
+    }
+    return null;
   }, []);
 
   const scanFace = useCallback(async () => {
@@ -256,7 +276,6 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
       const descriptor = detection.descriptor;
       const matchResult = matchFace(descriptor);
 
-      // 🔒 STRICT REJECTION
       if (!matchResult.matched) {
         frameBufferRef.current = { descriptors: [], count: 0 };
         setConfirmCount(0);
@@ -268,7 +287,6 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
           setStatusMsg(`⚠️ Confidence kam: ${matchResult.confidence}% (need ${MIN_CONFIDENCE}%+)`);
         }
 
-        // Auto-stop after too many rejections
         if (rejectCount >= MAX_REJECTIONS - 1) {
           setStatusMsg('❌ Face not recognized......');
           setPhase('error');
@@ -284,7 +302,6 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
         return;
       }
 
-      // Reset reject count on successful match
       setRejectCount(0);
 
       const buf = frameBufferRef.current;
@@ -311,6 +328,9 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
           return;
         }
 
+        // Capture photo as proof
+        const photo = capturePhoto();
+
         const finalDescriptor = Array.from(descriptor);
         frameBufferRef.current = { descriptors: [], count: 0 };
         setConfirmCount(0);
@@ -321,6 +341,7 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
           latitude: location.latitude,
           longitude: location.longitude,
           action_type: selectedAction,
+          selfie: photo,
         }));
 
         if (result.meta.requestStatus === 'fulfilled') {
@@ -338,7 +359,7 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
       console.error('Scan error:', err);
     }
     setScanning(false);
-  }, [scanning, markResult, scanningForAction, modelsLoaded, cameraReady, location, userFaceData, selectedAction, dispatch, matchFace, checkSpoof, rejectCount]);
+  }, [scanning, markResult, scanningForAction, modelsLoaded, cameraReady, location, userFaceData, selectedAction, dispatch, matchFace, checkSpoof, capturePhoto, rejectCount]);
 
   useEffect(() => {
     if (!scanningForAction || markResult || phase === 'done') return;
@@ -356,6 +377,7 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
     setSelectedAction(action);
     setScanningForAction(true);
     setRejectCount(0);
+    setCapturedPhoto(null);
     frameBufferRef.current = { descriptors: [], count: 0 };
     setConfirmCount(0);
     setStatusMsg(`Face the camera for ${action}`);
@@ -366,6 +388,7 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
     setSelectedAction(null);
     setScanningForAction(false);
     setRejectCount(0);
+    setCapturedPhoto(null);
     frameBufferRef.current = { descriptors: [], count: 0 };
     setConfirmCount(0);
     setStatusMsg('Select CHECK IN or CHECK OUT');
@@ -381,6 +404,7 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
     setScanningForAction(false);
     setConfirmCount(0);
     setRejectCount(0);
+    setCapturedPhoto(null);
     setStatusMsg('Select CHECK IN or CHECK OUT');
     frameBufferRef.current = { descriptors: [], count: 0 };
   };
@@ -543,7 +567,7 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
               <div className="text-right">
                 <p className="text-base font-bold tabular-nums text-white">{currentTime}</p>
                 <p className="text-[10px] text-[#6B6B7E]">
-                  {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                  {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}
                 </p>
               </div>
             </div>
@@ -587,7 +611,6 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
               ))}
             </div>
 
-            {/* 🆕 Security indicator */}
             {scanningForAction && (
               <div className="mb-3 flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2">
                 <svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -727,6 +750,12 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
                     </p>
                     <p className="mt-1 text-sm text-[#9CA3AF]">{markResult.message}</p>
 
+                    {capturedPhoto && (
+                      <div className="mt-3 mx-auto w-32 h-24 overflow-hidden rounded-xl border-2 border-gray-200">
+                        <img src={capturedPhoto} alt="Selfie proof" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+
                     {markResult.data?.working_hours && (
                       <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#1A1A2E] px-3 py-1.5 text-xs font-bold text-white">
                         Total: {markResult.data.working_hours}
@@ -804,7 +833,7 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
 
             {!markResult && (
               <div className="relative mb-4 overflow-hidden rounded-2xl bg-[#1A1A2E]">
-                <Webcam ref={webcamRef} audio={false} className="block w-full rounded-2xl"
+                <Webcam ref={webcamRef} audio={false} screenshotFormat="image/jpeg" className="block w-full rounded-2xl"
                   videoConstraints={{ width: 640, height: 480, facingMode: 'user' }}
                   onUserMedia={handleCameraStart}
                   onUserMediaError={() => { setStatusMsg('Camera access denied'); setPhase('error'); }} />
@@ -826,6 +855,10 @@ const MIN_CONFIDENCE = 55;          // 🔧 70 → 55 (reasonable)
                     {selectedAction === 'IN' ? 'CHECK IN' : 'CHECK OUT'}
                   </div>
                 )}
+
+                <div className="absolute top-2 left-2 rounded-lg bg-black/50 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
+                  🛡️ Anti-Spoof + 📸 Photo Proof
+                </div>
 
                 {scanning && (
                   <div className="absolute inset-0 rounded-2xl animate-borderPulse"

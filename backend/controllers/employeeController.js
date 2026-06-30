@@ -1,7 +1,10 @@
 const Employee = require('../models/Employee');
+const Attendance = require('../models/Attendance');
+const Leave = require('../models/Leave');
+const { deleteSelfie } = require('../utils/cloudinary');
 
 // ════════════════════════════════════════════
-// GET ALL EMPLOYEES — Company filtered
+// GET ALL EMPLOYEES
 // ════════════════════════════════════════════
 const getAllEmployees = async (req, res) => {
   try {
@@ -26,8 +29,7 @@ const getAllEmployees = async (req, res) => {
       data: employees,
     });
   } catch (error) {
-    console.log('getAllEmployees error:', error.message);
-    return res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -47,23 +49,17 @@ const getEmployee = async (req, res) => {
 };
 
 // ════════════════════════════════════════════
-// APPROVE EMPLOYEE — with Manager + Salary
+// APPROVE EMPLOYEE
 // ════════════════════════════════════════════
 const approveEmployee = async (req, res) => {
   try {
     const { leave_approval_manager, monthly_salary } = req.body;
-
-    console.log('📥 Approve Request:', {
-      empId: req.params.id,
-      body: req.body,
-    });
 
     const targetEmployee = await Employee.findById(req.params.id);
     if (!targetEmployee) {
       return res.status(404).json({ success: false, message: 'Employee nahi mila' });
     }
 
-    // Company check
     if (req.employee.role !== 'super_admin') {
       const myCompanyId = req.employee.company_id?._id?.toString()
                        || req.employee.company_id?.toString();
@@ -76,13 +72,9 @@ const approveEmployee = async (req, res) => {
       }
     }
 
-    // Validate salary
     const salary = Number(monthly_salary) || 0;
     if (salary < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Salary negative nahi ho sakti',
-      });
+      return res.status(400).json({ success: false, message: 'Salary negative nahi ho sakti' });
     }
 
     const updateData = {
@@ -99,39 +91,25 @@ const approveEmployee = async (req, res) => {
       .populate('company_id', 'name code')
       .select('-password -face_encoding -all_encodings');
 
-    console.log('✅ APPROVED:', {
-      name: employee.name,
-      manager: employee.leave_approval_manager,
-      salary: employee.monthly_salary,
-    });
-
     return res.status(200).json({
       success: true,
       message: 'Employee approve ho gaya',
       data: employee,
     });
   } catch (error) {
-    console.log('❌ approveEmployee error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
 // ════════════════════════════════════════════
-// UPDATE SALARY (for already-approved employees)
+// UPDATE SALARY
 // ════════════════════════════════════════════
 const updateSalary = async (req, res) => {
   try {
     const { monthly_salary } = req.body;
 
     if (monthly_salary === undefined || monthly_salary === null || Number(monthly_salary) < 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid salary required',
-      });
+      return res.status(400).json({ success: false, message: 'Valid salary required' });
     }
 
     const targetEmployee = await Employee.findById(req.params.id);
@@ -139,7 +117,6 @@ const updateSalary = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee nahi mila' });
     }
 
-    // Company check
     if (req.employee.role !== 'super_admin') {
       const myCompanyId = req.employee.company_id?._id?.toString()
                        || req.employee.company_id?.toString();
@@ -160,18 +137,12 @@ const updateSalary = async (req, res) => {
       .populate('company_id', 'name code')
       .select('-password -face_encoding -all_encodings');
 
-    console.log('💰 Salary Updated:', {
-      name: employee.name,
-      salary: employee.monthly_salary,
-    });
-
     return res.status(200).json({
       success: true,
       message: 'Salary update ho gayi',
       data: employee,
     });
   } catch (error) {
-    console.log('❌ updateSalary error:', error);
     return res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
@@ -272,13 +243,27 @@ const registerFace = async (req, res) => {
 };
 
 // ════════════════════════════════════════════
-// DELETE EMPLOYEE
+// 🆕 GET DELETE PREVIEW (Count records before delete)
 // ════════════════════════════════════════════
-const deleteEmployee = async (req, res) => {
+const getDeletePreview = async (req, res) => {
   try {
     const targetEmployee = await Employee.findById(req.params.id);
     if (!targetEmployee) {
       return res.status(404).json({ success: false, message: 'Employee nahi mila' });
+    }
+
+    if (targetEmployee.role === 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Super admin delete nahi kar sakte',
+      });
+    }
+
+    if (targetEmployee._id.toString() === req.employee._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Khud ko delete nahi kar sakte',
+      });
     }
 
     if (req.employee.role !== 'super_admin') {
@@ -293,15 +278,157 @@ const deleteEmployee = async (req, res) => {
       }
     }
 
-    await Employee.findByIdAndDelete(req.params.id);
-    return res.status(200).json({ success: true, message: 'Employee delete ho gaya' });
+    const attendanceCount = await Attendance.countDocuments({ emp_id: req.params.id });
+    const leaveCount = await Leave.countDocuments({ emp_id: req.params.id });
+    
+    // Count photos
+    const attendanceWithPhotos = await Attendance.find({
+      emp_id: req.params.id,
+      $or: [
+        { in_selfie_public_id: { $exists: true, $ne: null } },
+        { out_selfie_public_id: { $exists: true, $ne: null } },
+      ],
+    });
+    
+    let photoCount = 0;
+    attendanceWithPhotos.forEach(a => {
+      if (a.in_selfie_public_id) photoCount++;
+      if (a.out_selfie_public_id) photoCount++;
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        employee: {
+          _id: targetEmployee._id,
+          name: targetEmployee.name,
+          emp_code: targetEmployee.emp_code,
+          email: targetEmployee.email,
+          department: targetEmployee.department,
+          role: targetEmployee.role,
+        },
+        counts: {
+          attendance_records: attendanceCount,
+          leave_records: leaveCount,
+          photos: photoCount,
+        },
+      },
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
 // ════════════════════════════════════════════
-// FACE ENCODINGS (company filtered)
+// 🆕 DELETE EMPLOYEE (Cascade Delete)
+// ════════════════════════════════════════════
+const deleteEmployee = async (req, res) => {
+  try {
+    const targetEmployee = await Employee.findById(req.params.id);
+    if (!targetEmployee) {
+      return res.status(404).json({ success: false, message: 'Employee nahi mila' });
+    }
+
+    // Super admin cannot be deleted
+    if (targetEmployee.role === 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Super admin delete nahi kar sakte',
+      });
+    }
+
+    // Cannot delete yourself
+    if (targetEmployee._id.toString() === req.employee._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Khud ko delete nahi kar sakte',
+      });
+    }
+
+    // Company check (admin can only delete same company)
+    if (req.employee.role !== 'super_admin') {
+      const myCompanyId = req.employee.company_id?._id?.toString()
+                       || req.employee.company_id?.toString();
+      const targetCompanyId = targetEmployee.company_id?.toString();
+      if (myCompanyId !== targetCompanyId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Doosri company ke employee ko delete nahi kar sakte',
+        });
+      }
+
+      // Admin cannot delete other admins
+      if (targetEmployee.role === 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Admin ko sirf Super Admin delete kar sakte hain',
+        });
+      }
+    }
+
+    console.log(`🗑️  Deleting employee: ${targetEmployee.name} (${targetEmployee.emp_code})`);
+
+    // ── Step 1: Delete Cloudinary photos ──
+    const attendanceWithPhotos = await Attendance.find({
+      emp_id: req.params.id,
+      $or: [
+        { in_selfie_public_id: { $exists: true, $ne: null } },
+        { out_selfie_public_id: { $exists: true, $ne: null } },
+      ],
+    });
+
+    let deletedPhotos = 0;
+    for (const att of attendanceWithPhotos) {
+      if (att.in_selfie_public_id) {
+        await deleteSelfie(att.in_selfie_public_id);
+        deletedPhotos++;
+      }
+      if (att.out_selfie_public_id) {
+        await deleteSelfie(att.out_selfie_public_id);
+        deletedPhotos++;
+      }
+    }
+    console.log(`📸 Deleted ${deletedPhotos} photos from Cloudinary`);
+
+    // ── Step 2: Delete attendance records ──
+    const attendanceResult = await Attendance.deleteMany({ emp_id: req.params.id });
+    console.log(`📊 Deleted ${attendanceResult.deletedCount} attendance records`);
+
+    // ── Step 3: Delete leave records ──
+    const leaveResult = await Leave.deleteMany({ emp_id: req.params.id });
+    console.log(`📋 Deleted ${leaveResult.deletedCount} leave records`);
+
+    // ── Step 4: Delete leave balance (if exists) ──
+    try {
+      const LeaveBalance = require('../models/LeaveBalance');
+      await LeaveBalance.deleteMany({ emp_id: req.params.id });
+      console.log(`💰 Deleted leave balance`);
+    } catch (err) {
+      console.log('Leave balance model not found, skipping');
+    }
+
+    // ── Step 5: Finally delete employee ──
+    await Employee.findByIdAndDelete(req.params.id);
+    console.log(`✅ Employee deleted: ${targetEmployee.name}`);
+
+    return res.status(200).json({
+      success: true,
+      message: `${targetEmployee.name} aur unka saara data delete ho gaya`,
+      deleted: {
+        employee: targetEmployee.name,
+        attendance_records: attendanceResult.deletedCount,
+        leave_records: leaveResult.deletedCount,
+        photos: deletedPhotos,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Delete error:', error);
+    return res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// ════════════════════════════════════════════
+// FACE ENCODINGS
 // ════════════════════════════════════════════
 const getAllFaceEncodings = async (req, res) => {
   try {
@@ -331,6 +458,7 @@ module.exports = {
   rejectEmployee,
   registerFace,
   deleteEmployee,
+  getDeletePreview,  // 🆕
   getAllFaceEncodings,
-  updateSalary,   // 🆕
+  updateSalary,
 };

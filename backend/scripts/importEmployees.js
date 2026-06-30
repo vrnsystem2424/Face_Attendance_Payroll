@@ -10,195 +10,146 @@ const bcrypt = require('bcryptjs');
 const Employee = require('../models/Employee');
 const Company = require('../models/Company');
 
-// ════════════════════════════════════════════
-// CONFIGURATION — Set CSV file path here
-// ════════════════════════════════════════════
-const CSV_FILE = 'employees.csv';      // ⚠️ Change for different files
-const DEFAULT_PASSWORD = 'vrn@2026';       // ⚠️ Default password
-const DEFAULT_SALARY = 0;
-
+const CSV_FILE = process.argv[2] || 'all_employees.csv';
 const CSV_FILE_PATH = path.join(__dirname, '../data/', CSV_FILE);
 
-// ════════════════════════════════════════════
-// SMART COMPANY MAPPING
-// CSV "Department" → Real Company in DB
-// ════════════════════════════════════════════
+// Company mapping
 const COMPANY_MAPPING = {
-  'RCC': 'RCC',           // Department "RCC" → Company code "RCC"
-  'VRN INC': 'VRN',       // Department "VRN INC" → Company code "VRN"
+  'RCC': 'RCC',
+  'VRN INC': 'VRN',
   'VRN': 'VRN',
-  'DIM': 'DIM',           // Department "DIM" → Company code "DIM"
   'DIMENSIONS': 'DIM',
+  'DIM': 'DIM',
 };
 
-// ════════════════════════════════════════════
-// MAIN IMPORT FUNCTION
-// ════════════════════════════════════════════
+// 🎯 Password: FirstName#Last4Digits
+const generatePassword = (name, phone) => {
+  const firstName = name.split(' ')[0];
+  const last4 = phone.slice(-4);
+  return `${firstName}#${last4}`;
+};
+
 const importEmployees = async () => {
   try {
-    // 1. Connect MongoDB
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ MongoDB Connected\n');
 
-    // 2. Fetch all companies (cache for fast lookup)
     const allCompanies = await Company.find({});
     const companyMap = {};
-    allCompanies.forEach(c => {
-      companyMap[c.code.toUpperCase()] = c;
-    });
+    allCompanies.forEach(c => { companyMap[c.code.toUpperCase()] = c; });
 
-    console.log(`📦 Available Companies in DB:`);
+    console.log('📦 Companies:');
     allCompanies.forEach(c => console.log(`   - ${c.code}: ${c.name}`));
-    console.log('');
 
-    // 3. Hash default password
-    const hashedPassword = await bcrypt.hash(DEFAULT_PASSWORD, 10);
-    console.log(`🔑 Default password: ${DEFAULT_PASSWORD}\n`);
-
-    // 4. Read CSV
     if (!fs.existsSync(CSV_FILE_PATH)) {
-      console.error(`❌ CSV file not found: ${CSV_FILE_PATH}`);
-      console.log(`💡 Place "${CSV_FILE}" in backend/data/ folder`);
+      console.error(`\n❌ CSV not found: ${CSV_FILE_PATH}`);
       process.exit(1);
     }
 
-    console.log(`📂 Reading: ${CSV_FILE}`);
+    console.log(`\n📂 Reading: ${CSV_FILE}\n`);
 
-    const employeesData = [];
+    const rows = [];
     await new Promise((resolve, reject) => {
       fs.createReadStream(CSV_FILE_PATH)
         .pipe(csv())
-        .on('data', (row) => employeesData.push(row))
+        .on('data', (row) => rows.push(row))
         .on('end', resolve)
         .on('error', reject);
     });
 
-    console.log(`📊 Total rows: ${employeesData.length}\n`);
-    console.log('═══════════════════════════════════════');
-    console.log('  IMPORTING EMPLOYEES');
-    console.log('═══════════════════════════════════════\n');
+    console.log(`📊 Total rows: ${rows.length}\n`);
+    console.log('═══════════════════════════════════════════════════════════════════');
+    console.log(`${'Name'.padEnd(25)} | ${'Code'.padEnd(7)} | ${'Phone'.padEnd(12)} | ${'Co'.padEnd(4)} | Password`);
+    console.log('─'.repeat(75));
 
-    let created = 0;
-    let skipped = 0;
-    let failed = 0;
-    const summary = {};
+    let created = 0, skipped = 0, failed = 0;
+    const credentials = { RCC: [], VRN: [], DIM: [] };
 
-    for (let i = 0; i < employeesData.length; i++) {
-      const row = employeesData[i];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const name = row['Name']?.trim();
+      const empCode = row['EMP Code']?.trim();
+      const phone = row['Mobile No.']?.trim().replace(/\s+/g, '');
+      const email = row['Email']?.trim().replace(/\s+/g, '').replace(/\n/g, '') || '';
+      const manager = row['Leave Approval Manager']?.trim() || '';
+      const department = row['Department']?.trim() || '';
+      const designation = row['Designation']?.trim() || 'Employee';
 
-      const employeeData = {
-        name: row['Name']?.trim(),
-        emp_code: row['EMP Code']?.trim(),
-        phone: row['Mobile No.']?.trim().replace(/\s+/g, ''),   // remove spaces
-        email: row['Email']?.trim().replace(/\s+/g, '') || '',
-        leave_approval_manager: row['Leave Approval Manager']?.trim() || '',
-        department: row['Department']?.trim() || '',
-        designation: row['Designation']?.trim() || 'Employee',
-      };
-
-      // Validation
-      if (!employeeData.name || !employeeData.emp_code || !employeeData.phone) {
-        console.log(`⚠️  [${i + 1}] SKIPPED: Missing data (${employeeData.name || 'No Name'})`);
+      if (!name || !empCode || !phone || phone.length < 10) {
         skipped++;
         continue;
       }
 
-      // 🆕 SMART COMPANY DETECTION
-      const departmentUpper = employeeData.department.toUpperCase();
-      const companyCode = COMPANY_MAPPING[departmentUpper];
+      const companyCode = COMPANY_MAPPING[department.toUpperCase()];
+      if (!companyCode) { failed++; continue; }
 
-      if (!companyCode) {
-        console.log(`❌ [${i + 1}] FAILED: ${employeeData.name} — Unknown company "${employeeData.department}"`);
-        failed++;
-        continue;
-      }
-
-      const company = companyMap[companyCode.toUpperCase()];
-
-      if (!company) {
-        console.log(`❌ [${i + 1}] FAILED: ${employeeData.name} — Company "${companyCode}" not found in DB`);
-        failed++;
-        continue;
-      }
+      const company = companyMap[companyCode];
+      if (!company) { failed++; continue; }
 
       try {
-        // Check existing
         const existing = await Employee.findOne({
-          $or: [
-            { emp_code: employeeData.emp_code },
-            { phone: employeeData.phone },
-          ],
+          $or: [{ emp_code: empCode }, { phone: phone }],
         });
+        if (existing) { skipped++; continue; }
 
-        if (existing) {
-          console.log(`⏭️  [${i + 1}] EXISTS: ${employeeData.name} (${employeeData.emp_code})`);
-          skipped++;
-          continue;
-        }
+        const plainPassword = generatePassword(name, phone);
+        const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
-        // Create employee
-        const newEmployee = await Employee.create({
-          name: employeeData.name,
-          emp_code: employeeData.emp_code,
-          phone: employeeData.phone,
-          email: employeeData.email,
+        await Employee.create({
+          name, emp_code: empCode, phone, email,
           password: hashedPassword,
-          department: employeeData.department,        // Keep original (e.g. "VRN INC")
-          designation: employeeData.designation,
-          leave_approval_manager: employeeData.leave_approval_manager,
-          company_id: company._id,                    // ✅ Auto-mapped
-          monthly_salary: DEFAULT_SALARY,
+          department, designation: designation || 'Employee',
+          leave_approval_manager: manager,
+          company_id: company._id,
+          monthly_salary: 0,
           status: 'approved',
           face_registered: false,
           role: 'employee',
-          face_encoding: [],
-          all_encodings: [],
+          face_encoding: [], all_encodings: [],
         });
 
-        console.log(`✅ [${i + 1}] CREATED: ${newEmployee.name} (${newEmployee.emp_code}) → ${company.name}`);
+        console.log(`✅ ${name.padEnd(25)} | ${empCode.padEnd(7)} | ${phone.padEnd(12)} | ${companyCode.padEnd(4)} | ${plainPassword}`);
+        credentials[companyCode]?.push({ name, emp_code: empCode, phone, password: plainPassword });
         created++;
-
-        // Track per-company
-        summary[company.code] = (summary[company.code] || 0) + 1;
       } catch (err) {
-        console.log(`❌ [${i + 1}] FAILED: ${employeeData.name} — ${err.message}`);
+        console.log(`❌ ${name}: ${err.message}`);
         failed++;
       }
     }
 
-    // Final Summary
-    console.log('\n═══════════════════════════════════════');
-    console.log('  📊 IMPORT SUMMARY');
-    console.log('═══════════════════════════════════════');
-    console.log(`✅ Created:        ${created}`);
-    console.log(`⏭️  Already exists: ${skipped}`);
-    console.log(`❌ Failed:         ${failed}`);
-    console.log(`📊 Total in CSV:   ${employeesData.length}`);
+    // Summary
+    console.log('\n═══════════════════════════════════════════════════════════════════');
+    console.log(`✅ Created: ${created} | ⏭️ Skipped: ${skipped} | ❌ Failed: ${failed}`);
 
-    if (Object.keys(summary).length > 0) {
-      console.log('\n📦 Per Company:');
-      Object.entries(summary).forEach(([code, count]) => {
-        console.log(`   - ${code}: ${count} employees`);
+    // Company-wise count
+    Object.entries(credentials).forEach(([code, list]) => {
+      if (list.length > 0) console.log(`   📦 ${code}: ${list.length} employees`);
+    });
+
+    // Save credentials
+    Object.entries(credentials).forEach(([code, list]) => {
+      if (list.length === 0) return;
+
+      const filePath = path.join(__dirname, `../data/${code.toLowerCase()}_credentials.txt`);
+      let content = `═══════════════════════════════════════════\n`;
+      content += `  ${code} LOGIN CREDENTIALS\n`;
+      content += `═══════════════════════════════════════════\n\n`;
+      content += `${'Name'.padEnd(25)} | ${'Code'.padEnd(7)} | ${'Phone'.padEnd(12)} | Password\n`;
+      content += '─'.repeat(60) + '\n';
+
+      list.forEach(c => {
+        content += `${c.name.padEnd(25)} | ${c.emp_code.padEnd(7)} | ${c.phone.padEnd(12)} | ${c.password}\n`;
       });
-    }
 
-    console.log('═══════════════════════════════════════\n');
+      content += `\nTotal: ${list.length}\nLogin: Phone + Password\n`;
+      fs.writeFileSync(filePath, content);
+      console.log(`📄 ${code} credentials: data/${code.toLowerCase()}_credentials.txt`);
+    });
 
-    console.log('🔑 LOGIN CREDENTIALS:');
-    console.log('═══════════════════════════════════════');
-    console.log(`📱 Phone:    [Their mobile number]`);
-    console.log(`🔒 Password: ${DEFAULT_PASSWORD}`);
-    console.log('═══════════════════════════════════════\n');
-
-    console.log('📋 NEXT STEPS:');
-    console.log('1. ✅ Employees imported');
-    console.log('2. 💰 Login as admin → Set salary');
-    console.log('3. 📊 Run attendance import script');
-    console.log('4. 💵 Payroll auto-calculated\n');
-
+    console.log('\n✅ ALL DONE!\n');
     process.exit(0);
   } catch (err) {
-    console.error('❌ Fatal error:', err);
+    console.error('❌', err);
     process.exit(1);
   }
 };

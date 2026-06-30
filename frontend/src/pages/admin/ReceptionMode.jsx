@@ -3,7 +3,13 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import * as faceapi from '@vladmandic/face-api';
 import Webcam from 'react-webcam';
-import { loadAllFaceEncodings } from '../../redux/slices/faceSlice';
+// ✅ Correct import
+import {
+  registerFace,
+  loadAllFaceEncodings,  // ✅ Ab available hai
+  clearFaceError,
+  clearFaceMessage,
+} from '../../redux/slices/faceSlice';
 import API from '../../api/axios';
 
 const ReceptionMode = () => {

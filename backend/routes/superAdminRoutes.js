@@ -11,6 +11,7 @@ const {
   promoteToManager,
   demoteToEmployee,
   getAllEmployees,
+  getAllAttendanceGlobal,  // 🆕
 } = require('../controllers/superAdminController');
 
 // All routes need super admin
@@ -23,5 +24,8 @@ router.delete('/admins/:id', deleteAdmin);
 router.get('/employees', getAllEmployees);
 router.put('/promote/:id', promoteToManager);
 router.put('/demote/:id', demoteToEmployee);
+
+// 🆕 All Attendance (across companies)
+router.get('/all-attendance', getAllAttendanceGlobal);
 
 module.exports = router;

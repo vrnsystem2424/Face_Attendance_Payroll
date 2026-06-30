@@ -9,18 +9,22 @@ const {
   rejectEmployee,
   registerFace,
   deleteEmployee,
+  getDeletePreview,  // 🆕
   getAllFaceEncodings,
-  updateSalary,   // 🆕
+  updateSalary,
 } = require('../controllers/employeeController');
 
-// Employee routes
 router.get('/', protect, adminOnly, getAllEmployees);
 router.get('/me', protect, getEmployee);
 router.put('/update', protect, updateEmployee);
 router.put('/approve/:id', protect, adminOnly, approveEmployee);
 router.put('/reject/:id', protect, adminOnly, rejectEmployee);
-router.put('/salary/:id', protect, adminOnly, updateSalary);   // 🆕
+router.put('/salary/:id', protect, adminOnly, updateSalary);
+
+// 🆕 Delete preview (count records before delete)
+router.get('/delete-preview/:id', protect, adminOnly, getDeletePreview);
 router.delete('/:id', protect, adminOnly, deleteEmployee);
+
 router.post('/register-face', protect, registerFace);
 router.get('/face-encodings', protect, getAllFaceEncodings);
 

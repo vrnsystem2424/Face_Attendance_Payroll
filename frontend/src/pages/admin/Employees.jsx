@@ -6,12 +6,14 @@ import {
   rejectEmployee,
   deleteEmployee,
   updateEmployeeSalary,
+  getDeletePreview,
+  clearDeletePreview,
 } from '../../redux/slices/employeeSlice';
 import { fetchAllMasterData } from '../../redux/slices/masterSlice';
 
 const Employees = () => {
   const dispatch = useDispatch();
-  const { employees, loading } = useSelector((s) => s.employees);
+  const { employees, loading, deletePreview } = useSelector((s) => s.employees);
   const { managers } = useSelector((s) => s.master);
 
   const [filter, setFilter] = useState('');
@@ -25,12 +27,16 @@ const Employees = () => {
   const [salaryEditModal, setSalaryEditModal] = useState(null);
   const [editSalaryValue, setEditSalaryValue] = useState('');
 
+  // 🆕 Delete modal
+  const [deleteModal, setDeleteModal] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
+
   useEffect(() => {
     dispatch(fetchEmployees(filter));
     dispatch(fetchAllMasterData());
   }, [dispatch, filter]);
 
-  // Approve with manager + salary
   const handleApproveSubmit = async () => {
     if (!selectedManager) { alert('Manager select karo!'); return; }
     if (!monthlySalary || Number(monthlySalary) <= 0) { alert('Valid monthly salary daalo!'); return; }
@@ -53,13 +59,11 @@ const Employees = () => {
     }
   };
 
-  // Open salary edit modal
   const openSalaryEdit = (emp) => {
     setSalaryEditModal(emp);
     setEditSalaryValue(emp.monthly_salary || '');
   };
 
-  // Update salary
   const handleSalaryUpdate = async () => {
     if (editSalaryValue === '' || Number(editSalaryValue) < 0) {
       alert('Valid salary daalo!');
@@ -78,6 +82,40 @@ const Employees = () => {
       setEditSalaryValue('');
       dispatch(fetchEmployees(filter));
     }
+  };
+
+  // 🆕 Open delete modal with preview
+  const openDeleteModal = async (emp) => {
+    setDeleteModal(emp);
+    setDeleteConfirmText('');
+    dispatch(getDeletePreview(emp._id));
+  };
+
+  // 🆕 Confirm delete
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      alert('Type "DELETE" to confirm');
+      return;
+    }
+
+    setDeletingId(deleteModal._id);
+    const result = await dispatch(deleteEmployee(deleteModal._id));
+    setDeletingId(null);
+
+    if (result.meta.requestStatus === 'fulfilled') {
+      setDeleteModal(null);
+      setDeleteConfirmText('');
+      dispatch(clearDeletePreview());
+      dispatch(fetchEmployees(filter));
+    } else {
+      alert(result.payload || 'Delete failed');
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal(null);
+    setDeleteConfirmText('');
+    dispatch(clearDeletePreview());
   };
 
   const statusStyle = (status) => {
@@ -176,7 +214,6 @@ const Employees = () => {
                         {emp.leave_approval_manager || '—'}
                       </td>
 
-                      {/* 💰 SALARY COLUMN with edit button */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1.5">
                           {emp.monthly_salary > 0 ? (
@@ -232,13 +269,23 @@ const Employees = () => {
                               </button>
                             </>
                           )}
+                          {/* 🆕 Delete Button with Modal */}
                           <button
-                            onClick={() => { if (window.confirm('Delete karna hai?')) dispatch(deleteEmployee(emp._id)); }}
-                            className="rounded-lg border border-gray-200 bg-white p-1.5 text-[#9CA3AF] transition-all hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                            onClick={() => openDeleteModal(emp)}
+                            disabled={deletingId === emp._id}
+                            className="rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition-all hover:bg-red-500 hover:text-white disabled:opacity-50"
+                            title="Delete Employee"
                           >
-                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                            </svg>
+                            {deletingId === emp._id ? (
+                              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </td>
@@ -251,9 +298,7 @@ const Employees = () => {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════ */}
-      {/*  APPROVE MODAL — Manager + Salary           */}
-      {/* ═══════════════════════════════════════════ */}
+      {/* APPROVE MODAL */}
       {approveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
@@ -280,7 +325,6 @@ const Employees = () => {
                 </p>
               </div>
 
-              {/* Manager */}
               <div className="mb-5">
                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
                   Leave Approval Manager <span className="text-[#E8590C]">*</span>
@@ -304,7 +348,6 @@ const Employees = () => {
                 </div>
               </div>
 
-              {/* 💰 SALARY */}
               <div className="mb-6">
                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
                   Monthly Salary <span className="text-[#E8590C]">*</span>
@@ -355,9 +398,7 @@ const Employees = () => {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════ */}
-      {/*  SALARY EDIT MODAL                          */}
-      {/* ═══════════════════════════════════════════ */}
+      {/* SALARY EDIT MODAL */}
       {salaryEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
@@ -427,6 +468,110 @@ const Employees = () => {
                 </button>
                 <button
                   onClick={() => { setSalaryEditModal(null); setEditSalaryValue(''); }}
+                  className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] transition-all hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 DELETE CONFIRMATION MODAL */}
+      {deleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
+            <div className="h-1.5 w-full bg-gradient-to-r from-red-500 to-red-600" />
+            <div className="p-7">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50">
+                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-extrabold text-red-600">⚠️ Delete Employee?</h3>
+                  <p className="text-xs text-[#9CA3AF]">This action cannot be undone</p>
+                </div>
+              </div>
+
+              <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3 space-y-1">
+                <p className="text-sm">
+                  <span className="text-[#9CA3AF]">Name:</span>{' '}
+                  <span className="font-bold text-[#1A1A2E]">{deleteModal.name}</span>
+                </p>
+                <p className="text-sm">
+                  <span className="text-[#9CA3AF]">Code:</span>{' '}
+                  <span className="font-bold text-[#1A1A2E]">{deleteModal.emp_code}</span>
+                </p>
+                <p className="text-sm">
+                  <span className="text-[#9CA3AF]">Email:</span>{' '}
+                  <span className="font-bold text-[#1A1A2E]">{deleteModal.email}</span>
+                </p>
+              </div>
+
+              {/* Records that will be deleted */}
+              {deletePreview ? (
+                <div className="mb-5 rounded-xl border-2 border-red-200 bg-red-50 p-4">
+                  <p className="text-sm font-bold text-red-700 mb-3">
+                    🗑️ Following data will be permanently deleted:
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-lg bg-white p-3 text-center">
+                      <p className="text-2xl font-extrabold text-red-600">
+                        {deletePreview.counts.attendance_records}
+                      </p>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">Attendance</p>
+                    </div>
+                    <div className="rounded-lg bg-white p-3 text-center">
+                      <p className="text-2xl font-extrabold text-red-600">
+                        {deletePreview.counts.leave_records}
+                      </p>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">Leaves</p>
+                    </div>
+                    <div className="rounded-lg bg-white p-3 text-center">
+                      <p className="text-2xl font-extrabold text-red-600">
+                        {deletePreview.counts.photos}
+                      </p>
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">Photos</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-[11px] text-red-700">
+                    + Employee profile, leave balance, all login data
+                  </p>
+                </div>
+              ) : (
+                <div className="mb-5 flex justify-center py-4">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-red-200 border-t-red-500" />
+                </div>
+              )}
+
+              <div className="mb-5">
+                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
+                  Type <span className="font-mono bg-red-100 px-1.5 py-0.5 rounded text-red-700">DELETE</span> to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE here"
+                  autoFocus
+                  className="w-full rounded-xl border-2 border-gray-200 bg-white py-3 px-4 text-sm font-mono font-bold text-red-600 placeholder:text-gray-300 placeholder:font-normal outline-none transition-all focus:border-red-500"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={deleteConfirmText !== 'DELETE' || deletingId === deleteModal._id}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-md shadow-red-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                >
+                  {deletingId === deleteModal._id ? 'Deleting...' : '🗑️ Delete Forever'}
+                </button>
+                <button
+                  onClick={closeDeleteModal}
+                  disabled={deletingId === deleteModal._id}
                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] transition-all hover:bg-gray-50"
                 >
                   Cancel

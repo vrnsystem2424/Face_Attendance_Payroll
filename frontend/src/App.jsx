@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import ManagerRoute from './components/ManagerRoute';
 import SuperAdminRoute from './components/SuperAdminRoute';
+
 import Navbar from './components/Navbar';
 
 // ── Public Pages ──
@@ -10,7 +12,7 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 
 // ── Employee Pages ──
-import EmployeeDashboard from './pages/EmployeeDashboard';   // 🆕
+import EmployeeDashboard from './pages/EmployeeDashboard';
 import FaceRegister from './pages/FaceRegister';
 import Attendance from './pages/Attendance';
 import LeaveForm from './pages/LeaveForm';
@@ -34,107 +36,90 @@ import Companies from './pages/super-admin/Companies';
 import ManageAdmins from './pages/super-admin/ManageAdmins';
 import PayrollReports from './pages/super-admin/PayrollReports';
 import AllLeaves from './pages/super-admin/AllLeaves';
+import AllEmployees from './pages/super-admin/AllEmployees';
+import AllAttendance from './pages/super-admin/AllAttendance';  // 🆕
+import SuperAdminSites from './pages/super-admin/Sites';
+import SuperAdminMonthlySettings from './pages/super-admin/MonthlySettings';
 
 // ── Manager Pages ──
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import PendingLeaves from './pages/manager/PendingLeaves';
-import SuperAdminMonthlySettings from './pages/super-admin/MonthlySettings';
 
+// ════════════════════════════════════════════════════════════
+// FACE REGISTER WRAPPER
+// ════════════════════════════════════════════════════════════
+const FaceRegisterWrapper = () => {
+  const { user, token } = useSelector((state) => state.auth);
 
+  console.log('👤 FaceRegisterWrapper:', {
+    hasToken: !!token,
+    hasUser: !!user,
+    face_registered: user?.face_registered,
+  });
 
+  if (!token || !user) return <Navigate to="/login" replace />;
+  if (user.role === 'super_admin') return <Navigate to="/super-admin/dashboard" replace />;
+  if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
+  if (user.face_registered) return <Navigate to="/attendance" replace />;
+
+  return <FaceRegister />;
+};
+
+// ════════════════════════════════════════════════════════════
+// APP
+// ════════════════════════════════════════════════════════════
 function App() {
   return (
     <BrowserRouter>
       <Navbar />
       <Routes>
 
-        {/* ──────── DEFAULT REDIRECT ──────── */}
+        {/* DEFAULT REDIRECT */}
         <Route path="/" element={<Navigate to="/login" />} />
 
-        {/* ──────── PUBLIC ROUTES ──────── */}
+        {/* PUBLIC ROUTES */}
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/super-admin/login" element={<SuperAdminLogin />} />
 
-        {/* ──────── EMPLOYEE / MANAGER ROUTES ──────── */}
-        
-        {/* 🆕 Main Dashboard (default after login) */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute><EmployeeDashboard /></ProtectedRoute>
-        } />
+        {/* FACE REGISTER */}
+        <Route path="/face-register" element={<FaceRegisterWrapper />} />
 
-        <Route path="/face-register" element={
-          <ProtectedRoute><FaceRegister /></ProtectedRoute>
-        } />
-        <Route path="/attendance" element={
-          <ProtectedRoute><Attendance /></ProtectedRoute>
-        } />
-        <Route path="/leave" element={
-          <ProtectedRoute><LeaveForm /></ProtectedRoute>
-        } />
-        <Route path="/my-records" element={
-          <ProtectedRoute><MyRecords /></ProtectedRoute>
-        } />
+        {/* EMPLOYEE ROUTES */}
+        <Route path="/dashboard" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />
+        <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+        <Route path="/leave" element={<ProtectedRoute><LeaveForm /></ProtectedRoute>} />
+        <Route path="/my-records" element={<ProtectedRoute><MyRecords /></ProtectedRoute>} />
 
-        {/* ──────── MANAGER ROUTES ──────── */}
-        <Route path="/manager/dashboard" element={
-          <ManagerRoute><ManagerDashboard /></ManagerRoute>
-        } />
-        <Route path="/manager/leaves" element={
-          <ManagerRoute><PendingLeaves /></ManagerRoute>
-        } />
+        {/* MANAGER ROUTES */}
+        <Route path="/manager/dashboard" element={<ManagerRoute><ManagerDashboard /></ManagerRoute>} />
+        <Route path="/manager/leaves" element={<ManagerRoute><PendingLeaves /></ManagerRoute>} />
 
-        {/* ──────── ADMIN ROUTES ──────── */}
-        <Route path="/admin/dashboard" element={
-          <AdminRoute><Dashboard /></AdminRoute>
-        } />
-        <Route path="/admin/employees" element={
-          <AdminRoute><Employees /></AdminRoute>
-        } />
-        <Route path="/admin/attendance" element={
-          <AdminRoute><AttendanceList /></AdminRoute>
-        } />
-        <Route path="/admin/leaves" element={
-          <AdminRoute><LeaveList /></AdminRoute>
-        } />
-        <Route path="/admin/sites" element={
-          <AdminRoute><Sites /></AdminRoute>
-        } />
-        <Route path="/admin/master-data" element={
-          <AdminRoute><MasterData /></AdminRoute>
-        } />
-        <Route path="/admin/reception" element={
-          <AdminRoute><ReceptionMode /></AdminRoute>
-        } />
+        {/* ADMIN ROUTES */}
+        <Route path="/admin/dashboard" element={<AdminRoute><Dashboard /></AdminRoute>} />
+        <Route path="/admin/employees" element={<AdminRoute><Employees /></AdminRoute>} />
+        <Route path="/admin/attendance" element={<AdminRoute><AttendanceList /></AdminRoute>} />
+        <Route path="/admin/leaves" element={<AdminRoute><LeaveList /></AdminRoute>} />
+        <Route path="/admin/sites" element={<AdminRoute><Sites /></AdminRoute>} />
+        <Route path="/admin/master-data" element={<AdminRoute><MasterData /></AdminRoute>} />
+        <Route path="/admin/reception" element={<AdminRoute><ReceptionMode /></AdminRoute>} />
+        <Route path="/admin/monthly-settings" element={<AdminRoute><MonthlySettings /></AdminRoute>} />
 
-        <Route path="/admin/monthly-settings" element={
-  <AdminRoute><MonthlySettings /></AdminRoute>
-} />
+        {/* SUPER ADMIN ROUTES */}
+        <Route path="/super-admin/dashboard" element={<SuperAdminRoute><SuperDashboard /></SuperAdminRoute>} />
+        <Route path="/super-admin/companies" element={<SuperAdminRoute><Companies /></SuperAdminRoute>} />
+        <Route path="/super-admin/admins" element={<SuperAdminRoute><ManageAdmins /></SuperAdminRoute>} />
+        <Route path="/super-admin/payroll" element={<SuperAdminRoute><PayrollReports /></SuperAdminRoute>} />
+        <Route path="/super-admin/leaves" element={<SuperAdminRoute><AllLeaves /></SuperAdminRoute>} />
+        <Route path="/super-admin/employees" element={<SuperAdminRoute><AllEmployees /></SuperAdminRoute>} />
+        <Route path="/super-admin/attendance" element={<SuperAdminRoute><AllAttendance /></SuperAdminRoute>} />  {/* 🆕 */}
+        <Route path="/super-admin/sites" element={<SuperAdminRoute><SuperAdminSites /></SuperAdminRoute>} />
+        <Route path="/super-admin/monthly-settings" element={<SuperAdminRoute><SuperAdminMonthlySettings /></SuperAdminRoute>} />
 
-        {/* ──────── SUPER ADMIN ROUTES ──────── */}
-        <Route path="/super-admin/dashboard" element={
-          <SuperAdminRoute><SuperDashboard /></SuperAdminRoute>
-        } />
-        <Route path="/super-admin/companies" element={
-          <SuperAdminRoute><Companies /></SuperAdminRoute>
-        } />
-        <Route path="/super-admin/admins" element={
-          <SuperAdminRoute><ManageAdmins /></SuperAdminRoute>
-        } />
-        <Route path="/super-admin/payroll" element={
-  <SuperAdminRoute><PayrollReports /></SuperAdminRoute>
-} />
-<Route path="/super-admin/leaves" element={
-  <SuperAdminRoute><AllLeaves /></SuperAdminRoute>
-} />
-
-<Route path="/super-admin/monthly-settings" element={
-  <SuperAdminRoute><SuperAdminMonthlySettings /></SuperAdminRoute>
-} />
-
-        {/* ──────── 404 FALLBACK ──────── */}
+        {/* 404 FALLBACK */}
         <Route path="*" element={<Navigate to="/login" />} />
+
       </Routes>
     </BrowserRouter>
   );

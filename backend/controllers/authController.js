@@ -304,19 +304,23 @@ const createAdmin = async (req, res) => {
 // ════════════════════════════════════════
 // GET CURRENT USER
 // ════════════════════════════════════════
+// ✅ face_encoding bhi return karo
 const getMe = async (req, res) => {
   try {
     const user = await Employee.findById(req.employee._id)
       .populate('company_id', 'name code')
       .populate('leave_approval_manager', 'name email')
-      .select('-password');
+      .select('-password'); // face_encoding automatically aayegi
 
     return res.status(200).json({ success: true, data: user });
   } catch (error) {
-    return res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
+    });
   }
 };
-
 module.exports = {
   register,
   login,

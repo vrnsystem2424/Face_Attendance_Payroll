@@ -15,7 +15,7 @@ export const fetchEmployees = createAsyncThunk(
   }
 );
 
-// Approve Employee (with manager + salary)
+// Approve Employee
 export const approveEmployee = createAsyncThunk(
   'employees/approveEmployee',
   async ({ id, data }, { rejectWithValue }) => {
@@ -41,20 +41,33 @@ export const rejectEmployee = createAsyncThunk(
   }
 );
 
+// 🆕 Get Delete Preview
+export const getDeletePreview = createAsyncThunk(
+  'employees/getDeletePreview',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await API.get(`/employees/delete-preview/${id}`);
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Preview load nahi hua');
+    }
+  }
+);
+
 // Delete Employee
 export const deleteEmployee = createAsyncThunk(
   'employees/deleteEmployee',
   async (id, { rejectWithValue }) => {
     try {
-      await API.delete(`/employees/${id}`);
-      return id;
+      const response = await API.delete(`/employees/${id}`);
+      return { id, message: response.data.message, deleted: response.data.deleted };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Delete nahi hua');
     }
   }
 );
 
-// 🆕 Update Salary
+// Update Salary
 export const updateEmployeeSalary = createAsyncThunk(
   'employees/updateEmployeeSalary',
   async ({ id, monthly_salary }, { rejectWithValue }) => {
@@ -71,19 +84,19 @@ const employeeSlice = createSlice({
   name: 'employees',
   initialState: {
     employees: [],
+    deletePreview: null,  // 🆕
     loading: false,
     error: null,
+    message: null,
   },
   reducers: {
-    clearEmployeeError: (state) => {
-      state.error = null;
-    },
+    clearEmployeeError: (state) => { state.error = null; },
+    clearEmployeeMessage: (state) => { state.message = null; },
+    clearDeletePreview: (state) => { state.deletePreview = null; },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchEmployees.pending, (state) => {
-        state.loading = true;
-      })
+      .addCase(fetchEmployees.pending, (state) => { state.loading = true; })
       .addCase(fetchEmployees.fulfilled, (state, action) => {
         state.loading = false;
         state.employees = action.payload;
@@ -103,11 +116,20 @@ const employeeSlice = createSlice({
       if (index !== -1) state.employees[index] = action.payload;
     });
 
-    builder.addCase(deleteEmployee.fulfilled, (state, action) => {
-      state.employees = state.employees.filter(e => e._id !== action.payload);
+    // 🆕 Delete Preview
+    builder.addCase(getDeletePreview.fulfilled, (state, action) => {
+      state.deletePreview = action.payload;
     });
 
-    // 🆕 Salary update
+    builder.addCase(deleteEmployee.fulfilled, (state, action) => {
+      state.employees = state.employees.filter(e => e._id !== action.payload.id);
+      state.message = action.payload.message;
+      state.deletePreview = null;
+    });
+    builder.addCase(deleteEmployee.rejected, (state, action) => {
+      state.error = action.payload;
+    });
+
     builder.addCase(updateEmployeeSalary.fulfilled, (state, action) => {
       const index = state.employees.findIndex(e => e._id === action.payload._id);
       if (index !== -1) state.employees[index] = action.payload;
@@ -115,5 +137,5 @@ const employeeSlice = createSlice({
   },
 });
 
-export const { clearEmployeeError } = employeeSlice.actions;
+export const { clearEmployeeError, clearEmployeeMessage, clearDeletePreview } = employeeSlice.actions;
 export default employeeSlice.reducer;

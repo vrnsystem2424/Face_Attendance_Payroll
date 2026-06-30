@@ -94,12 +94,33 @@ export const demoteToEmployee = createAsyncThunk(
   }
 );
 
+// 🆕 GET ALL ATTENDANCE GLOBAL
+export const fetchAllAttendanceGlobal = createAsyncThunk(
+  'superAdmin/fetchAllAttendanceGlobal',
+  async (filters = {}, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.date) params.append('date', filters.date);
+      if (filters.emp_code) params.append('emp_code', filters.emp_code);
+      if (filters.company_id) params.append('company_id', filters.company_id);
+      if (filters.flagged) params.append('flagged', filters.flagged);
+      if (filters.location_status) params.append('location_status', filters.location_status);
+
+      const response = await API.get(`/super-admin/all-attendance?${params.toString()}`);
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to load attendance');
+    }
+  }
+);
+
 const superAdminSlice = createSlice({
   name: 'superAdmin',
   initialState: {
     stats: null,
     admins: [],
     allEmployees: [],
+    allAttendance: [],     // 🆕
     loading: false,
     error: null,
     message: null,
@@ -148,6 +169,22 @@ const superAdminSlice = createSlice({
       })
       .addCase(demoteToEmployee.fulfilled, (state, action) => {
         state.message = action.payload.message;
+      });
+
+    // 🆕 All Attendance Global
+    builder
+      .addCase(fetchAllAttendanceGlobal.pending, (state) => { 
+        state.loading = true; 
+        state.error = null;
+      })
+      .addCase(fetchAllAttendanceGlobal.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allAttendance = action.payload;
+      })
+      .addCase(fetchAllAttendanceGlobal.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.allAttendance = [];
       });
   },
 });

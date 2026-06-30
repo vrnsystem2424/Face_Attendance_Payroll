@@ -3,9 +3,12 @@
 const Employee = require('../models/Employee');
 const Company = require('../models/Company');
 const Leave = require('../models/Leave');
+const Attendance = require('../models/Attendance');
 const bcrypt = require('bcryptjs');
 
-// ── GLOBAL DASHBOARD STATS ──
+// ════════════════════════════════════════════════════════════
+// GLOBAL DASHBOARD STATS
+// ════════════════════════════════════════════════════════════
 const getGlobalStats = async (req, res) => {
   try {
     const totalCompanies = await Company.countDocuments({ active: true });
@@ -31,7 +34,9 @@ const getGlobalStats = async (req, res) => {
   }
 };
 
-// ── CREATE ADMIN FOR ANY COMPANY ──
+// ════════════════════════════════════════════════════════════
+// CREATE ADMIN FOR ANY COMPANY
+// ════════════════════════════════════════════════════════════
 const createAdmin = async (req, res) => {
   try {
     const { name, email, phone, password, company_id } = req.body;
@@ -83,7 +88,9 @@ const createAdmin = async (req, res) => {
   }
 };
 
-// ── GET ALL ADMINS + MANAGERS (across companies) ──
+// ════════════════════════════════════════════════════════════
+// GET ALL ADMINS + MANAGERS (across companies)
+// ════════════════════════════════════════════════════════════
 const getAllAdmins = async (req, res) => {
   try {
     const { role, company_id } = req.query;
@@ -105,7 +112,9 @@ const getAllAdmins = async (req, res) => {
   }
 };
 
-// ── DELETE ADMIN ──
+// ════════════════════════════════════════════════════════════
+// DELETE ADMIN
+// ════════════════════════════════════════════════════════════
 const deleteAdmin = async (req, res) => {
   try {
     const admin = await Employee.findById(req.params.id);
@@ -124,7 +133,9 @@ const deleteAdmin = async (req, res) => {
   }
 };
 
-// ── PROMOTE EMPLOYEE TO MANAGER ──
+// ════════════════════════════════════════════════════════════
+// PROMOTE EMPLOYEE TO MANAGER
+// ════════════════════════════════════════════════════════════
 const promoteToManager = async (req, res) => {
   try {
     const employee = await Employee.findById(req.params.id);
@@ -152,7 +163,9 @@ const promoteToManager = async (req, res) => {
   }
 };
 
-// ── DEMOTE MANAGER TO EMPLOYEE ──
+// ════════════════════════════════════════════════════════════
+// DEMOTE MANAGER TO EMPLOYEE
+// ════════════════════════════════════════════════════════════
 const demoteToEmployee = async (req, res) => {
   try {
     const employee = await Employee.findById(req.params.id);
@@ -177,7 +190,9 @@ const demoteToEmployee = async (req, res) => {
   }
 };
 
-// ── GET ALL EMPLOYEES ACROSS COMPANIES ──
+// ════════════════════════════════════════════════════════════
+// GET ALL EMPLOYEES ACROSS COMPANIES
+// ════════════════════════════════════════════════════════════
 const getAllEmployees = async (req, res) => {
   try {
     const { company_id, status, role } = req.query;
@@ -199,6 +214,42 @@ const getAllEmployees = async (req, res) => {
   }
 };
 
+// ════════════════════════════════════════════════════════════
+// 🆕 GET ALL ATTENDANCE (Across all companies)
+// ════════════════════════════════════════════════════════════
+const getAllAttendanceGlobal = async (req, res) => {
+  try {
+    const { date, emp_code, company_id, flagged, location_status } = req.query;
+
+    const filter = {};
+    
+    if (date) filter.date = date;
+    if (emp_code) filter.emp_code = { $regex: emp_code, $options: 'i' };
+    if (company_id && company_id !== 'all') filter.company_id = company_id;
+    if (flagged === 'true') filter.flagged = true;
+    if (location_status && location_status !== 'all') {
+      filter.in_location_status = location_status;
+    }
+
+    const records = await Attendance.find(filter)
+      .populate('company_id', 'name code')
+      .sort({ createdAt: -1 })
+      .limit(500);
+
+    res.json({ 
+      success: true, 
+      data: records,
+      total: records.length,
+    });
+  } catch (err) {
+    console.error('All attendance global error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ════════════════════════════════════════════════════════════
+// EXPORTS
+// ════════════════════════════════════════════════════════════
 module.exports = {
   getGlobalStats,
   createAdmin,
@@ -207,4 +258,5 @@ module.exports = {
   promoteToManager,
   demoteToEmployee,
   getAllEmployees,
+  getAllAttendanceGlobal,  // 🆕
 };
