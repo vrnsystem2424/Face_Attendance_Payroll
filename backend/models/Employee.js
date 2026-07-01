@@ -25,6 +25,8 @@ const employeeSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  // 🆕 For admin who manages specific manager's leaves only
+assigned_manager: { type: String, default: '' },
 
   // 💰 Monthly Salary (for payroll)
   monthly_salary: {

@@ -1,18 +1,16 @@
 
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const axios = require('axios');
-const cron = require('node-cron');
 
 dotenv.config();
 
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: '20mb' }));        // 🆕 Photo ke liye
+app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
 // ════════════════════════════════════════
@@ -58,7 +56,7 @@ app.use('/api/manager', managerRoutes);
 app.use('/api/monthly-settings', monthlySettingsRoutes);
 app.use('/api/leave-balance', leaveBalanceRoutes);
 app.use('/api/payroll', payrollRoutes);
-app.use('/api/face', faceRoutes);  
+app.use('/api/face', faceRoutes);
 
 // ════════════════════════════════════════
 // ROOT ROUTE (API info)
@@ -119,24 +117,11 @@ setInterval(async () => {
 }, 14 * 60 * 1000);
 
 // ════════════════════════════════════════
-// DATABASE + SERVER START + CRON JOBS
+// DATABASE + SERVER START
 // ════════════════════════════════════════
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('✅ MongoDB Connected!');
-
-    // ════════════════════════════════════════
-    // 🆕 AUTO CHECKOUT — Every night at 12:00 AM
-    // ════════════════════════════════════════
-    const autoCheckout = require('./utils/autoCheckout');
-
-    // Run at 12:00 AM (midnight) every day
-    cron.schedule('25 18 * * *', async () => {
-      console.log('\n⏰ MIDNIGHT CRON — Running auto checkout...');
-      await autoCheckout();
-    });
-
-    console.log('⏰ Auto-Checkout scheduled: Every midnight (12:00 AM)');
 
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
@@ -145,7 +130,6 @@ mongoose.connect(process.env.MONGODB_URI)
 ║  🚀 Server Running on Port ${PORT}        ║
 ║  📡 ${BACKEND_URL}        
 ║  🏢 Multi-Company Attendance System    ║
-║  ⏰ Auto-Checkout: Midnight Daily      ║
 ╚════════════════════════════════════════╝
       `);
     });

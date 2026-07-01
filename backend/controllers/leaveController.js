@@ -213,9 +213,40 @@ const getMyLeaveStats = async (req, res) => {
 const getAllLeaves = async (req, res) => {
   try {
     const { status } = req.query;
-    const filter = req.employee.role === 'super_admin'
-      ? {}
-      : { company_id: req.employee.company_id?._id || req.employee.company_id };
+
+    let filter = {};
+
+    // Super admin sees all
+    if (req.employee.role === 'super_admin') {
+      filter = {};
+    } 
+    // 🆕 Regular admin with assigned_manager - sees ONLY that manager's leaves
+    else if (req.employee.role === 'admin' && req.employee.assigned_manager) {
+      const managerName = req.employee.assigned_manager.trim();
+      const companyId = req.employee.company_id?._id || req.employee.company_id;
+      
+      // Find all employees whose leave_approval_manager matches (case-insensitive)
+      const Employee = require('../models/Employee');
+      const managedEmployees = await Employee.find({
+        company_id: companyId,
+        leave_approval_manager: { $regex: new RegExp(`^${managerName}$`, 'i') }
+      }).select('_id name');
+      
+      const managedEmpIds = managedEmployees.map(e => e._id);
+      
+      console.log(`🎯 Manager Admin: ${req.employee.name} → Manager: ${managerName}`);
+      console.log(`   Found ${managedEmployees.length} employees managed by ${managerName}`);
+      console.log(`   Employees: ${managedEmployees.map(e => e.name).join(', ')}`);
+      
+      filter = {
+        company_id: companyId,
+        emp_id: { $in: managedEmpIds },  // Filter by managed employees
+      };
+    }
+    // Regular admin - sees all of company
+    else {
+      filter = { company_id: req.employee.company_id?._id || req.employee.company_id };
+    }
 
     if (status) filter.status = status;
 
@@ -225,12 +256,14 @@ const getAllLeaves = async (req, res) => {
       .populate('manager_id', 'name')
       .populate('company_id', 'name code');
 
+    console.log(`📋 Returning ${leaves.length} leaves for ${req.employee.name}`);
+
     res.json({ success: true, data: leaves });
   } catch (err) {
+    console.error('Get all leaves error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
 // ════════════════════════════════════════
 // 🆕 APPROVE LEAVE with PARTIAL DAYS
 // ════════════════════════════════════════

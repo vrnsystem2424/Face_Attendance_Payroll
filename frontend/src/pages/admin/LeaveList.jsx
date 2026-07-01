@@ -7,11 +7,9 @@ const LeaveList = () => {
   const { allLeaves, loading } = useSelector((s) => s.leaves);
   const [filter, setFilter] = useState('pending');
 
-  // Approve modal states
+  // Approve modal states - SIMPLIFIED
   const [approveModal, setApproveModal] = useState(null);
   const [approvedDays, setApprovedDays] = useState('');
-  const [paidDays, setPaidDays] = useState('');
-  const [unpaidDays, setUnpaidDays] = useState('');
   const [remark, setRemark] = useState('');
 
   // Reject modal
@@ -20,28 +18,15 @@ const LeaveList = () => {
 
   useEffect(() => { dispatch(fetchAllLeaves(filter)); }, [dispatch, filter]);
 
-  // Auto-calculate paid/unpaid
-  useEffect(() => {
-    if (approveModal) {
-      const days = parseFloat(approvedDays) || 0;
-      // Default: all paid
-      setPaidDays(days.toString());
-      setUnpaidDays('0');
-    }
-  }, [approvedDays, approveModal]);
-
   const openApproveModal = (leave) => {
     setApproveModal(leave);
     setApprovedDays(leave.applied_days.toString());
-    setPaidDays(leave.applied_days.toString());
-    setUnpaidDays('0');
     setRemark('');
   };
 
+  // 🆕 SIMPLIFIED - Only approved days needed
   const handleApprove = async () => {
     const days = parseFloat(approvedDays);
-    const paid = parseFloat(paidDays);
-    const unpaid = parseFloat(unpaidDays);
 
     if (!days || days <= 0) {
       alert('Valid approved days required');
@@ -53,36 +38,26 @@ const LeaveList = () => {
       return;
     }
 
-    if (paid + unpaid !== days) {
-      alert(`Paid (${paid}) + Unpaid (${unpaid}) must equal Approved (${days})`);
-      return;
-    }
-
+    // 🆕 Auto: All approved days are paid
     await dispatch(approveLeave({
       id: approveModal._id,
       approved_days: days,
-      paid_days: paid,
-      unpaid_days: unpaid,
+      paid_days: days,       // All paid
+      unpaid_days: 0,        // No unpaid
       remark: remark || `Approved ${days} day(s)`,
     }));
 
     setApproveModal(null);
     setApprovedDays('');
-    setPaidDays('');
-    setUnpaidDays('');
     setRemark('');
     dispatch(fetchAllLeaves(filter));
   };
 
   const handleReject = async () => {
-    // if (!rejectRemark) {
-    //   alert('Rejection reason required');
-    //   return;
-    // }
-
+    // 🆕 Remark not required
     await dispatch(rejectLeave({
       id: rejectModal._id,
-      remark: rejectRemark,
+      remark: rejectRemark || 'Rejected',
     }));
 
     setRejectModal(null);
@@ -177,7 +152,7 @@ const LeaveList = () => {
                           </span>
                         </div>
 
-                        {/* 🆕 DAYS BREAKDOWN */}
+                        {/* DAYS BREAKDOWN */}
                         <div className="mt-2 flex flex-wrap gap-2">
                           <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-700">
                             Applied: {leave.applied_days} day(s)
@@ -187,16 +162,6 @@ const LeaveList = () => {
                               <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
                                 ✅ Approved: {leave.approved_days} day(s)
                               </span>
-                              {leave.paid_days > 0 && (
-                                <span className="rounded-full bg-green-50 px-2.5 py-1 text-[10px] font-bold text-green-700">
-                                  💰 Paid: {leave.paid_days}
-                                </span>
-                              )}
-                              {leave.unpaid_days > 0 && (
-                                <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-bold text-red-700">
-                                  ❌ Unpaid: {leave.unpaid_days}
-                                </span>
-                              )}
                               {isPartial && (
                                 <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
                                   ⚠️ Partial Approval
@@ -254,7 +219,9 @@ const LeaveList = () => {
         )}
       </div>
 
-      {/* APPROVE MODAL */}
+      {/* ══════════════════════════════════════ */}
+      {/* 🆕 SIMPLE APPROVE MODAL              */}
+      {/* ══════════════════════════════════════ */}
       {approveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
@@ -272,7 +239,7 @@ const LeaveList = () => {
                 </div>
               </div>
 
-              {/* Employee applied for X days */}
+              {/* Leave Details */}
               <div className="mb-4 rounded-xl bg-[#faf8f5] p-3 space-y-1">
                 <div className="flex justify-between text-xs">
                   <span className="text-[#9CA3AF]">Applied Days:</span>
@@ -286,12 +253,16 @@ const LeaveList = () => {
                   <span className="text-[#9CA3AF]">Dates:</span>
                   <span className="font-bold text-[#1A1A2E]">{approveModal.from_date} → {approveModal.to_date}</span>
                 </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#9CA3AF]">Reason:</span>
+                  <span className="font-medium text-[#1A1A2E] text-right max-w-[60%]">{approveModal.reason}</span>
+                </div>
               </div>
 
-              {/* Approved Days Input */}
+              {/* 🆕 SIMPLE - Only Approved Days Input */}
               <div className="mb-4">
                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-                  Approve How Many Days? *
+                  Approve How Many Days? <span className="text-emerald-600">*</span>
                 </label>
                 <input
                   type="number"
@@ -300,72 +271,45 @@ const LeaveList = () => {
                   max={approveModal.applied_days}
                   value={approvedDays}
                   onChange={(e) => setApprovedDays(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 py-2.5 px-4 text-sm outline-none focus:border-emerald-500"
+                  className="w-full rounded-xl border-2 border-emerald-200 py-3 px-4 text-lg font-bold text-emerald-700 outline-none focus:border-emerald-500"
+                  autoFocus
                 />
-                <p className="text-[10px] text-[#9CA3AF] mt-1">
-                  Max: {approveModal.applied_days} days
+                <p className="text-[11px] text-[#9CA3AF] mt-1.5">
+                  Max: {approveModal.applied_days} days (applied)
                 </p>
               </div>
 
-              {/* Paid/Unpaid Split */}
-              <div className="mb-4 grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-2 block text-xs font-bold uppercase text-emerald-700">
-                    💰 Paid Days
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={paidDays}
-                    onChange={(e) => setPaidDays(e.target.value)}
-                    className="w-full rounded-xl border border-emerald-200 py-2.5 px-3 text-sm outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-bold uppercase text-red-700">
-                    ❌ Unpaid Days
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    value={unpaidDays}
-                    onChange={(e) => setUnpaidDays(e.target.value)}
-                    className="w-full rounded-xl border border-red-200 py-2.5 px-3 text-sm outline-none focus:border-red-500"
-                  />
-                </div>
-              </div>
-
               {/* Preview */}
-              {approvedDays > 0 && (
-                <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 p-3">
-                  <p className="text-[10px] font-bold text-blue-700 uppercase mb-2">📊 Summary</p>
-                  <div className="text-xs space-y-1">
+              {parseFloat(approvedDays) > 0 && (
+                <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 p-3">
+                  <p className="text-[10px] font-bold text-emerald-700 uppercase mb-2">📊 Summary</p>
+                  <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-blue-700">Approving:</span>
-                      <span className="font-bold text-blue-900">{approvedDays} of {approveModal.applied_days} days</span>
+                      <span className="text-emerald-700">Approving:</span>
+                      <span className="font-bold text-emerald-900">{approvedDays} of {approveModal.applied_days} days</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-blue-700">Salary Impact:</span>
-                      <span className="font-bold text-red-600">
-                        {parseFloat(unpaidDays) + (approveModal.applied_days - parseFloat(approvedDays))} days deducted
-                      </span>
-                    </div>
+                    {(approveModal.applied_days - parseFloat(approvedDays)) > 0 && (
+                      <div className="flex justify-between border-t border-emerald-200 pt-1 mt-1">
+                        <span className="text-red-600">Not Approved (Absent):</span>
+                        <span className="font-bold text-red-700">
+                          {approveModal.applied_days - parseFloat(approvedDays)} day(s)
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Remark */}
+              {/* Remark - OPTIONAL */}
               <div className="mb-5">
                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-                  Remark
+                  Remark <span className="text-[#9CA3AF] text-xs">(optional)</span>
                 </label>
                 <textarea
                   value={remark}
                   onChange={(e) => setRemark(e.target.value)}
                   rows={2}
-                  placeholder="Reason for partial approval..."
+                  placeholder="Optional: Add a remark..."
                   className="w-full rounded-xl border border-gray-200 py-2.5 px-3 text-sm outline-none focus:border-emerald-500 resize-none"
                 />
               </div>
@@ -378,7 +322,11 @@ const LeaveList = () => {
                   ✅ Approve {approvedDays} Day(s)
                 </button>
                 <button
-                  onClick={() => setApproveModal(null)}
+                  onClick={() => {
+                    setApproveModal(null);
+                    setApprovedDays('');
+                    setRemark('');
+                  }}
                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50"
                 >
                   Cancel
@@ -389,7 +337,9 @@ const LeaveList = () => {
         </div>
       )}
 
-      {/* REJECT MODAL */}
+      {/* ══════════════════════════════════════ */}
+      {/* REJECT MODAL - Optional Remark        */}
+      {/* ══════════════════════════════════════ */}
       {rejectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
@@ -407,7 +357,7 @@ const LeaveList = () => {
                 </div>
               </div>
 
-              <div className="mb-4 rounded-xl bg-[#faf8f5] p-3 text-xs">
+              <div className="mb-4 rounded-xl bg-[#faf8f5] p-3 text-xs space-y-1">
                 <p><strong>Days:</strong> {rejectModal.applied_days}</p>
                 <p><strong>Dates:</strong> {rejectModal.from_date} → {rejectModal.to_date}</p>
                 <p><strong>Type:</strong> {rejectModal.leave_type}</p>
@@ -415,13 +365,13 @@ const LeaveList = () => {
 
               <div className="mb-5">
                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-                  Rejection Reason *
+                  Rejection Reason <span className="text-[#9CA3AF] text-xs">(optional)</span>
                 </label>
                 <textarea
                   value={rejectRemark}
                   onChange={(e) => setRejectRemark(e.target.value)}
                   rows={3}
-                  placeholder="Explain why this leave is rejected..."
+                  placeholder="Optional: Explain why rejected..."
                   className="w-full rounded-xl border border-gray-200 py-2.5 px-3 text-sm outline-none focus:border-red-500 resize-none"
                   autoFocus
                 />
