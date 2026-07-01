@@ -74,23 +74,70 @@ const verifyFaceMatch = (inputEncoding, storedEncoding, allEncodings = []) => {
 };
 
 const findNearestSite = async (lat, lng, companyId) => {
+  console.log('═══════════════════════════════════');
+  console.log('🔍 SITE SEARCH DEBUG');
+  console.log('═══════════════════════════════════');
+  console.log('📍 Coordinates:', lat, lng);
+  console.log('🏢 Company ID:', companyId);
+  console.log('🏢 Company ID Type:', typeof companyId);
+  
   const filter = {};
-  if (companyId) filter.company_id = companyId;
+  if (companyId) {
+    // Handle both ObjectId and string
+    filter.company_id = companyId;
+  }
+  
+  console.log('🔍 Filter:', JSON.stringify(filter));
+  
+  // Also try without filter (see all sites)
+  const allSites = await Site.find({});
+  console.log(`📊 Total sites in DB: ${allSites.length}`);
+  
   const sites = await Site.find(filter);
-  if (sites.length === 0) return { site: null, distance: Infinity };
+  console.log(`🎯 Sites for this company: ${sites.length}`);
+  
+  if (sites.length > 0) {
+    console.log('📋 Available sites:');
+    sites.forEach((s, i) => {
+      console.log(`   ${i+1}. ${s.site_name}`);
+      console.log(`      Coords: (${s.latitude}, ${s.longitude})`);
+      console.log(`      Radius: ${s.radius}m`);
+      console.log(`      Company: ${s.company_id}`);
+    });
+  } else {
+    console.log('❌ NO SITES FOUND for company:', companyId);
+    console.log('📋 All available sites (any company):');
+    allSites.slice(0, 5).forEach(s => {
+      console.log(`   - ${s.site_name} (Company: ${s.company_id})`);
+    });
+  }
+  
+  if (sites.length === 0) {
+    console.log('═══════════════════════════════════\n');
+    return { site: null, distance: Infinity };
+  }
 
   let nearest = null;
   let minDistance = Infinity;
 
+  console.log('\n📐 Calculating distances:');
   for (const site of sites) {
-    if (!site.latitude || !site.longitude) continue;
+    if (!site.latitude || !site.longitude) {
+      console.log(`   ⚠️ ${site.site_name}: No coordinates`);
+      continue;
+    }
     const dist = calculateDistance(lat, lng, site.latitude, site.longitude);
+    console.log(`   📏 ${site.site_name}: ${dist}m (radius: ${site.radius}m)`);
     if (dist < minDistance) {
       minDistance = dist;
       nearest = site;
     }
   }
 
+  console.log(`\n✅ NEAREST: ${nearest?.site_name} at ${minDistance}m`);
+  console.log(`   Within radius (${nearest?.radius}m): ${minDistance <= nearest?.radius ? 'YES ✅' : 'NO ❌'}`);
+  console.log('═══════════════════════════════════\n');
+  
   return { site: nearest, distance: minDistance };
 };
 
@@ -189,6 +236,9 @@ const generateSiteNameFromAddress = (address) => {
 // ════════════════════════════════════════════════════════════
 // MARK ATTENDANCE - With Auto Site Name from Address
 // ════════════════════════════════════════════════════════════
+// controllers/attendanceController.js
+// (Only showing markAttendance function - rest is same)
+
 const markAttendance = async (req, res) => {
   try {
     const { face_encoding, latitude, longitude, action_type, selfie } = req.body;
@@ -229,11 +279,14 @@ const markAttendance = async (req, res) => {
 
     console.log(`✅ APPROVED — ${employee.name} | ${matchResult.confidence}%`);
 
-    // ── GPS Location Check ──
+    // ══════════════════════════════════════════════════
+    // ── 🆕 SMART GPS + SITE LOGIC ──
+    // ══════════════════════════════════════════════════
     let locationStatus = 'no-gps';
     let siteName = '';
     let distanceFromSite = 0;
     let isSiteConfigured = false;
+    let isWithinSiteRadius = false;
 
     if (latitude && longitude) {
       const companyId = employee.company_id?._id || employee.company_id?.toString() || employee.company_id;
@@ -241,17 +294,27 @@ const markAttendance = async (req, res) => {
 
       if (site) {
         distanceFromSite = distance;
-        siteName = site.site_name;
-        locationStatus = distance <= site.radius ? 'on-site' : 'out-of-range';
         isSiteConfigured = true;
-        console.log(`🏢 Site found: ${siteName} (${distance}m)`);
+        
+        if (distance <= site.radius) {
+          // ✅ Within site radius - Use CONFIGURED site name
+          siteName = site.site_name;
+          locationStatus = 'on-site';
+          isWithinSiteRadius = true;
+          console.log(`🏢 ON-SITE: ${siteName} (${distance}m within ${site.radius}m)`);
+        } else {
+          // ⚠️ Site configured but employee OUTSIDE radius
+          locationStatus = 'out-of-range';
+          isWithinSiteRadius = false;
+          console.log(`⚠️ OUT-OF-RANGE: ${distance}m from ${site.site_name} (radius: ${site.radius}m)`);
+        }
       } else {
         locationStatus = 'no-site-configured';
-        console.log(`⚠️ No site configured - will use address as site name`);
+        console.log(`⚠️ No site configured for this company`);
       }
     }
 
-    // ── 🆕 Get Address from Coordinates (FREE OpenStreetMap) ──
+    // ── Get Address from Coordinates (FREE OpenStreetMap) ──
     let addressData = null;
     if (latitude && longitude) {
       console.log(`🗺️ Getting address for ${latitude},${longitude}...`);
@@ -259,12 +322,18 @@ const markAttendance = async (req, res) => {
       if (addressData) console.log(`✅ Address: ${addressData}`);
     }
 
-    // ── 🆕 If no site configured, use address as site name ──
-    if (!isSiteConfigured && addressData) {
+    // ── 🆕 SMART SITE NAME PRIORITY LOGIC ──
+    if (isWithinSiteRadius) {
+      // ✅ Priority 1: Use configured site name (already set)
+      console.log(`📍 Using CONFIGURED site: ${siteName}`);
+    } else if (addressData) {
+      // ⚠️ Priority 2: Use API address (out-of-range or no-site)
       siteName = generateSiteNameFromAddress(addressData);
-      console.log(`📍 Auto site name from address: ${siteName}`);
-    } else if (!isSiteConfigured && !addressData) {
+      console.log(`📍 Using API address as site: ${siteName}`);
+    } else {
+      // ❌ Priority 3: Fallback
       siteName = 'Unknown Location';
+      console.log(`❌ No location info available`);
     }
 
     // ── Upload Selfie ──
@@ -311,7 +380,7 @@ const markAttendance = async (req, res) => {
           in_latitude: latitude || 0,
           in_longitude: longitude || 0,
           in_location_status: locationStatus,
-          in_site: siteName,  // 🆕 Now contains address if no site configured
+          in_site: siteName,  // 🆕 Smart site name
           in_distance: distanceFromSite,
           in_selfie_url: selfieData?.url || null,
           in_selfie_public_id: selfieData?.public_id || null,
@@ -353,7 +422,8 @@ const markAttendance = async (req, res) => {
           selfie_url: selfieData?.url || null,
           flagged: flags.length > 0,
           flag_reasons: flags,
-          auto_site: !isSiteConfigured,  // 🆕 Flag to know it's auto-generated
+          is_within_site: isWithinSiteRadius,  // 🆕
+          site_configured: isSiteConfigured,   // 🆕
         },
       });
     }
@@ -377,7 +447,7 @@ const markAttendance = async (req, res) => {
       attendance.out_latitude = latitude || 0;
       attendance.out_longitude = longitude || 0;
       attendance.out_location_status = locationStatus;
-      attendance.out_site = siteName;  // 🆕
+      attendance.out_site = siteName;  // 🆕 Smart site name
       attendance.out_distance = distanceFromSite;
       attendance.out_selfie_url = selfieData?.url || null;
       attendance.out_selfie_public_id = selfieData?.public_id || null;
@@ -417,7 +487,8 @@ const markAttendance = async (req, res) => {
           selfie_url: selfieData?.url || null,
           flagged: outFlags.length > 0,
           flag_reasons: outFlags,
-          auto_site: !isSiteConfigured,  // 🆕
+          is_within_site: isWithinSiteRadius,  // 🆕
+          site_configured: isSiteConfigured,   // 🆕
         },
       });
     }
@@ -426,7 +497,6 @@ const markAttendance = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
 // ════════════════════════════════════════════════════════════
 // GET MY ATTENDANCE
 // ════════════════════════════════════════════════════════════

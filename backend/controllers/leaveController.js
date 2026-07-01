@@ -2,45 +2,21 @@
 
 const Leave = require('../models/Leave');
 const Employee = require('../models/Employee');
+const LeaveBalance = require('../models/LeaveBalance');
 
 // ════════════════════════════════════════
-// HELPER: Get IST formatted timestamp
+// HELPER: Get IST timestamp
 // ════════════════════════════════════════
 const getISTTimestamp = () => {
   const now = new Date();
   const istOptions = {
     timeZone: 'Asia/Kolkata',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
   };
   const formatter = new Intl.DateTimeFormat('en-IN', istOptions);
   const parts = formatter.formatToParts(now);
-  
   return `${parts.find(p => p.type === 'day').value}/${parts.find(p => p.type === 'month').value}/${parts.find(p => p.type === 'year').value} ${parts.find(p => p.type === 'hour').value}:${parts.find(p => p.type === 'minute').value}:${parts.find(p => p.type === 'second').value}`;
-};
-
-// ════════════════════════════════════════
-// HELPER: Calculate days between dates
-// ════════════════════════════════════════
-const calculateDays = (fromDate, toDate, isHalfDay = false) => {
-  if (isHalfDay) return 0.5;
-  
-  // Parse "D/M/YYYY" format
-  const parseDate = (str) => {
-    const [d, m, y] = str.split('/');
-    return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-  };
-
-  const from = parseDate(fromDate);
-  const to = parseDate(toDate);
-  const diffTime = Math.abs(to - from);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  return diffDays;
 };
 
 // ════════════════════════════════════════
@@ -49,16 +25,10 @@ const calculateDays = (fromDate, toDate, isHalfDay = false) => {
 const applyLeave = async (req, res) => {
   try {
     const {
-      from_date,
-      to_date,
-      shift,
-      leave_type,
-      reason,
-      is_half_day,
-      half_day_period,
+      from_date, to_date, shift, leave_type,
+      reason, is_half_day, half_day_period,
     } = req.body;
 
-    // Basic validation
     if (!from_date || !to_date || !leave_type || !reason) {
       return res.status(400).json({
         success: false,
@@ -95,62 +65,41 @@ const applyLeave = async (req, res) => {
       });
     }
 
-    // 🆕 SMART DATE PARSER — handles both "D/M/YYYY" and "YYYY-MM-DD"
     const parseDate = (str) => {
       if (!str) return null;
-      
-      // Case 1: HTML date input format "2026-05-29"
       if (str.includes('-')) {
         const [y, m, d] = str.split('-').map(Number);
         return new Date(y, m - 1, d);
       }
-      
-      // Case 2: Old format "D/M/YYYY"
       if (str.includes('/')) {
         const [d, m, y] = str.split('/').map(Number);
         return new Date(y, m - 1, d);
       }
-      
       return new Date(str);
     };
 
-    // 🆕 SMART CALCULATE DAYS
     const calculateDays = (fromStr, toStr, isHalfDay = false) => {
       if (isHalfDay) return 0.5;
-      
       const from = parseDate(fromStr);
       const to = parseDate(toStr);
-      
-      // 🔧 Validation — if dates are invalid, return 1
-      if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) {
-        console.log('⚠️  Invalid dates:', { fromStr, toStr, from, to });
-        return 1;
-      }
-      
+      if (!from || !to || isNaN(from.getTime()) || isNaN(to.getTime())) return 1;
       const diffTime = Math.abs(to.getTime() - from.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
       return diffDays || 1;
     };
 
-    // 🆕 NORMALIZE DATE TO "D/M/YYYY" FORMAT (for storage consistency)
     const normalizeDate = (str) => {
       if (!str) return '';
-      
-      // If already in D/M/YYYY format, return as-is
       if (str.includes('/')) return str;
-      
-      // Convert from "2026-05-29" to "29/5/2026"
       if (str.includes('-')) {
         const [y, m, d] = str.split('-').map(Number);
         return `${d}/${m}/${y}`;
       }
-      
       return str;
     };
 
     const applied_days = calculateDays(from_date, to_date, is_half_day);
 
-    // 🔧 Safety check — ensure it's a valid number
     if (isNaN(applied_days) || applied_days < 0.5) {
       return res.status(400).json({
         success: false,
@@ -158,7 +107,6 @@ const applyLeave = async (req, res) => {
       });
     }
 
-    // 🆕 Store dates in consistent D/M/YYYY format
     const normalizedFrom = normalizeDate(from_date);
     const normalizedTo = normalizeDate(to_date);
 
@@ -187,19 +135,19 @@ const applyLeave = async (req, res) => {
       submission_date_ist: getISTTimestamp(),
     });
 
-    console.log(`✅ Leave applied: ${employee.name} | ${applied_days} day(s) | Dates: ${normalizedFrom} → ${normalizedTo}`);
+    console.log(`✅ Leave applied: ${employee.name} | ${applied_days} day(s)`);
 
     res.status(201).json({
       success: true,
       message: 'Leave application submitted successfully',
       data: leave,
     });
-
   } catch (err) {
     console.error('❌ Leave apply error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 // ════════════════════════════════════════
 // MY LEAVES (Employee)
 // ════════════════════════════════════════
@@ -207,7 +155,6 @@ const getMyLeaves = async (req, res) => {
   try {
     const leaves = await Leave.find({ emp_id: req.employee._id })
       .sort({ createdAt: -1 });
-
     res.json({ success: true, data: leaves });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -215,7 +162,7 @@ const getMyLeaves = async (req, res) => {
 };
 
 // ════════════════════════════════════════
-// MY LEAVE STATS (current month leave count)
+// MY LEAVE STATS
 // ════════════════════════════════════════
 const getMyLeaveStats = async (req, res) => {
   try {
@@ -223,30 +170,24 @@ const getMyLeaveStats = async (req, res) => {
     const currentMonth = parseInt(month) || new Date().getMonth() + 1;
     const currentYear = parseInt(year) || new Date().getFullYear();
 
-    // Get all approved leaves
     const leaves = await Leave.find({
       emp_id: req.employee._id,
       status: 'approved',
     });
 
-    // Filter by month/year (from_date matches)
     const monthLeaves = leaves.filter(l => {
       const [d, m, y] = l.from_date.split('/').map(Number);
       return m === currentMonth && y === currentYear;
     });
 
-    const totalDays = monthLeaves.reduce((sum, l) => sum + (l.leave_days || 0), 0);
+    // 🆕 Use approved_days instead of leave_days
+    const totalDays = monthLeaves.reduce((sum, l) => sum + (l.approved_days || l.leave_days || 0), 0);
     const totalCount = monthLeaves.length;
 
-    const byType = {
-      casual: 0,
-      sick: 0,
-      emergency: 0,
-      other: 0,
-    };
+    const byType = { casual: 0, sick: 0, emergency: 0, other: 0 };
     monthLeaves.forEach(l => {
       if (byType[l.leave_type] !== undefined) {
-        byType[l.leave_type] += l.leave_days || 0;
+        byType[l.leave_type] += l.approved_days || l.leave_days || 0;
       }
     });
 
@@ -272,7 +213,6 @@ const getMyLeaveStats = async (req, res) => {
 const getAllLeaves = async (req, res) => {
   try {
     const { status } = req.query;
-
     const filter = req.employee.role === 'super_admin'
       ? {}
       : { company_id: req.employee.company_id?._id || req.employee.company_id };
@@ -292,11 +232,16 @@ const getAllLeaves = async (req, res) => {
 };
 
 // ════════════════════════════════════════
-// APPROVE LEAVE (Manager or Admin)
+// 🆕 APPROVE LEAVE with PARTIAL DAYS
 // ════════════════════════════════════════
 const approveLeave = async (req, res) => {
   try {
-    const { remark } = req.body;
+    const { 
+      approved_days,     // 🆕 Kitne din approve karne hain
+      paid_days,         // 🆕 Kitne paid (from balance)
+      unpaid_days,       // 🆕 Kitne unpaid (deduct)
+      remark 
+    } = req.body;
 
     const leave = await Leave.findById(req.params.id);
     if (!leave) {
@@ -310,31 +255,94 @@ const approveLeave = async (req, res) => {
       });
     }
 
+    // 🆕 Validate approved_days
+    const finalApprovedDays = parseFloat(approved_days) || leave.applied_days;
+    
+    if (finalApprovedDays <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Approved days must be greater than 0'
+      });
+    }
+
+    if (finalApprovedDays > leave.applied_days) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot approve more than applied (${leave.applied_days} days)`
+      });
+    }
+
+    // 🆕 Get employee balance
+    const balance = await LeaveBalance.findOne({ emp_id: leave.emp_id });
+    const currentBalance = balance?.current_balance || 0;
+
+    // 🆕 Auto-calculate paid/unpaid if not provided
+    let finalPaidDays = parseFloat(paid_days);
+    let finalUnpaidDays = parseFloat(unpaid_days);
+
+    if (isNaN(finalPaidDays) || isNaN(finalUnpaidDays)) {
+      // Auto split based on balance
+      finalPaidDays = Math.min(finalApprovedDays, currentBalance);
+      finalUnpaidDays = Math.max(0, finalApprovedDays - currentBalance);
+    }
+
+    // Validate split
+    if (finalPaidDays + finalUnpaidDays !== finalApprovedDays) {
+      return res.status(400).json({
+        success: false,
+        message: `Paid + Unpaid must equal approved days (${finalApprovedDays})`
+      });
+    }
+
+    // 🆕 Update leave
     leave.status = 'approved';
+    leave.approved_days = finalApprovedDays;
+    leave.paid_days = finalPaidDays;
+    leave.unpaid_days = finalUnpaidDays;
+    leave.balance_before = currentBalance;
+    leave.balance_after = Math.max(0, currentBalance - finalPaidDays);
     leave.approved_by = req.employee._id;
     leave.approved_by_role = req.employee.role;
 
     if (req.employee.role === 'manager') {
-      leave.manager_remark = remark || 'Approved';
+      leave.manager_remark = remark || `Approved ${finalApprovedDays} day(s)`;
       leave.manager_action_date = new Date();
     } else {
-      leave.admin_remark = remark || 'Approved by admin';
+      leave.admin_remark = remark || `Approved ${finalApprovedDays} day(s) by admin`;
     }
 
     await leave.save();
 
+    // 🆕 Update leave balance (deduct paid days)
+    if (balance && finalPaidDays > 0) {
+      balance.current_balance = Math.max(0, currentBalance - finalPaidDays);
+      balance.total_used = (balance.total_used || 0) + finalPaidDays;
+      
+      if (balance.current_month) {
+        balance.current_month.used = (balance.current_month.used || 0) + finalPaidDays;
+      }
+      
+      await balance.save();
+      console.log(`💰 Balance updated: ${currentBalance} → ${balance.current_balance}`);
+    }
+
+    console.log(`✅ Leave APPROVED: ${leave.name}`);
+    console.log(`   Applied: ${leave.applied_days} | Approved: ${finalApprovedDays}`);
+    console.log(`   Paid: ${finalPaidDays} | Unpaid: ${finalUnpaidDays}`);
+
     res.json({
       success: true,
-      message: 'Leave approved',
+      message: `Leave approved: ${finalApprovedDays} day(s) (${finalPaidDays} paid, ${finalUnpaidDays} unpaid)`,
       data: leave
     });
   } catch (err) {
+    console.error('❌ Approve error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // ════════════════════════════════════════
-// REJECT LEAVE (Manager or Admin)
+// REJECT LEAVE
 // ════════════════════════════════════════
 const rejectLeave = async (req, res) => {
   try {
@@ -353,6 +361,9 @@ const rejectLeave = async (req, res) => {
     }
 
     leave.status = 'rejected';
+    leave.approved_days = 0;
+    leave.paid_days = 0;
+    leave.unpaid_days = 0;
     leave.approved_by = req.employee._id;
     leave.approved_by_role = req.employee.role;
 
@@ -365,6 +376,8 @@ const rejectLeave = async (req, res) => {
 
     await leave.save();
 
+    console.log(`❌ Leave REJECTED: ${leave.name} | Reason: ${remark}`);
+
     res.json({
       success: true,
       message: 'Leave rejected',
@@ -376,7 +389,7 @@ const rejectLeave = async (req, res) => {
 };
 
 // ════════════════════════════════════════
-// DELETE LEAVE (only if pending)
+// DELETE LEAVE
 // ════════════════════════════════════════
 const deleteLeave = async (req, res) => {
   try {
@@ -385,7 +398,6 @@ const deleteLeave = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Leave not found' });
     }
 
-    // Only owner can delete pending leave
     if (leave.emp_id.toString() !== req.employee._id.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
@@ -404,23 +416,16 @@ const deleteLeave = async (req, res) => {
   }
 };
 
-
-
-
-////// superr admin
-
-// ════════════════════════════════════════════
-// 🆕 SUPER ADMIN — GET ALL LEAVES (all companies)
-// ════════════════════════════════════════════
+// ════════════════════════════════════════
+// SUPER ADMIN — GET ALL LEAVES
+// ════════════════════════════════════════
 const getAllLeavesSuperAdmin = async (req, res) => {
   try {
     const { company_id, status, search } = req.query;
 
     let filter = {};
 
-    if (status && status !== 'all') {
-      filter.status = status;
-    }
+    if (status && status !== 'all') filter.status = status;
     if (search && search.trim() !== '') {
       const searchRegex = new RegExp(search.trim(), 'i');
       filter.$or = [
@@ -429,44 +434,30 @@ const getAllLeavesSuperAdmin = async (req, res) => {
       ];
     }
 
-    // Fetch leaves with employee populated (employee has company_id)
     let leaves = await Leave.find(filter)
       .populate({
         path: 'emp_id',
         select: 'name emp_code department company_id',
-        populate: {
-          path: 'company_id',
-          select: 'name code',
-        },
+        populate: { path: 'company_id', select: 'name code' },
       })
-      .populate('company_id', 'name code')   // also try direct populate
+      .populate('company_id', 'name code')
       .sort({ createdAt: -1 });
 
-    // 🔧 Smart fallback — get company info from employee if leave.company_id missing
     leaves = leaves.map((leave) => {
       const leaveObj = leave.toObject();
-
-      // If leave.company_id is missing/null, get from emp_id.company_id
       if (!leaveObj.company_id || !leaveObj.company_id.name) {
         if (leaveObj.emp_id?.company_id) {
           leaveObj.company_id = leaveObj.emp_id.company_id;
         }
       }
-
       return leaveObj;
     });
 
-    // Apply company filter AFTER populate (since data may come from emp)
     if (company_id && company_id !== 'all') {
       leaves = leaves.filter((l) => {
         const compId = l.company_id?._id?.toString() || l.company_id?.toString();
         return compId === company_id;
       });
-    }
-
-    // Debug log
-    if (leaves.length > 0) {
-      console.log('✅ Sample leave company:', leaves[0].company_id);
     }
 
     return res.json({
@@ -475,7 +466,6 @@ const getAllLeavesSuperAdmin = async (req, res) => {
       data: leaves,
     });
   } catch (error) {
-    console.log('❌ getAllLeavesSuperAdmin error:', error);
     return res.status(500).json({
       success: false,
       message: 'Server error',
@@ -484,51 +474,74 @@ const getAllLeavesSuperAdmin = async (req, res) => {
   }
 };
 
-// ════════════════════════════════════════════
-// 🆕 SUPER ADMIN — APPROVE LEAVE
-// ════════════════════════════════════════════
+// ════════════════════════════════════════
+// SUPER ADMIN — APPROVE (with partial)
+// ════════════════════════════════════════
 const superAdminApproveLeave = async (req, res) => {
   try {
-    const { admin_remark } = req.body;
+    const { approved_days, paid_days, unpaid_days, admin_remark } = req.body;
 
     const leave = await Leave.findById(req.params.id);
     if (!leave) {
       return res.status(404).json({ success: false, message: 'Leave nahi mili' });
     }
 
-    if (leave.status === 'approved') {
-      return res.status(400).json({ success: false, message: 'Already approved' });
+    const finalApprovedDays = parseFloat(approved_days) || leave.applied_days;
+    
+    if (finalApprovedDays > leave.applied_days) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot approve more than ${leave.applied_days} days`
+      });
+    }
+
+    const balance = await LeaveBalance.findOne({ emp_id: leave.emp_id });
+    const currentBalance = balance?.current_balance || 0;
+
+    let finalPaidDays = parseFloat(paid_days);
+    let finalUnpaidDays = parseFloat(unpaid_days);
+
+    if (isNaN(finalPaidDays) || isNaN(finalUnpaidDays)) {
+      finalPaidDays = Math.min(finalApprovedDays, currentBalance);
+      finalUnpaidDays = Math.max(0, finalApprovedDays - currentBalance);
     }
 
     leave.status = 'approved';
+    leave.approved_days = finalApprovedDays;
+    leave.paid_days = finalPaidDays;
+    leave.unpaid_days = finalUnpaidDays;
+    leave.balance_before = currentBalance;
+    leave.balance_after = Math.max(0, currentBalance - finalPaidDays);
     leave.approved_by = req.employee._id;
     leave.approved_by_role = 'super_admin';
     leave.manager_action_date = new Date();
-    leave.admin_remark = admin_remark || 'Approved by Super Admin';
-
-    // Default paid days if not set
-    if (!leave.approved_days) {
-      leave.approved_days = leave.leave_days || 1;
-      leave.paid_days = leave.approved_days;
-      leave.unpaid_days = 0;
-    }
+    leave.admin_remark = admin_remark || `Approved ${finalApprovedDays} day(s) by Super Admin`;
 
     await leave.save();
 
+    // Update balance
+    if (balance && finalPaidDays > 0) {
+      balance.current_balance = Math.max(0, currentBalance - finalPaidDays);
+      balance.total_used = (balance.total_used || 0) + finalPaidDays;
+      if (balance.current_month) {
+        balance.current_month.used = (balance.current_month.used || 0) + finalPaidDays;
+      }
+      await balance.save();
+    }
+
     return res.json({
       success: true,
-      message: 'Leave approve ho gayi',
+      message: `Approved ${finalApprovedDays} day(s)`,
       data: leave,
     });
   } catch (error) {
-    console.log('superAdminApproveLeave error:', error);
     return res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
-// ════════════════════════════════════════════
-// 🆕 SUPER ADMIN — REJECT LEAVE
-// ════════════════════════════════════════════
+// ════════════════════════════════════════
+// SUPER ADMIN — REJECT
+// ════════════════════════════════════════
 const superAdminRejectLeave = async (req, res) => {
   try {
     const { admin_remark } = req.body;
@@ -551,18 +564,17 @@ const superAdminRejectLeave = async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Leave reject ho gayi',
+      message: 'Leave rejected',
       data: leave,
     });
   } catch (error) {
-    console.log('superAdminRejectLeave error:', error);
     return res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
-// ════════════════════════════════════════════
-// 🆕 SUPER ADMIN — DELETE LEAVE
-// ════════════════════════════════════════════
+// ════════════════════════════════════════
+// SUPER ADMIN — DELETE
+// ════════════════════════════════════════
 const superAdminDeleteLeave = async (req, res) => {
   try {
     const leave = await Leave.findById(req.params.id);
@@ -574,10 +586,9 @@ const superAdminDeleteLeave = async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Leave delete ho gayi',
+      message: 'Leave deleted',
     });
   } catch (error) {
-    console.log('superAdminDeleteLeave error:', error);
     return res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };

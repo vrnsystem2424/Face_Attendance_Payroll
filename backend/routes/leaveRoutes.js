@@ -11,25 +11,37 @@ const {
   approveLeave,
   rejectLeave,
   deleteLeave,
-    getAllLeavesSuperAdmin,        // 🆕
-  superAdminApproveLeave,        // 🆕
-  superAdminRejectLeave,         // 🆕
-  superAdminDeleteLeave,  
+  getAllLeavesSuperAdmin,
+  superAdminApproveLeave,
+  superAdminRejectLeave,
+  superAdminDeleteLeave,
 } = require('../controllers/leaveController');
 
-// ── Employee ──
+// ══════════════════════════════════════════
+// EMPLOYEE ROUTES
+// ══════════════════════════════════════════
 router.post('/apply', protect, applyLeave);
 router.get('/my', protect, getMyLeaves);
 router.get('/my-stats', protect, getMyLeaveStats);
 router.delete('/:id', protect, deleteLeave);
 
-// ── Admin/Manager (managerRoutes mein bhi hai, yahan admin override ke liye) ──
+// ══════════════════════════════════════════
+// ADMIN/MANAGER ROUTES
+// ══════════════════════════════════════════
 router.get('/all', protect, adminOnly, getAllLeaves);
+
+// 🆕 BOTH URL PATTERNS - Backward Compatible
+// Pattern 1: /leaves/:id/approve (new pattern)
 router.put('/:id/approve', protect, adminOnly, approveLeave);
 router.put('/:id/reject', protect, adminOnly, rejectLeave);
 
+// Pattern 2: /leaves/approve/:id (old pattern - frontend using this)
+router.put('/approve/:id', protect, adminOnly, approveLeave);
+router.put('/reject/:id', protect, adminOnly, rejectLeave);
 
-/////// ── Super Admin ──
+// ══════════════════════════════════════════
+// SUPER ADMIN ROUTES
+// ══════════════════════════════════════════
 router.get('/super-admin/all', protect, superAdminOnly, getAllLeavesSuperAdmin);
 router.put('/super-admin/approve/:id', protect, superAdminOnly, superAdminApproveLeave);
 router.put('/super-admin/reject/:id', protect, superAdminOnly, superAdminRejectLeave);

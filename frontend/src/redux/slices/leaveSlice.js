@@ -52,11 +52,17 @@ export const fetchAllLeaves = createAsyncThunk(
 );
 
 // Leave Approve (Admin)
+// Leave Approve (Admin) - UPDATED with partial approval
 export const approveLeave = createAsyncThunk(
   'leaves/approveLeave',
-  async ({ id, remark }, { rejectWithValue }) => {
+  async ({ id, approved_days, paid_days, unpaid_days, remark }, { rejectWithValue }) => {
     try {
-      const response = await API.put(`/leaves/approve/${id}`, { remark });
+      const response = await API.put(`/leaves/approve/${id}`, {
+        approved_days,
+        paid_days,
+        unpaid_days,
+        remark,
+      });
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Approve nahi hua');
@@ -108,9 +114,14 @@ export const fetchAllLeavesSuperAdmin = createAsyncThunk(
 // Approve leave (Super admin)
 export const superAdminApproveLeave = createAsyncThunk(
   'leaves/superAdminApproveLeave',
-  async ({ id, admin_remark }, { rejectWithValue }) => {
+  async ({ id, approved_days, paid_days, unpaid_days, admin_remark }, { rejectWithValue }) => {
     try {
-      const response = await API.put(`/leaves/super-admin/approve/${id}`, { admin_remark });
+      const response = await API.put(`/leaves/super-admin/approve/${id}`, {
+        approved_days,
+        paid_days,
+        unpaid_days,
+        admin_remark,
+      });
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Approve failed');
