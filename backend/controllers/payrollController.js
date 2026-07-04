@@ -1,3 +1,5 @@
+
+
 // // backend/controllers/payrollController.js
 
 // const Employee = require('../models/Employee');
@@ -107,7 +109,7 @@
 // };
 
 // // ════════════════════════════════════════════
-// // 🎯 PAYROLL CALCULATION (Per Employee)
+// // 🎯 PAYROLL CALCULATION (Per Employee) — DUAL METHOD
 // // ════════════════════════════════════════════
 // const calculateEmployeePayroll = async (employee, month, year, settings) => {
 //   const monthlySalary = employee.monthly_salary || 0;
@@ -247,69 +249,65 @@
 
 //   // ────────────────────────────────────────
 //   // 🎯 8. SMART LEAVE LOGIC
-//   // Sunday work = Compensatory off
-//   // Comp offs reduce effective leaves
-//   // Then 2 free leaves apply
 //   // ────────────────────────────────────────
-
-//   // Sunday kaam kiya = compensatory off earned
 //   const compensatoryOffs = sundayWorked;
-
-//   // Effective leaves = Total leaves - Compensatory offs
-//   // Agar Sunday pe kaam kiya, toh utne leaves "maaf"
 //   const effectiveLeaves = Math.max(0, totalLeavesTaken - compensatoryOffs);
-
-//   // Available free leaves (opening carry + monthly credit)
 //   const totalAvailableLeaves = openingBalance + creditedThisMonth;
-
-//   // Paid = min(effective, available)
 //   const paidLeaves = Math.min(effectiveLeaves, totalAvailableLeaves);
-
-//   // Unpaid = remaining after paid
 //   const unpaidLeaves = Math.max(0, effectiveLeaves - totalAvailableLeaves);
-
-//   // Carry forward = unused free leaves
 //   const carryForward = Math.max(0, totalAvailableLeaves - effectiveLeaves);
 
 //   // ────────────────────────────────────────
-//   // 🎯 9. SALARY CALCULATION
+//   // 🎯 9. SALARY CALCULATION (DUAL METHOD)
 //   // ────────────────────────────────────────
 
-//   // Add paid leave hours (treated as worked)
+//   const perDayRate = totalWorkingDays > 0 ? (monthlySalary / totalWorkingDays) : 0;
+//   const perHourRate = requiredHours > 0 ? (monthlySalary / requiredHours) : 0;
+
+//   // ═══ METHOD 1: HOURS BASED ═══
 //   const paidLeaveMinutes = paidLeaves * dailyMinutes;
 //   const totalWorkingHourMinutes = totalWorkedMinutes + paidLeaveMinutes;
 
-//   // Progress based on hours
-//   let progressPercent = 0;
+//   let hoursProgressPercent = 0;
 //   if (requiredMinutes > 0) {
-//     progressPercent = (totalWorkingHourMinutes / requiredMinutes) * 100;
+//     hoursProgressPercent = (totalWorkingHourMinutes / requiredMinutes) * 100;
 //   }
+//   const cappedHoursProgress = Math.min(hoursProgressPercent, 100);
+//   const hoursBasedEarned = Math.round((monthlySalary * cappedHoursProgress) / 100);
+//   const hoursBasedDeduction = monthlySalary - hoursBasedEarned;
 
-//   const cappedProgress = Math.min(progressPercent, 100);
+//   // ═══ METHOD 2: DAYS BASED ═══
+//   const payableDays = presentDays + paidLeaves;
+//   let daysProgressPercent = 0;
+//   if (totalWorkingDays > 0) {
+//     daysProgressPercent = (payableDays / totalWorkingDays) * 100;
+//   }
+//   const cappedDaysProgress = Math.min(daysProgressPercent, 100);
+//   const daysBasedEarned = Math.round(perDayRate * payableDays);
+//   const daysBasedDeduction = Math.max(0, monthlySalary - daysBasedEarned);
+//   const absentDeduction = Math.round(perDayRate * absentDays);
+//   const unpaidLeaveDeduction = Math.round(perDayRate * unpaidLeaves);
 
-//   // Final salary
-//   const earnedSalary = Math.round((monthlySalary * cappedProgress) / 100);
-//   const totalDeduction = monthlySalary - earnedSalary;
+//   // ═══ DEFAULT (backward compatibility) — Using HOURS method ═══
+//   const earnedSalary = hoursBasedEarned;
+//   const totalDeduction = hoursBasedDeduction;
 //   const netPayable = earnedSalary;
+//   const progressPercent = hoursProgressPercent;
 //   const deductionPercent = Math.max(0, 100 - progressPercent);
-
-//   // Rates
-//   const perHourRate = requiredHours > 0 ? (monthlySalary / requiredHours) : 0;
-//   const perDayRate = monthlySalary > 0 ? (monthlySalary / 30) : 0;
 
 //   // ────────────────────────────────────────
 //   // Debug Log
 //   // ────────────────────────────────────────
 //   console.log(`📊 ${employee.name} (${employee.emp_code}):`);
-//   console.log(`   📅 Working: ${totalWorkingDays} | Off: ${offDayCount} | Holiday: ${holidayCount}`);
-//   console.log(`   ☀️  Sunday Work: ${sundayWorked} days → ${compensatoryOffs} comp offs earned`);
-//   console.log(`   🎯 Required: ${requiredHours}h | Worked: ${formatHours(totalWorkedMinutes)}`);
-//   console.log(`   👤 Present: ${presentDays} | Absent: ${absentDays}`);
-//   console.log(`   📋 Leaves Taken: ${totalLeavesTaken} | Comp Offs: -${compensatoryOffs} | Effective: ${effectiveLeaves}`);
-//   console.log(`   💼 Paid: ${paidLeaves} | Unpaid: ${unpaidLeaves} | Carry: ${carryForward}`);
-//   console.log(`   ⏱️  Total Working Hour: ${formatHours(totalWorkingHourMinutes)} | Progress: ${progressPercent.toFixed(2)}%`);
-//   console.log(`   💰 Salary: ₹${monthlySalary} → Earned: ₹${earnedSalary} | Deduction: ₹${totalDeduction}`);
-//   console.log('   ───────────────────────────────');
+//   console.log(`   📅 Working Days: ${totalWorkingDays} | Off: ${offDayCount} | Holiday: ${holidayCount}`);
+//   console.log(`   👤 Present: ${presentDays} | Absent: ${absentDays} | Leaves: ${totalLeavesTaken}`);
+//   console.log(`   ☀️  Sunday Work: ${sundayWorked} → Comp Offs: ${compensatoryOffs}`);
+//   console.log(`   💼 Paid Leaves: ${paidLeaves} | Unpaid: ${unpaidLeaves} | Carry: ${carryForward}`);
+//   console.log(`   ⏱️  Worked: ${formatHours(totalWorkedMinutes)} / ${requiredHours}h`);
+//   console.log(`   ────────────────────────────────`);
+//   console.log(`   💰 [HOURS]: ${hoursProgressPercent.toFixed(2)}% → Earned: ₹${hoursBasedEarned} | Cut: ₹${hoursBasedDeduction}`);
+//   console.log(`   💰 [DAYS]:  ${daysProgressPercent.toFixed(2)}% → Earned: ₹${daysBasedEarned} | Cut: ₹${daysBasedDeduction}`);
+//   console.log('   ═══════════════════════════════════');
 
 //   return {
 //     emp_id: employee._id,
@@ -356,19 +354,44 @@
 //     total_paid_hours: formatHours(totalWorkingHourMinutes),
 //     total_paid_minutes: totalWorkingHourMinutes,
 
-//     // Percentages
+//     // 🆕 ═══ HOURS BASED CALCULATION ═══
+//     hours_based: {
+//       progress_percent: parseFloat(hoursProgressPercent.toFixed(2)),
+//       capped_percent: parseFloat(cappedHoursProgress.toFixed(2)),
+//       earned: hoursBasedEarned,
+//       deduction: hoursBasedDeduction,
+//       net_payable: hoursBasedEarned,
+//       total_hours_worked: formatHours(totalWorkedMinutes),
+//       paid_leave_hours: formatHours(paidLeaveMinutes),
+//       total_effective_hours: formatHours(totalWorkingHourMinutes),
+//     },
+
+//     // 🆕 ═══ DAYS BASED CALCULATION ═══
+//     days_based: {
+//       progress_percent: parseFloat(daysProgressPercent.toFixed(2)),
+//       capped_percent: parseFloat(cappedDaysProgress.toFixed(2)),
+//       earned: daysBasedEarned,
+//       deduction: daysBasedDeduction,
+//       net_payable: daysBasedEarned,
+//       payable_days: payableDays,
+//       absent_deduction: absentDeduction,
+//       unpaid_leave_deduction: unpaidLeaveDeduction,
+//       per_day_rate: parseFloat(perDayRate.toFixed(2)),
+//     },
+
+//     // Default (backward compatibility — uses HOURS method)
 //     total_progress_percent: parseFloat(progressPercent.toFixed(2)),
 //     fix_salary_percent: 100,
 //     deduction_percent: parseFloat(deductionPercent.toFixed(2)),
 //     progress_according_percent: parseFloat(progressPercent.toFixed(2)),
 
-//     // Salary
+//     // Salary defaults
 //     hours_amount: Math.round((totalWorkedMinutes / 60) * perHourRate),
 //     earned_salary: earnedSalary,
 //     total_deduction: totalDeduction,
 //     net_payable: netPayable,
-//     unpaid_deduction: 0,
-//     absent_deduction: 0,
+//     unpaid_deduction: unpaidLeaveDeduction,
+//     absent_deduction: absentDeduction,
 
 //     // Rates
 //     per_hour_rate: parseFloat(perHourRate.toFixed(2)),
@@ -402,12 +425,13 @@
 //     });
 
 //     console.log('\n═══════════════════════════════════════');
-//     console.log(`📊 PAYROLL CALCULATION`);
+//     console.log(`📊 PAYROLL CALCULATION (DUAL METHOD)`);
 //     console.log(`   Company: ${company.name}`);
 //     console.log(`   Month: ${currentMonth}/${currentYear}`);
 //     console.log(`   Required Hours: ${settings?.required_hours || 'auto'}`);
 //     console.log(`   Free Leaves: ${FREE_LEAVES_PER_MONTH}/month`);
 //     console.log(`   🆕 Sunday Work = Compensatory Off`);
+//     console.log(`   🆕 Dual Calculation: Hours + Days`);
 //     console.log('═══════════════════════════════════════\n');
 
 //     const filter = {
@@ -431,8 +455,15 @@
 //           month_name: new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long' }),
 //           employees: [],
 //           summary: {
-//             total_employees: 0, total_monthly_salary: 0, total_earned: 0,
-//             total_deduction: 0, total_net_payable: 0,
+//             total_employees: 0,
+//             total_monthly_salary: 0,
+//             total_earned: 0,
+//             total_earned_hours: 0,
+//             total_earned_days: 0,
+//             total_deduction: 0,
+//             total_deduction_hours: 0,
+//             total_deduction_days: 0,
+//             total_net_payable: 0,
 //           },
 //         },
 //       });
@@ -444,13 +475,30 @@
 //       payrollData.push(payroll);
 //     }
 
+//     // 🆕 DUAL SUMMARY
 //     const summary = {
 //       total_employees: payrollData.length,
 //       total_monthly_salary: payrollData.reduce((s, p) => s + p.monthly_salary, 0),
+
+//       // Hours based totals
+//       total_earned_hours: payrollData.reduce((s, p) => s + p.hours_based.earned, 0),
+//       total_deduction_hours: payrollData.reduce((s, p) => s + p.hours_based.deduction, 0),
+//       total_net_payable_hours: payrollData.reduce((s, p) => s + p.hours_based.net_payable, 0),
+
+//       // Days based totals
+//       total_earned_days: payrollData.reduce((s, p) => s + p.days_based.earned, 0),
+//       total_deduction_days: payrollData.reduce((s, p) => s + p.days_based.deduction, 0),
+//       total_net_payable_days: payrollData.reduce((s, p) => s + p.days_based.net_payable, 0),
+//       total_absent_deduction: payrollData.reduce((s, p) => s + (p.days_based.absent_deduction || 0), 0),
+//       total_unpaid_leave_deduction: payrollData.reduce((s, p) => s + (p.days_based.unpaid_leave_deduction || 0), 0),
+
+//       // Default (backward compat — uses HOURS method)
 //       total_earned: payrollData.reduce((s, p) => s + p.earned_salary, 0),
-//       total_hours_amount: payrollData.reduce((s, p) => s + (p.hours_amount || 0), 0),
 //       total_deduction: payrollData.reduce((s, p) => s + p.total_deduction, 0),
 //       total_net_payable: payrollData.reduce((s, p) => s + p.net_payable, 0),
+//       total_hours_amount: payrollData.reduce((s, p) => s + (p.hours_amount || 0), 0),
+
+//       // Attendance
 //       total_present: payrollData.reduce((s, p) => s + p.total_present, 0),
 //       total_absent: payrollData.reduce((s, p) => s + p.total_absent, 0),
 //       total_leaves: payrollData.reduce((s, p) => s + p.total_leave_approved, 0),
@@ -459,10 +507,10 @@
 //       total_compensatory: payrollData.reduce((s, p) => s + (p.compensatory_offs || 0), 0),
 //     };
 
-//     console.log(`✅ TOTAL: ${summary.total_employees} employees`);
-//     console.log(`💰 Salary: ₹${summary.total_monthly_salary.toLocaleString('en-IN')}`);
-//     console.log(`💵 Earned: ₹${summary.total_earned.toLocaleString('en-IN')}`);
-//     console.log(`📉 Deduction: ₹${summary.total_deduction.toLocaleString('en-IN')}`);
+//     console.log(`\n✅ TOTAL: ${summary.total_employees} employees`);
+//     console.log(`💰 Total Salary: ₹${summary.total_monthly_salary.toLocaleString('en-IN')}`);
+//     console.log(`💵 [HOURS] Earned: ₹${summary.total_earned_hours.toLocaleString('en-IN')} | Cut: ₹${summary.total_deduction_hours.toLocaleString('en-IN')}`);
+//     console.log(`💵 [DAYS]  Earned: ₹${summary.total_earned_days.toLocaleString('en-IN')} | Cut: ₹${summary.total_deduction_days.toLocaleString('en-IN')}`);
 //     console.log(`☀️  Sunday Work: ${summary.total_sunday_worked} | Comp Offs: ${summary.total_compensatory}\n`);
 
 //     return res.json({
@@ -542,13 +590,16 @@ const Leave = require('../models/Leave');
 const MonthlySettings = require('../models/MonthlySettings');
 const Company = require('../models/Company');
 const LeaveBalance = require('../models/LeaveBalance');
+const { 
+  getAttendanceStatus, 
+  calculateLateLeaveDeduction 
+} = require('../utils/attendanceStatus');
 
-const FREE_LEAVES_PER_MONTH = 2;
+const FREE_LEAVES_PER_MONTH = 1;  // 🆕 Changed from 2 to 1
 
 // ════════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════════
-
 const parseTimeToMinutes = (timeStr) => {
   if (!timeStr) return null;
   const parts = timeStr.trim().split(' ');
@@ -594,7 +645,7 @@ const formatHours = (totalMinutes) => {
 };
 
 // ════════════════════════════════════════════
-// SMART OFF DAY DETECTION (Per Employee)
+// DETECT OFF DAYS (per employee)
 // ════════════════════════════════════════════
 const detectOffDays = (allDates, attendanceRecords) => {
   const attendedDates = new Set(
@@ -643,7 +694,7 @@ const detectOffDays = (allDates, attendanceRecords) => {
 };
 
 // ════════════════════════════════════════════
-// 🎯 PAYROLL CALCULATION (Per Employee) — DUAL METHOD
+// 🎯 PAYROLL CALCULATION with LATE/HALF-DAY LOGIC
 // ════════════════════════════════════════════
 const calculateEmployeePayroll = async (employee, month, year, settings) => {
   const monthlySalary = employee.monthly_salary || 0;
@@ -651,15 +702,9 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   const dailyMinutes = dailyHours * 60;
   const holidays = settings?.holidays || [];
 
-  // ────────────────────────────────────────
-  // 1. All dates + holidays
-  // ────────────────────────────────────────
   const allDates = getDatesInMonth(month, year);
   const holidaySet = new Set(holidays.map(h => h.date));
 
-  // ────────────────────────────────────────
-  // 2. Fetch attendance & leaves
-  // ────────────────────────────────────────
   const attendanceRecords = await Attendance.find({
     emp_id: employee._id,
     date: { $in: allDates },
@@ -677,7 +722,6 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
 
   const totalLeavesTaken = monthLeaves.reduce((sum, l) => sum + (l.leave_days || 1), 0);
 
-  // Build leave date set
   const leaveDateSet = new Set();
   monthLeaves.forEach(l => {
     const [fd, fm, fy] = l.from_date.split('/').map(Number);
@@ -691,14 +735,8 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     }
   });
 
-  // ────────────────────────────────────────
-  // 3. SMART DETECT OFF DAYS
-  // ────────────────────────────────────────
   const offDates = detectOffDays(allDates, attendanceRecords);
 
-  // ────────────────────────────────────────
-  // 4. Working days count
-  // ────────────────────────────────────────
   let totalWorkingDays = 0;
   let offDayCount = 0;
   let holidayCount = 0;
@@ -713,21 +751,22 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     }
   }
 
-  // ────────────────────────────────────────
-  // 5. Required hours
-  // ────────────────────────────────────────
   const autoHours = totalWorkingDays * dailyHours;
   const requiredHours = settings?.required_hours
     ? Number(settings.required_hours)
     : autoHours;
   const requiredMinutes = requiredHours * 60;
 
-  // ────────────────────────────────────────
-  // 🎯 6. PROCESS ATTENDANCE
-  // ────────────────────────────────────────
+  // ════════════════════════════════════════
+  // 🆕 PROCESS ATTENDANCE WITH LATE/HALF-DAY
+  // ════════════════════════════════════════
   let totalWorkedMinutes = 0;
   let presentDays = 0;
   let sundayWorked = 0;
+  let lateCount = 0;
+  let halfDayCount = 0;
+  const lateDates = [];
+  const halfDayDates = [];
 
   const today = new Date();
   const todayDate = today.getDate();
@@ -744,13 +783,26 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     if (attendance && attendance.in_time) {
       presentDays++;
       if (dayName === 'Sunday') sundayWorked++;
+      
       if (attendance.out_time) {
         totalWorkedMinutes += calculateWorkingMinutes(attendance.in_time, attendance.out_time);
+      }
+
+      // 🆕 CHECK LATE/HALF-DAY STATUS
+      const statusInfo = getAttendanceStatus(attendance.in_time, attendance.out_time);
+      
+      if (statusInfo.is_late) {
+        lateCount++;
+        lateDates.push(dateStr);
+      }
+      
+      if (statusInfo.is_half_day) {
+        halfDayCount++;
+        halfDayDates.push(dateStr);
       }
     }
   }
 
-  // ABSENT = Working days pe nahi aaya (excluding off, holidays, leaves)
   let expectedWorkDays = 0;
   for (const dateStr of allDates) {
     const [d] = dateStr.split('/').map(Number);
@@ -763,16 +815,21 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
 
   const absentDays = Math.max(0, expectedWorkDays - presentDays);
 
-  // ────────────────────────────────────────
-  // 7. Leave Balance (Carry Forward)
-  // ────────────────────────────────────────
+  // ════════════════════════════════════════
+  // 🆕 CALCULATE LATE-TO-LEAVE CONVERSION
+  // ════════════════════════════════════════
+  const lateLeaveDeduction = calculateLateLeaveDeduction(lateCount);
+  const halfDayLeaves = halfDayCount * 0.5;
+  const totalLateHalfDayDeduction = lateLeaveDeduction + halfDayLeaves;
+
+  // Leave Balance
   const leaveBalance = await LeaveBalance.findOne({ emp_id: employee._id });
 
   let openingBalance = 0;
   let creditedThisMonth = FREE_LEAVES_PER_MONTH;
 
   if (leaveBalance) {
-    const monthEntry = leaveBalance.history.find(h => h.month === month && h.year === year);
+    const monthEntry = leaveBalance.history?.find(h => h.month === month && h.year === year);
     if (monthEntry) {
       openingBalance = monthEntry.opening_balance || 0;
       creditedThisMonth = monthEntry.credited || FREE_LEAVES_PER_MONTH;
@@ -781,27 +838,34 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     }
   }
 
-  // ────────────────────────────────────────
-  // 🎯 8. SMART LEAVE LOGIC
-  // ────────────────────────────────────────
+  // ════════════════════════════════════════
+  // 🎯 SMART LEAVE LOGIC WITH LATE DEDUCTION
+  // ════════════════════════════════════════
   const compensatoryOffs = sundayWorked;
-  const effectiveLeaves = Math.max(0, totalLeavesTaken - compensatoryOffs);
+  
+  // Total leaves needed:
+  // - Actual leaves taken
+  // - Late conversion
+  // - Half day conversion
+  const totalLeavesNeeded = totalLeavesTaken + totalLateHalfDayDeduction;
+  
+  // Effective leaves after compensatory offs
+  const effectiveLeaves = Math.max(0, totalLeavesNeeded - compensatoryOffs);
   const totalAvailableLeaves = openingBalance + creditedThisMonth;
+  
   const paidLeaves = Math.min(effectiveLeaves, totalAvailableLeaves);
   const unpaidLeaves = Math.max(0, effectiveLeaves - totalAvailableLeaves);
   const carryForward = Math.max(0, totalAvailableLeaves - effectiveLeaves);
 
-  // ────────────────────────────────────────
-  // 🎯 9. SALARY CALCULATION (DUAL METHOD)
-  // ────────────────────────────────────────
-
+  // ════════════════════════════════════════
+  // SALARY CALCULATION
+  // ════════════════════════════════════════
   const perDayRate = totalWorkingDays > 0 ? (monthlySalary / totalWorkingDays) : 0;
   const perHourRate = requiredHours > 0 ? (monthlySalary / requiredHours) : 0;
 
-  // ═══ METHOD 1: HOURS BASED ═══
+  // HOURS BASED
   const paidLeaveMinutes = paidLeaves * dailyMinutes;
   const totalWorkingHourMinutes = totalWorkedMinutes + paidLeaveMinutes;
-
   let hoursProgressPercent = 0;
   if (requiredMinutes > 0) {
     hoursProgressPercent = (totalWorkingHourMinutes / requiredMinutes) * 100;
@@ -810,37 +874,38 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   const hoursBasedEarned = Math.round((monthlySalary * cappedHoursProgress) / 100);
   const hoursBasedDeduction = monthlySalary - hoursBasedEarned;
 
-  // ═══ METHOD 2: DAYS BASED ═══
-  const payableDays = presentDays + paidLeaves;
+  // DAYS BASED (with late/half-day deductions)
+  const payableDays = presentDays + paidLeaves - totalLateHalfDayDeduction;
   let daysProgressPercent = 0;
   if (totalWorkingDays > 0) {
     daysProgressPercent = (payableDays / totalWorkingDays) * 100;
   }
   const cappedDaysProgress = Math.min(daysProgressPercent, 100);
-  const daysBasedEarned = Math.round(perDayRate * payableDays);
+  const daysBasedEarned = Math.round(perDayRate * Math.max(0, payableDays));
   const daysBasedDeduction = Math.max(0, monthlySalary - daysBasedEarned);
+  
   const absentDeduction = Math.round(perDayRate * absentDays);
   const unpaidLeaveDeduction = Math.round(perDayRate * unpaidLeaves);
+  const lateHalfDayDeductionAmount = Math.round(perDayRate * totalLateHalfDayDeduction);
 
-  // ═══ DEFAULT (backward compatibility) — Using HOURS method ═══
+  // Default (backward compat)
   const earnedSalary = hoursBasedEarned;
   const totalDeduction = hoursBasedDeduction;
   const netPayable = earnedSalary;
   const progressPercent = hoursProgressPercent;
   const deductionPercent = Math.max(0, 100 - progressPercent);
 
-  // ────────────────────────────────────────
-  // Debug Log
-  // ────────────────────────────────────────
-  console.log(`📊 ${employee.name} (${employee.emp_code}):`);
+  // Debug log
+  console.log(`\n📊 ${employee.name} (${employee.emp_code}):`);
   console.log(`   📅 Working Days: ${totalWorkingDays} | Off: ${offDayCount} | Holiday: ${holidayCount}`);
-  console.log(`   👤 Present: ${presentDays} | Absent: ${absentDays} | Leaves: ${totalLeavesTaken}`);
-  console.log(`   ☀️  Sunday Work: ${sundayWorked} → Comp Offs: ${compensatoryOffs}`);
-  console.log(`   💼 Paid Leaves: ${paidLeaves} | Unpaid: ${unpaidLeaves} | Carry: ${carryForward}`);
-  console.log(`   ⏱️  Worked: ${formatHours(totalWorkedMinutes)} / ${requiredHours}h`);
-  console.log(`   ────────────────────────────────`);
-  console.log(`   💰 [HOURS]: ${hoursProgressPercent.toFixed(2)}% → Earned: ₹${hoursBasedEarned} | Cut: ₹${hoursBasedDeduction}`);
-  console.log(`   💰 [DAYS]:  ${daysProgressPercent.toFixed(2)}% → Earned: ₹${daysBasedEarned} | Cut: ₹${daysBasedDeduction}`);
+  console.log(`   👤 Present: ${presentDays} | Absent: ${absentDays}`);
+  console.log(`   ⏰ Late: ${lateCount} → Deduction: ${lateLeaveDeduction} days`);
+  console.log(`   🕐 Half Days: ${halfDayCount} → Deduction: ${halfDayLeaves} days`);
+  console.log(`   📋 Actual Leaves: ${totalLeavesTaken}`);
+  console.log(`   📊 Total Leave Deduction: ${totalLateHalfDayDeduction} days`);
+  console.log(`   💼 Paid: ${paidLeaves} | Unpaid: ${unpaidLeaves} | Carry: ${carryForward}`);
+  console.log(`   💰 [HOURS]: ${hoursProgressPercent.toFixed(2)}% → ₹${hoursBasedEarned}`);
+  console.log(`   💰 [DAYS]:  ${daysProgressPercent.toFixed(2)}% → ₹${daysBasedEarned}`);
   console.log('   ═══════════════════════════════════');
 
   return {
@@ -850,12 +915,10 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     department: employee.department,
     designation: employee.designation,
 
-    // Salary
     monthly_salary: monthlySalary,
     targeted_hours: requiredHours,
     targeted_hours_formatted: `${requiredHours}h`,
 
-    // Days
     total_working_days: totalWorkingDays,
     total_present: presentDays,
     total_absent: absentDays,
@@ -865,6 +928,16 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     holiday_count: holidayCount,
     sunday_worked: sundayWorked,
 
+    // 🆕 LATE / HALF DAY STATS
+    late_count: lateCount,
+    half_day_count: halfDayCount,
+    late_dates: lateDates,
+    half_day_dates: halfDayDates,
+    late_leave_deduction: lateLeaveDeduction,
+    half_day_leaves: halfDayLeaves,
+    total_late_half_day_deduction: totalLateHalfDayDeduction,
+    late_half_day_amount: lateHalfDayDeductionAmount,
+
     // Leave Balance
     leave_opening_balance: openingBalance,
     leave_credited: creditedThisMonth,
@@ -872,7 +945,6 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     leave_closing_balance: carryForward,
     leave_available: totalAvailableLeaves,
 
-    // Leave Breakdown
     payble_leave: paidLeaves,
     paid_leave_days: paidLeaves,
     unpaid_leave_days: unpaidLeaves,
@@ -881,14 +953,12 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     compensatory_offs: compensatoryOffs,
     effective_leaves: effectiveLeaves,
 
-    // Hours
     worked_hours: formatHours(totalWorkedMinutes),
     worked_minutes: totalWorkedMinutes,
     total_working_hour: formatHours(totalWorkingHourMinutes),
     total_paid_hours: formatHours(totalWorkingHourMinutes),
     total_paid_minutes: totalWorkingHourMinutes,
 
-    // 🆕 ═══ HOURS BASED CALCULATION ═══
     hours_based: {
       progress_percent: parseFloat(hoursProgressPercent.toFixed(2)),
       capped_percent: parseFloat(cappedHoursProgress.toFixed(2)),
@@ -900,7 +970,6 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
       total_effective_hours: formatHours(totalWorkingHourMinutes),
     },
 
-    // 🆕 ═══ DAYS BASED CALCULATION ═══
     days_based: {
       progress_percent: parseFloat(daysProgressPercent.toFixed(2)),
       capped_percent: parseFloat(cappedDaysProgress.toFixed(2)),
@@ -910,16 +979,15 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
       payable_days: payableDays,
       absent_deduction: absentDeduction,
       unpaid_leave_deduction: unpaidLeaveDeduction,
+      late_half_day_deduction: lateHalfDayDeductionAmount,
       per_day_rate: parseFloat(perDayRate.toFixed(2)),
     },
 
-    // Default (backward compatibility — uses HOURS method)
     total_progress_percent: parseFloat(progressPercent.toFixed(2)),
     fix_salary_percent: 100,
     deduction_percent: parseFloat(deductionPercent.toFixed(2)),
     progress_according_percent: parseFloat(progressPercent.toFixed(2)),
 
-    // Salary defaults
     hours_amount: Math.round((totalWorkedMinutes / 60) * perHourRate),
     earned_salary: earnedSalary,
     total_deduction: totalDeduction,
@@ -927,7 +995,6 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     unpaid_deduction: unpaidLeaveDeduction,
     absent_deduction: absentDeduction,
 
-    // Rates
     per_hour_rate: parseFloat(perHourRate.toFixed(2)),
     per_day_rate: parseFloat(perDayRate.toFixed(2)),
   };
@@ -959,13 +1026,13 @@ const getCompanyPayroll = async (req, res) => {
     });
 
     console.log('\n═══════════════════════════════════════');
-    console.log(`📊 PAYROLL CALCULATION (DUAL METHOD)`);
+    console.log(`📊 PAYROLL WITH LATE/HALF-DAY RULES`);
     console.log(`   Company: ${company.name}`);
     console.log(`   Month: ${currentMonth}/${currentYear}`);
-    console.log(`   Required Hours: ${settings?.required_hours || 'auto'}`);
+    console.log(`   Office: 9:30 AM - 6:30 PM`);
+    console.log(`   Late Rules: 3L=0.5d | 5L=1d | Extra L=0.5d each`);
+    console.log(`   Half Day: IN≥11AM or OUT≤4PM`);
     console.log(`   Free Leaves: ${FREE_LEAVES_PER_MONTH}/month`);
-    console.log(`   🆕 Sunday Work = Compensatory Off`);
-    console.log(`   🆕 Dual Calculation: Hours + Days`);
     console.log('═══════════════════════════════════════\n');
 
     const filter = {
@@ -1009,43 +1076,42 @@ const getCompanyPayroll = async (req, res) => {
       payrollData.push(payroll);
     }
 
-    // 🆕 DUAL SUMMARY
     const summary = {
       total_employees: payrollData.length,
       total_monthly_salary: payrollData.reduce((s, p) => s + p.monthly_salary, 0),
 
-      // Hours based totals
       total_earned_hours: payrollData.reduce((s, p) => s + p.hours_based.earned, 0),
       total_deduction_hours: payrollData.reduce((s, p) => s + p.hours_based.deduction, 0),
       total_net_payable_hours: payrollData.reduce((s, p) => s + p.hours_based.net_payable, 0),
 
-      // Days based totals
       total_earned_days: payrollData.reduce((s, p) => s + p.days_based.earned, 0),
       total_deduction_days: payrollData.reduce((s, p) => s + p.days_based.deduction, 0),
       total_net_payable_days: payrollData.reduce((s, p) => s + p.days_based.net_payable, 0),
       total_absent_deduction: payrollData.reduce((s, p) => s + (p.days_based.absent_deduction || 0), 0),
       total_unpaid_leave_deduction: payrollData.reduce((s, p) => s + (p.days_based.unpaid_leave_deduction || 0), 0),
 
-      // Default (backward compat — uses HOURS method)
       total_earned: payrollData.reduce((s, p) => s + p.earned_salary, 0),
       total_deduction: payrollData.reduce((s, p) => s + p.total_deduction, 0),
       total_net_payable: payrollData.reduce((s, p) => s + p.net_payable, 0),
       total_hours_amount: payrollData.reduce((s, p) => s + (p.hours_amount || 0), 0),
 
-      // Attendance
       total_present: payrollData.reduce((s, p) => s + p.total_present, 0),
       total_absent: payrollData.reduce((s, p) => s + p.total_absent, 0),
       total_leaves: payrollData.reduce((s, p) => s + p.total_leave_approved, 0),
       total_carry_forward: payrollData.reduce((s, p) => s + (p.leave_closing_balance || 0), 0),
       total_sunday_worked: payrollData.reduce((s, p) => s + (p.sunday_worked || 0), 0),
       total_compensatory: payrollData.reduce((s, p) => s + (p.compensatory_offs || 0), 0),
+      
+      // 🆕 Late/Half Day totals
+      total_late: payrollData.reduce((s, p) => s + (p.late_count || 0), 0),
+      total_half_day: payrollData.reduce((s, p) => s + (p.half_day_count || 0), 0),
+      total_late_deduction_days: payrollData.reduce((s, p) => s + (p.total_late_half_day_deduction || 0), 0),
     };
 
     console.log(`\n✅ TOTAL: ${summary.total_employees} employees`);
-    console.log(`💰 Total Salary: ₹${summary.total_monthly_salary.toLocaleString('en-IN')}`);
-    console.log(`💵 [HOURS] Earned: ₹${summary.total_earned_hours.toLocaleString('en-IN')} | Cut: ₹${summary.total_deduction_hours.toLocaleString('en-IN')}`);
-    console.log(`💵 [DAYS]  Earned: ₹${summary.total_earned_days.toLocaleString('en-IN')} | Cut: ₹${summary.total_deduction_days.toLocaleString('en-IN')}`);
-    console.log(`☀️  Sunday Work: ${summary.total_sunday_worked} | Comp Offs: ${summary.total_compensatory}\n`);
+    console.log(`⏰ Total Late: ${summary.total_late} | Half Day: ${summary.total_half_day}`);
+    console.log(`💰 [HOURS] Earned: ₹${summary.total_earned_hours} | Cut: ₹${summary.total_deduction_hours}`);
+    console.log(`💰 [DAYS]  Earned: ₹${summary.total_earned_days} | Cut: ₹${summary.total_deduction_days}\n`);
 
     return res.json({
       success: true,
@@ -1066,6 +1132,11 @@ const getCompanyPayroll = async (req, res) => {
           holidays_count: (settings?.holidays || []).length,
           weekly_off: settings?.weekly_off || ['Sunday'],
           free_paid_leaves: FREE_LEAVES_PER_MONTH,
+          office_in_time: '09:30 AM',
+          office_out_time: '06:30 PM',
+          late_in_limit: '09:45 AM',
+          half_day_in_limit: '11:00 AM',
+          half_day_out_limit: '04:00 PM',
         },
         employees: payrollData,
         summary,
@@ -1081,9 +1152,6 @@ const getCompanyPayroll = async (req, res) => {
   }
 };
 
-// ════════════════════════════════════════════
-// GET DEPARTMENTS
-// ════════════════════════════════════════════
 const getCompanyDepartments = async (req, res) => {
   try {
     const { company_id } = req.query;

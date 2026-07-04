@@ -1,3 +1,4 @@
+
 // // src/components/Navbar.jsx
 
 // import { useState, useRef, useEffect } from 'react';
@@ -15,7 +16,6 @@
 //   const [profileOpen, setProfileOpen] = useState(false);
 //   const profileRef = useRef(null);
 
-//   // Close profile dropdown on outside click
 //   useEffect(() => {
 //     const handleClick = (e) => {
 //       if (profileRef.current && !profileRef.current.contains(e.target)) {
@@ -26,7 +26,6 @@
 //     return () => document.removeEventListener('mousedown', handleClick);
 //   }, []);
 
-//   // Close mobile menu on route change
 //   useEffect(() => {
 //     setMobileOpen(false);
 //     setProfileOpen(false);
@@ -46,22 +45,22 @@
 //     {
 //       to: '/dashboard',
 //       label: 'Dashboard',
-//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z',
+//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6z',
 //     },
 //     {
 //       to: '/attendance',
 //       label: 'Attendance',
-//       icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5',
+//       icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25',
 //     },
 //     {
 //       to: '/leave',
 //       label: 'Leave',
-//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
+//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25',
 //     },
 //     {
 //       to: '/my-records',
 //       label: 'Records',
-//       icon: 'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z',
+//       icon: 'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5',
 //     },
 //   ];
 
@@ -72,28 +71,28 @@
 //     {
 //       to: '/manager/dashboard',
 //       label: 'Dashboard',
-//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z',
+//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25',
 //     },
 //     {
 //       to: '/manager/leaves',
 //       label: 'Pending Leaves',
-//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
+//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5',
 //     },
 //   ];
 
 //   // ═══════════════════════════════════════════════
-//   // ADMIN LINKS
+//   // ADMIN LINKS (Full Access)
 //   // ═══════════════════════════════════════════════
 //   const adminLinks = [
 //     {
 //       to: '/admin/dashboard',
 //       label: 'Dashboard',
-//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z',
+//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25',
 //     },
 //     {
 //       to: '/admin/employees',
 //       label: 'Employees',
-//       icon: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z',
+//       icon: 'M15 19.128a9.38 9.38 0 002.625.372',
 //     },
 //     {
 //       to: '/admin/attendance',
@@ -103,46 +102,56 @@
 //     {
 //       to: '/admin/leaves',
 //       label: 'Leaves',
-//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
+//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5',
 //     },
 //     {
 //       to: '/admin/master-data',
 //       label: 'Master Data',
-//       icon: 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125',
+//       icon: 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125',
 //     },
 //     {
 //       to: '/admin/reception',
 //       label: 'Reception',
-//       icon: 'M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z',
+//       icon: 'M6.827 6.175A2.31 2.31 0 015.186 7.23',
 //       highlight: true,
 //     },
 //   ];
 
 //   // ═══════════════════════════════════════════════
-//   // SUPER ADMIN LINKS  🆕 Attendance Added
+//   // 🆕 MANAGER ADMIN LINKS (LIMITED - Only Leaves)
+//   // ═══════════════════════════════════════════════
+//   const managerAdminLinks = [
+//     {
+//       to: '/admin/leaves',
+//       label: 'Pending Leaves',
+//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5',
+//     },
+//   ];
+
+//   // ═══════════════════════════════════════════════
+//   // SUPER ADMIN LINKS
 //   // ═══════════════════════════════════════════════
 //   const superAdminLinks = [
 //     {
 //       to: '/super-admin/dashboard',
 //       label: 'Dashboard',
-//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z',
+//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25',
 //     },
 //     {
 //       to: '/super-admin/companies',
 //       label: 'Companies',
-//       icon: 'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21',
+//       icon: 'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18',
 //     },
 //     {
 //       to: '/super-admin/admins',
 //       label: 'Admins',
-//       icon: 'M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z',
+//       icon: 'M17.982 18.725A7.488 7.488 0 0012 15.75',
 //     },
 //     {
 //       to: '/super-admin/employees',
 //       label: 'Employees',
-//       icon: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z',
+//       icon: 'M15 19.128a9.38 9.38 0 002.625.372',
 //     },
-//     // 🆕 ATTENDANCE - NEW LINK
 //     {
 //       to: '/super-admin/attendance',
 //       label: 'Attendance',
@@ -151,34 +160,39 @@
 //     {
 //       to: '/super-admin/sites',
 //       label: 'Sites',
-//       icon: 'M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z',
+//       icon: 'M15 10.5a3 3 0 11-6 0 3 3 0 016 0z',
 //     },
 //     {
 //       to: '/super-admin/leaves',
 //       label: 'Leaves',
-//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
+//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5',
 //     },
 //     {
 //       to: '/super-admin/monthly-settings',
 //       label: 'Monthly',
-//       icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5',
+//       icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5',
 //     },
 //     {
 //       to: '/super-admin/payroll',
 //       label: 'Payroll',
-//       icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z',
+//       icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101',
 //       highlight: true,
 //     },
 //   ];
 
 //   // ═══════════════════════════════════════════════
-//   // PICK LINKS BASED ON ROLE
+//   // 🎯 PICK LINKS BASED ON ROLE + ASSIGNED_MANAGER
 //   // ═══════════════════════════════════════════════
 //   let links = [];
 //   if (user?.role === 'super_admin') {
 //     links = superAdminLinks;
 //   } else if (user?.role === 'admin') {
-//     links = adminLinks;
+//     // 🆕 CHECK: If admin has assigned_manager → Limited access
+//     if (user?.assigned_manager && user.assigned_manager.trim() !== '') {
+//       links = managerAdminLinks;  // ⭐ Only "Pending Leaves"
+//     } else {
+//       links = adminLinks;  // Full admin access
+//     }
 //   } else if (user?.role === 'manager') {
 //     links = managerLinks;
 //   } else {
@@ -193,6 +207,10 @@
 //       case 'super_admin':
 //         return { label: 'Super Admin', bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' };
 //       case 'admin':
+//         // 🆕 Check if manager-specific admin
+//         if (user?.assigned_manager && user.assigned_manager.trim() !== '') {
+//           return { label: 'Leave Admin', bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500' };
+//         }
 //         return { label: 'Admin', bg: 'bg-[#FFF3E8]', text: 'text-[#E8590C]', dot: 'bg-[#E8590C]' };
 //       case 'manager':
 //         return { label: 'Manager', bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' };
@@ -288,6 +306,14 @@
 //                           {roleBadge.label}
 //                         </span>
 //                       </div>
+
+//                       {/* 🆕 Show assigned manager if applicable */}
+//                       {user?.assigned_manager && (
+//                         <div className="mb-1 px-3 py-1.5">
+//                           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Managing Team</p>
+//                           <p className="text-sm font-semibold text-amber-700">👥 {user.assigned_manager}</p>
+//                         </div>
+//                       )}
 
 //                       {user.role !== 'super_admin' && user.company_id?.name && (
 //                         <div className="mb-1 px-3 py-1.5">
@@ -391,11 +417,6 @@
 // export default Navbar;
 
 
-
-
-
-
-// src/components/Navbar.jsx
 
 
 
@@ -519,13 +540,24 @@ const Navbar = () => {
   ];
 
   // ═══════════════════════════════════════════════
-  // 🆕 MANAGER ADMIN LINKS (LIMITED - Only Leaves)
+  // 🆕 MANAGER ADMIN LINKS (Only Leaves)
   // ═══════════════════════════════════════════════
   const managerAdminLinks = [
     {
       to: '/admin/leaves',
       label: 'Pending Leaves',
       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5',
+    },
+  ];
+
+  // ═══════════════════════════════════════════════
+  // 🆕 FOLLOWUP ADMIN LINKS (Only Dashboard)
+  // ═══════════════════════════════════════════════
+  const followupAdminLinks = [
+    {
+      to: '/admin/dashboard',
+      label: 'Dashboard',
+      icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25',
     },
   ];
 
@@ -582,17 +614,23 @@ const Navbar = () => {
   ];
 
   // ═══════════════════════════════════════════════
-  // 🎯 PICK LINKS BASED ON ROLE + ASSIGNED_MANAGER
+  // 🎯 PICK LINKS BASED ON ROLE + ADMIN TYPE
   // ═══════════════════════════════════════════════
   let links = [];
   if (user?.role === 'super_admin') {
     links = superAdminLinks;
   } else if (user?.role === 'admin') {
-    // 🆕 CHECK: If admin has assigned_manager → Limited access
-    if (user?.assigned_manager && user.assigned_manager.trim() !== '') {
-      links = managerAdminLinks;  // ⭐ Only "Pending Leaves"
-    } else {
-      links = adminLinks;  // Full admin access
+    // 🆕 Follow-up admin - ONLY dashboard
+    if (user?.admin_type === 'followup') {
+      links = followupAdminLinks;
+    }
+    // Leave admin - ONLY leaves
+    else if (user?.assigned_manager && user.assigned_manager.trim() !== '') {
+      links = managerAdminLinks;
+    }
+    // Regular admin - full access
+    else {
+      links = adminLinks;
     }
   } else if (user?.role === 'manager') {
     links = managerLinks;
@@ -608,10 +646,15 @@ const Navbar = () => {
       case 'super_admin':
         return { label: 'Super Admin', bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' };
       case 'admin':
-        // 🆕 Check if manager-specific admin
+        // 🆕 Follow-up admin
+        if (user?.admin_type === 'followup') {
+          return { label: 'Follow-up', bg: 'bg-cyan-100', text: 'text-cyan-700', dot: 'bg-cyan-500' };
+        }
+        // Leave admin
         if (user?.assigned_manager && user.assigned_manager.trim() !== '') {
           return { label: 'Leave Admin', bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500' };
         }
+        // Regular admin
         return { label: 'Admin', bg: 'bg-[#FFF3E8]', text: 'text-[#E8590C]', dot: 'bg-[#E8590C]' };
       case 'manager':
         return { label: 'Manager', bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' };
@@ -667,7 +710,6 @@ const Navbar = () => {
 
             {/* Right Section */}
             <div className="flex items-center gap-3">
-              {/* Profile Dropdown */}
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
