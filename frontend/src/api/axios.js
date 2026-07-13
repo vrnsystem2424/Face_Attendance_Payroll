@@ -1,18 +1,31 @@
+
 // import axios from 'axios';
 
 // const API = axios.create({
 //   baseURL: 'http://localhost:5000/api',
-//   // baseURL: 'https://attendancesystem.up.railway.app/api',
+//   //  baseURL: 'https://face-attendance-payroll-a2e6.vercel.app/api',
 // });
 
-// // Har request me token add karo
 // API.interceptors.request.use((req) => {
 //   const token = localStorage.getItem('token');
+  
+//   // 🔍 Debug — baad mein hatao
+//   console.log('📡 Request:', req.method?.toUpperCase(), req.url);
+//   console.log('🔑 Token:', token ? '✅ Present' : '❌ NULL');
+  
 //   if (token) {
 //     req.headers.Authorization = `Bearer ${token}`;
 //   }
 //   return req;
 // });
+
+// API.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     console.error('❌ Response Error:', error.response?.status, error.config?.url);
+//     return Promise.reject(error);
+//   }
+// );
 
 // export default API;
 
@@ -24,13 +37,11 @@ import axios from 'axios';
 
 const API = axios.create({
   // baseURL: 'http://localhost:5000/api',
-   baseURL: 'https://face-attendance-payroll-a2e6.vercel.app/api',
+  baseURL: 'https://face-attendance-payroll-a2e6.vercel.app/api',
 });
 
 API.interceptors.request.use((req) => {
   const token = localStorage.getItem('token');
-  
-  // 🔍 Debug — baad mein hatao
   console.log('📡 Request:', req.method?.toUpperCase(), req.url);
   console.log('🔑 Token:', token ? '✅ Present' : '❌ NULL');
   
@@ -40,10 +51,32 @@ API.interceptors.request.use((req) => {
   return req;
 });
 
+// 🆕 Auto logout if password changed
 API.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('❌ Response Error:', error.response?.status, error.config?.url);
+    
+    // 🆕 Handle PASSWORD_CHANGED response
+    if (error.response?.status === 401) {
+      const errorCode = error.response?.data?.code;
+      const errorMessage = error.response?.data?.message;
+      
+      if (errorCode === 'PASSWORD_CHANGED') {
+        console.log('🔒 Password changed - Auto logout');
+        
+        // Clear localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Show alert
+        alert('⚠️ Aapka password change ho gaya hai. Dobara login karo.');
+        
+        // Redirect to login
+        window.location.href = '/login';
+      }
+    }
+    
     return Promise.reject(error);
   }
 );

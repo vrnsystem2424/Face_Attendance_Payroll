@@ -14,6 +14,7 @@ const PayrollReports = () => {
   const { payrollData, departments, loading, downloading } = useSelector((s) => s.payroll);
   const { companies } = useSelector((s) => s.company);
 
+  console.log('👤 PayrollReports:', { payrollData, departments, loading, downloading, companies });
   const today = new Date();
   const [filters, setFilters] = useState({
     company_id: '',

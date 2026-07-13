@@ -10,6 +10,8 @@ import Navbar from './components/Navbar';
 // ── Public Pages ──
 import Register from './pages/Register';
 import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+
 
 // ── Employee Pages ──
 import EmployeeDashboard from './pages/EmployeeDashboard';
@@ -40,6 +42,8 @@ import AllEmployees from './pages/super-admin/AllEmployees';
 import AllAttendance from './pages/super-admin/AllAttendance';  // 🆕
 import SuperAdminSites from './pages/super-admin/Sites';
 import SuperAdminMonthlySettings from './pages/super-admin/MonthlySettings';
+import FixAttendance from './pages/super-admin/FixAttendance';
+import LeaveAdjustments from './pages/super-admin/LeaveAdjustments';
 
 // ── Manager Pages ──
 import ManagerDashboard from './pages/manager/ManagerDashboard';
@@ -80,8 +84,12 @@ function App() {
         {/* PUBLIC ROUTES */}
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/super-admin/login" element={<SuperAdminLogin />} />
+        <Route path="/super-admin/leave-adjustments" element={<SuperAdminRoute><LeaveAdjustments /></SuperAdminRoute>} />
+
+
 
         {/* FACE REGISTER */}
         <Route path="/face-register" element={<FaceRegisterWrapper />} />
@@ -116,6 +124,7 @@ function App() {
         <Route path="/super-admin/attendance" element={<SuperAdminRoute><AllAttendance /></SuperAdminRoute>} />  {/* 🆕 */}
         <Route path="/super-admin/sites" element={<SuperAdminRoute><SuperAdminSites /></SuperAdminRoute>} />
         <Route path="/super-admin/monthly-settings" element={<SuperAdminRoute><SuperAdminMonthlySettings /></SuperAdminRoute>} />
+<Route path="/super-admin/fix-attendance" element={<SuperAdminRoute><FixAttendance /></SuperAdminRoute>} />
 
         {/* 404 FALLBACK */}
         <Route path="*" element={<Navigate to="/login" />} />

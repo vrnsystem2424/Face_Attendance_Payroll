@@ -1,3 +1,5 @@
+
+
 // // controllers/attendanceController.js
 
 // const Attendance = require('../models/Attendance');
@@ -6,6 +8,7 @@
 // const moment = require('moment-timezone');
 // const { uploadSelfie } = require('../utils/cloudinary');
 // const { reverseGeocode } = require('../utils/geocoding');
+// const { getAttendanceStatus } = require('../utils/attendanceStatus'); // 🆕
 
 // // ════════════════════════════════════════════════════════════
 // // 🔒 STRICT FACE VERIFICATION SETTINGS
@@ -74,69 +77,26 @@
 // };
 
 // const findNearestSite = async (lat, lng, companyId) => {
-//   console.log('═══════════════════════════════════');
-//   console.log('🔍 SITE SEARCH DEBUG');
-//   console.log('═══════════════════════════════════');
-//   console.log('📍 Coordinates:', lat, lng);
-//   console.log('🏢 Company ID:', companyId);
-//   console.log('🏢 Company ID Type:', typeof companyId);
-  
 //   const filter = {};
-//   if (companyId) {
-//     // Handle both ObjectId and string
-//     filter.company_id = companyId;
-//   }
-  
-//   console.log('🔍 Filter:', JSON.stringify(filter));
-  
-//   // Also try without filter (see all sites)
-//   const allSites = await Site.find({});
-//   console.log(`📊 Total sites in DB: ${allSites.length}`);
+//   if (companyId) filter.company_id = companyId;
   
 //   const sites = await Site.find(filter);
-//   console.log(`🎯 Sites for this company: ${sites.length}`);
-  
-//   if (sites.length > 0) {
-//     console.log('📋 Available sites:');
-//     sites.forEach((s, i) => {
-//       console.log(`   ${i+1}. ${s.site_name}`);
-//       console.log(`      Coords: (${s.latitude}, ${s.longitude})`);
-//       console.log(`      Radius: ${s.radius}m`);
-//       console.log(`      Company: ${s.company_id}`);
-//     });
-//   } else {
-//     console.log('❌ NO SITES FOUND for company:', companyId);
-//     console.log('📋 All available sites (any company):');
-//     allSites.slice(0, 5).forEach(s => {
-//       console.log(`   - ${s.site_name} (Company: ${s.company_id})`);
-//     });
-//   }
   
 //   if (sites.length === 0) {
-//     console.log('═══════════════════════════════════\n');
 //     return { site: null, distance: Infinity };
 //   }
 
 //   let nearest = null;
 //   let minDistance = Infinity;
 
-//   console.log('\n📐 Calculating distances:');
 //   for (const site of sites) {
-//     if (!site.latitude || !site.longitude) {
-//       console.log(`   ⚠️ ${site.site_name}: No coordinates`);
-//       continue;
-//     }
+//     if (!site.latitude || !site.longitude) continue;
 //     const dist = calculateDistance(lat, lng, site.latitude, site.longitude);
-//     console.log(`   📏 ${site.site_name}: ${dist}m (radius: ${site.radius}m)`);
 //     if (dist < minDistance) {
 //       minDistance = dist;
 //       nearest = site;
 //     }
 //   }
-
-//   console.log(`\n✅ NEAREST: ${nearest?.site_name} at ${minDistance}m`);
-//   console.log(`   Within radius (${nearest?.radius}m): ${minDistance <= nearest?.radius ? 'YES ✅' : 'NO ❌'}`);
-//   console.log('═══════════════════════════════════\n');
   
 //   return { site: nearest, distance: minDistance };
 // };
@@ -216,29 +176,23 @@
 // const generateSiteNameFromAddress = (address) => {
 //   if (!address) return 'Unknown Location';
   
-//   // Split address by commas
 //   const parts = address.split(',').map(p => p.trim()).filter(p => p);
   
 //   if (parts.length === 0) return 'Unknown Location';
 //   if (parts.length === 1) return parts[0].substring(0, 60);
 //   if (parts.length === 2) return `${parts[0]}, ${parts[1]}`;
   
-//   // Take first 2 meaningful parts (skip very short ones like numbers)
 //   let siteName = parts[0];
 //   if (parts[1] && parts[1].length > 2) {
 //     siteName += `, ${parts[1]}`;
 //   }
   
-//   // Limit to 60 chars
 //   return siteName.substring(0, 60);
 // };
 
 // // ════════════════════════════════════════════════════════════
-// // MARK ATTENDANCE - With Auto Site Name from Address
+// // 🎯 MARK ATTENDANCE - With Late/Half-Day Detection
 // // ════════════════════════════════════════════════════════════
-// // controllers/attendanceController.js
-// // (Only showing markAttendance function - rest is same)
-
 // const markAttendance = async (req, res) => {
 //   try {
 //     const { face_encoding, latitude, longitude, action_type, selfie } = req.body;
@@ -280,7 +234,7 @@
 //     console.log(`✅ APPROVED — ${employee.name} | ${matchResult.confidence}%`);
 
 //     // ══════════════════════════════════════════════════
-//     // ── 🆕 SMART GPS + SITE LOGIC ──
+//     // ── SMART GPS + SITE LOGIC ──
 //     // ══════════════════════════════════════════════════
 //     let locationStatus = 'no-gps';
 //     let siteName = '';
@@ -297,13 +251,11 @@
 //         isSiteConfigured = true;
         
 //         if (distance <= site.radius) {
-//           // ✅ Within site radius - Use CONFIGURED site name
 //           siteName = site.site_name;
 //           locationStatus = 'on-site';
 //           isWithinSiteRadius = true;
 //           console.log(`🏢 ON-SITE: ${siteName} (${distance}m within ${site.radius}m)`);
 //         } else {
-//           // ⚠️ Site configured but employee OUTSIDE radius
 //           locationStatus = 'out-of-range';
 //           isWithinSiteRadius = false;
 //           console.log(`⚠️ OUT-OF-RANGE: ${distance}m from ${site.site_name} (radius: ${site.radius}m)`);
@@ -314,7 +266,7 @@
 //       }
 //     }
 
-//     // ── Get Address from Coordinates (FREE OpenStreetMap) ──
+//     // ── Get Address ──
 //     let addressData = null;
 //     if (latitude && longitude) {
 //       console.log(`🗺️ Getting address for ${latitude},${longitude}...`);
@@ -322,16 +274,13 @@
 //       if (addressData) console.log(`✅ Address: ${addressData}`);
 //     }
 
-//     // ── 🆕 SMART SITE NAME PRIORITY LOGIC ──
+//     // ── Smart Site Name Priority ──
 //     if (isWithinSiteRadius) {
-//       // ✅ Priority 1: Use configured site name (already set)
 //       console.log(`📍 Using CONFIGURED site: ${siteName}`);
 //     } else if (addressData) {
-//       // ⚠️ Priority 2: Use API address (out-of-range or no-site)
 //       siteName = generateSiteNameFromAddress(addressData);
 //       console.log(`📍 Using API address as site: ${siteName}`);
 //     } else {
-//       // ❌ Priority 3: Fallback
 //       siteName = 'Unknown Location';
 //       console.log(`❌ No location info available`);
 //     }
@@ -368,6 +317,10 @@
 //         });
 //       }
 
+//       // 🆕 Calculate initial status based on IN time
+//       const inStatusInfo = getAttendanceStatus(currentTime, null);
+//       console.log(`⏰ IN Status: ${inStatusInfo.status.toUpperCase()} | ${inStatusInfo.reasons.join(', ') || 'On time'}`);
+
 //       if (!attendance) {
 //         attendance = await Attendance.create({
 //           emp_id: employee._id,
@@ -380,7 +333,7 @@
 //           in_latitude: latitude || 0,
 //           in_longitude: longitude || 0,
 //           in_location_status: locationStatus,
-//           in_site: siteName,  // 🆕 Smart site name
+//           in_site: siteName,
 //           in_distance: distanceFromSite,
 //           in_selfie_url: selfieData?.url || null,
 //           in_selfie_public_id: selfieData?.public_id || null,
@@ -389,13 +342,18 @@
 //           confidence: matchResult.confidence,
 //           flagged: flags.length > 0,
 //           flag_reasons: flags,
+//           // 🆕 Late/Half-Day fields
+//           is_late: inStatusInfo.is_late,
+//           is_half_day: inStatusInfo.is_half_day,
+//           daily_status: inStatusInfo.status,
+//           late_reasons: inStatusInfo.reasons,
 //         });
 //       } else {
 //         attendance.in_time = currentTime;
 //         attendance.in_latitude = latitude || 0;
 //         attendance.in_longitude = longitude || 0;
 //         attendance.in_location_status = locationStatus;
-//         attendance.in_site = siteName;  // 🆕
+//         attendance.in_site = siteName;
 //         attendance.in_distance = distanceFromSite;
 //         attendance.in_selfie_url = selfieData?.url || null;
 //         attendance.in_selfie_public_id = selfieData?.public_id || null;
@@ -403,6 +361,11 @@
 //         attendance.confidence = matchResult.confidence;
 //         attendance.flagged = flags.length > 0;
 //         attendance.flag_reasons = flags;
+//         // 🆕 Late/Half-Day fields
+//         attendance.is_late = inStatusInfo.is_late;
+//         attendance.is_half_day = inStatusInfo.is_half_day;
+//         attendance.daily_status = inStatusInfo.status;
+//         attendance.late_reasons = inStatusInfo.reasons;
 //         await attendance.save();
 //       }
 
@@ -422,8 +385,13 @@
 //           selfie_url: selfieData?.url || null,
 //           flagged: flags.length > 0,
 //           flag_reasons: flags,
-//           is_within_site: isWithinSiteRadius,  // 🆕
-//           site_configured: isSiteConfigured,   // 🆕
+//           is_within_site: isWithinSiteRadius,
+//           site_configured: isSiteConfigured,
+//           // 🆕 Status info
+//           daily_status: inStatusInfo.status,
+//           is_late: inStatusInfo.is_late,
+//           is_half_day: inStatusInfo.is_half_day,
+//           status_reasons: inStatusInfo.reasons,
 //         },
 //       });
 //     }
@@ -447,11 +415,21 @@
 //       attendance.out_latitude = latitude || 0;
 //       attendance.out_longitude = longitude || 0;
 //       attendance.out_location_status = locationStatus;
-//       attendance.out_site = siteName;  // 🆕 Smart site name
+//       attendance.out_site = siteName;
 //       attendance.out_distance = distanceFromSite;
 //       attendance.out_selfie_url = selfieData?.url || null;
 //       attendance.out_selfie_public_id = selfieData?.public_id || null;
 //       attendance.out_address = addressData || '';
+
+//       // 🆕 CALCULATE FINAL STATUS (based on IN + OUT)
+//       const finalStatusInfo = getAttendanceStatus(attendance.in_time, currentTime);
+//       attendance.is_late = finalStatusInfo.is_late;
+//       attendance.is_half_day = finalStatusInfo.is_half_day;
+//       attendance.daily_status = finalStatusInfo.status;
+//       attendance.late_reasons = finalStatusInfo.reasons;
+      
+//       console.log(`⏰ Final Status: ${finalStatusInfo.status.toUpperCase()}`);
+//       console.log(`   Reasons: ${finalStatusInfo.reasons.join(', ') || 'On time'}`);
 
 //       const outFlags = checkSuspiciousActivity({
 //         locationStatus,
@@ -487,8 +465,13 @@
 //           selfie_url: selfieData?.url || null,
 //           flagged: outFlags.length > 0,
 //           flag_reasons: outFlags,
-//           is_within_site: isWithinSiteRadius,  // 🆕
-//           site_configured: isSiteConfigured,   // 🆕
+//           is_within_site: isWithinSiteRadius,
+//           site_configured: isSiteConfigured,
+//           // 🆕 Final status
+//           daily_status: finalStatusInfo.status,
+//           is_late: finalStatusInfo.is_late,
+//           is_half_day: finalStatusInfo.is_half_day,
+//           status_reasons: finalStatusInfo.reasons,
 //         },
 //       });
 //     }
@@ -497,6 +480,7 @@
 //     res.status(500).json({ success: false, message: err.message });
 //   }
 // };
+
 // // ════════════════════════════════════════════════════════════
 // // GET MY ATTENDANCE
 // // ════════════════════════════════════════════════════════════
@@ -618,6 +602,11 @@
 //         confidence: attendance.confidence,
 //         flagged: attendance.flagged,
 //         flag_reasons: attendance.flag_reasons,
+//         // 🆕 Late/Half-Day info
+//         is_late: attendance.is_late,
+//         is_half_day: attendance.is_half_day,
+//         daily_status: attendance.daily_status,
+//         late_reasons: attendance.late_reasons,
 //         date: today,
 //       },
 //     });
@@ -664,7 +653,7 @@
 // };
 
 // // ════════════════════════════════════════════════════════════
-// // GET MONTHLY SUMMARY
+// // GET MONTHLY SUMMARY (with late/half-day stats)
 // // ════════════════════════════════════════════════════════════
 // const getMonthlySummary = async (req, res) => {
 //   try {
@@ -707,6 +696,9 @@
 //     let weekendCount = 0;
 //     let holidayCount = 0;
 //     let leaveCount = 0;
+//     // 🆕 Late/Half-Day counts
+//     let lateCount = 0;
+//     let halfDayCount = 0;
 
 //     const todayIST = getISTMoment();
 //     const todayDate = todayIST.date();
@@ -756,6 +748,11 @@
 
 //       if (attendance && attendance.in_time) {
 //         presentDays++;
+        
+//         // 🆕 Count late/half-day
+//         if (attendance.is_late) lateCount++;
+//         if (attendance.is_half_day) halfDayCount++;
+        
 //         if (attendance.out_time) {
 //           totalWorkedMinutes += calculateWorkingMinutes(attendance.in_time, attendance.out_time);
 //         } else if (isCurrentMonth && d === todayDate) {
@@ -795,6 +792,9 @@
 //         leave_days: leaveCount,
 //         holiday_count: holidayCount,
 //         weekend_count: weekendCount,
+//         // 🆕 Late/Half-Day counts
+//         late_count: lateCount,
+//         half_day_count: halfDayCount,
 //         settings: {
 //           required_hours: requiredHours,
 //           daily_hours: dailyHours,
@@ -809,7 +809,7 @@
 // };
 
 // // ════════════════════════════════════════════════════════════
-// // GET CALENDAR
+// // GET CALENDAR (with late/half-day info)
 // // ════════════════════════════════════════════════════════════
 // const getCalendar = async (req, res) => {
 //   try {
@@ -888,11 +888,22 @@
 //         hours = formatMinutes(creditMin);
 //         minutes = creditMin;
 //       } else if (attendance && attendance.in_time) {
-//         status = attendance.out_time ? 'present' : 'in-progress';
+//         // 🆕 Use daily_status if available (late/half-day/present)
+//         if (attendance.is_half_day) {
+//           status = 'half-day';
+//         } else if (attendance.is_late) {
+//           status = 'late';
+//         } else {
+//           status = attendance.out_time ? 'present' : 'in-progress';
+//         }
+        
 //         extraInfo.in_time = attendance.in_time;
 //         extraInfo.out_time = attendance.out_time;
 //         extraInfo.in_site = attendance.in_site;
 //         extraInfo.out_site = attendance.out_site;
+//         extraInfo.is_late = attendance.is_late;
+//         extraInfo.is_half_day = attendance.is_half_day;
+//         extraInfo.late_reasons = attendance.late_reasons;
 
 //         if (attendance.out_time) {
 //           minutes = calculateWorkingMinutes(attendance.in_time, attendance.out_time);
@@ -933,7 +944,7 @@
 // };
 
 // // ════════════════════════════════════════════════════════════
-// // GET SALARY ESTIMATE
+// // GET SALARY ESTIMATE (with late/half-day)
 // // ════════════════════════════════════════════════════════════
 // const getSalaryEstimate = async (req, res) => {
 //   try {
@@ -944,6 +955,7 @@
 //     const MonthlySettings = require('../models/MonthlySettings');
 //     const Leave = require('../models/Leave');
 //     const LeaveBalance = require('../models/LeaveBalance');
+//     const { calculateLateLeaveDeduction } = require('../utils/attendanceStatus');
 
 //     const employee = await Employee.findById(req.employee._id);
 //     if (!employee) return res.status(404).json({ success: false, message: 'Employee not found' });
@@ -1003,6 +1015,8 @@
 //     let holidayMinutes = 0;
 //     let presentDays = 0;
 //     let absentDays = 0;
+//     let lateCount = 0;
+//     let halfDayCount = 0;
 
 //     const todayIST = getISTMoment();
 //     const todayDate = todayIST.date();
@@ -1018,6 +1032,11 @@
 //       const attendance = attendanceRecords.find((a) => a.date === dateStr);
 //       if (attendance && attendance.in_time) {
 //         presentDays++;
+        
+//         // 🆕 Count late/half-day
+//         if (attendance.is_late) lateCount++;
+//         if (attendance.is_half_day) halfDayCount++;
+        
 //         if (attendance.out_time) {
 //           totalWorkedMinutes += calculateWorkingMinutes(attendance.in_time, attendance.out_time);
 //         } else if (isCurrentMonth && d === todayDate) {
@@ -1032,11 +1051,17 @@
 //       }
 //     }
 
+//     // 🆕 Calculate late-to-leave deduction
+//     const lateLeaveDeduction = calculateLateLeaveDeduction(lateCount);
+//     const halfDayLeaves = halfDayCount * 0.5;
+//     const totalLateHalfDayDeduction = lateLeaveDeduction + halfDayLeaves;
+
 //     const totalPaidMinutes = totalWorkedMinutes + paidLeaveMinutes + holidayMinutes;
 //     const totalPaidHours = totalPaidMinutes / 60;
 //     const estimatedSalary = Math.round(totalPaidHours * perHourRate);
 //     const unpaidDeduction = Math.round(totalUnpaidLeaveDays * perDayRate);
 //     const absentDeduction = Math.round(absentDays * perDayRate);
+//     const lateHalfDayDeductionAmount = Math.round(totalLateHalfDayDeduction * perDayRate);
 //     const totalDeduction = Math.max(0, monthlySalary - estimatedSalary);
 
 //     const balance = await LeaveBalance.findOne({ emp_id: employee._id });
@@ -1066,6 +1091,13 @@
 //         present_days: presentDays,
 //         absent_days: absentDays,
 //         holiday_count: holidays.length,
+//         // 🆕 Late/Half-Day
+//         late_count: lateCount,
+//         half_day_count: halfDayCount,
+//         late_leave_deduction: lateLeaveDeduction,
+//         half_day_leaves: halfDayLeaves,
+//         total_late_half_day_deduction: totalLateHalfDayDeduction,
+//         late_half_day_amount: lateHalfDayDeductionAmount,
 //         estimated_salary: estimatedSalary,
 //         deduction: totalDeduction,
 //         unpaid_deduction: unpaidDeduction,
@@ -1080,6 +1112,541 @@
 //   }
 // };
 
+
+
+// // ════════════════════════════════════════════════════════════
+// // 🆕 GET ABSENT EMPLOYEES TODAY
+// // ════════════════════════════════════════════════════════════
+// const getAbsentToday = async (req, res) => {
+//   try {
+//     const today = getTodayDate();
+//     const filter = req.employee.role === 'super_admin' 
+//       ? {} 
+//       : { company_id: req.employee.company_id?._id || req.employee.company_id };
+
+//     // Get all approved employees
+//     const allEmployees = await Employee.find({
+//       ...filter,
+//       role: { $in: ['employee', 'manager'] },
+//       status: 'approved',
+//     }).select('name emp_code email phone department designation');
+
+//     // Get today's attendance
+//     const todayAttendance = await Attendance.find({
+//       ...filter,
+//       date: today,
+//     }).select('emp_id');
+
+//     const presentEmpIds = new Set(
+//       todayAttendance.map(a => a.emp_id.toString())
+//     );
+
+//     // Filter absent employees
+//     const absentEmployees = allEmployees.filter(
+//       emp => !presentEmpIds.has(emp._id.toString())
+//     );
+
+//     console.log(`📊 Absent Today: ${absentEmployees.length}/${allEmployees.length}`);
+
+//     res.json({
+//       success: true,
+//       data: {
+//         date: today,
+//         total_employees: allEmployees.length,
+//         present_count: todayAttendance.length,
+//         absent_count: absentEmployees.length,
+//         absent_employees: absentEmployees,
+//       },
+//     });
+//   } catch (err) {
+//     console.error('Get absent today error:', err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// // ════════════════════════════════════════════════════════════
+// // 🆕 SEARCH EMPLOYEES (for dropdown/autocomplete)
+// // ════════════════════════════════════════════════════════════
+// const searchEmployees = async (req, res) => {
+//   try {
+//     const { q } = req.query;
+    
+//     if (!q || q.length < 2) {
+//       return res.json({ success: true, data: [] });
+//     }
+
+//     const filter = req.employee.role === 'super_admin'
+//       ? {}
+//       : { company_id: req.employee.company_id?._id || req.employee.company_id };
+
+//     const employees = await Employee.find({
+//       ...filter,
+//       status: 'approved',
+//       role: { $in: ['employee', 'manager'] },
+//       $or: [
+//         { name: { $regex: q, $options: 'i' } },
+//         { emp_code: { $regex: q, $options: 'i' } },
+//         { email: { $regex: q, $options: 'i' } },
+//       ],
+//     })
+//       .select('name emp_code email department designation')
+//       .limit(10);
+
+//     console.log(`🔍 Search "${q}": ${employees.length} results`);
+
+//     res.json({ success: true, data: employees });
+//   } catch (err) {
+//     console.error('Search employees error:', err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// // ════════════════════════════════════════════════════════════
+// // 🆕 GET EMPLOYEE ATTENDANCE HISTORY (with date range)
+// // ════════════════════════════════════════════════════════════
+// const getEmployeeAttendanceHistory = async (req, res) => {
+//   try {
+//     const { emp_id, from_date, to_date, emp_code } = req.query;
+
+//     if (!emp_id && !emp_code) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Employee ID or code required',
+//       });
+//     }
+
+//     const filter = req.employee.role === 'super_admin'
+//       ? {}
+//       : { company_id: req.employee.company_id?._id || req.employee.company_id };
+
+//     // Find employee
+//     let employee;
+//     if (emp_id) {
+//       employee = await Employee.findOne({ _id: emp_id, ...filter });
+//     } else {
+//       employee = await Employee.findOne({ 
+//         emp_code: { $regex: emp_code, $options: 'i' },
+//         ...filter,
+//       });
+//     }
+
+//     if (!employee) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Employee not found',
+//       });
+//     }
+
+//     // Build date filter
+//     const dateFilter = { emp_id: employee._id };
+    
+//     if (from_date && to_date) {
+//       const [fd, fm, fy] = from_date.split('/').map(Number);
+//       const [td, tm, ty] = to_date.split('/').map(Number);
+//       const fromDate = new Date(fy, fm - 1, fd);
+//       const toDate = new Date(ty, tm - 1, td);
+      
+//       const datesInRange = [];
+//       const current = new Date(fromDate);
+//       while (current <= toDate) {
+//         datesInRange.push(`${current.getDate()}/${current.getMonth() + 1}/${current.getFullYear()}`);
+//         current.setDate(current.getDate() + 1);
+//       }
+//       dateFilter.date = { $in: datesInRange };
+//     }
+
+//     const records = await Attendance.find(dateFilter).sort({ createdAt: -1 });
+
+//     // Calculate summary
+//     let totalPresent = 0;
+//     let totalLate = 0;
+//     let totalHalfDay = 0;
+//     let totalWorkedMinutes = 0;
+
+//     records.forEach(r => {
+//       if (r.in_time) {
+//         totalPresent++;
+//         if (r.is_late) totalLate++;
+//         if (r.is_half_day) totalHalfDay++;
+//         if (r.in_time && r.out_time) {
+//           totalWorkedMinutes += calculateWorkingMinutes(r.in_time, r.out_time);
+//         }
+//       }
+//     });
+
+//     console.log(`📋 History for ${employee.name}: ${records.length} records`);
+
+//     res.json({
+//       success: true,
+//       data: {
+//         employee: {
+//           _id: employee._id,
+//           name: employee.name,
+//           emp_code: employee.emp_code,
+//           email: employee.email,
+//           phone: employee.phone,
+//           department: employee.department,
+//           designation: employee.designation,
+//         },
+//         summary: {
+//           total_records: records.length,
+//           total_present: totalPresent,
+//           total_late: totalLate,
+//           total_half_day: totalHalfDay,
+//           total_worked_hours: formatMinutes(totalWorkedMinutes),
+//           total_worked_minutes: totalWorkedMinutes,
+//         },
+//         records,
+//         filters: { from_date, to_date },
+//       },
+//     });
+//   } catch (err) {
+//     console.error('Get employee history error:', err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+
+
+// // ════════════════════════════════════════════════════════════
+// // 🆕 GET EMPLOYEES ON LEAVE TODAY
+// // ════════════════════════════════════════════════════════════
+// // ════════════════════════════════════════════════════════════
+// // 🆕 GET EMPLOYEES ON LEAVE TODAY (Pending + Approved)
+// // ════════════════════════════════════════════════════════════
+// const getOnLeaveToday = async (req, res) => {
+//   try {
+//     const moment = require('moment-timezone');
+//     const Leave = require('../models/Leave');
+    
+//     const todayIST = moment().tz('Asia/Kolkata');
+//     const todayDate = `${todayIST.date()}/${todayIST.month() + 1}/${todayIST.year()}`;
+    
+//     const filter = req.employee.role === 'super_admin'
+//       ? {}
+//       : { company_id: req.employee.company_id?._id || req.employee.company_id };
+
+//     // 🆕 Find ALL leaves (pending + approved) - NOT rejected
+//     const allLeaves = await Leave.find({
+//       ...filter,
+//       status: { $in: ['pending', 'approved'] },  // 🆕 Both pending & approved
+//     });
+
+//     // Check which leaves include today's date
+//     const onLeaveToday = allLeaves.filter(leave => {
+//       try {
+//         const [fd, fm, fy] = leave.from_date.split('/').map(Number);
+//         const [td, tm, ty] = leave.to_date.split('/').map(Number);
+//         const fromDate = new Date(fy, fm - 1, fd);
+//         const toDate = new Date(ty, tm - 1, td);
+//         const today = new Date(todayIST.year(), todayIST.month(), todayIST.date());
+        
+//         return today >= fromDate && today <= toDate;
+//       } catch (err) {
+//         return false;
+//       }
+//     });
+
+//     // Get employee details with leave info
+//     const leaveEmployees = onLeaveToday.map(leave => ({
+//       _id: leave._id,
+//       emp_name: leave.name,
+//       emp_code: leave.emp_code,
+//       leave_type: leave.leave_type,
+//       from_date: leave.from_date,
+//       to_date: leave.to_date,
+//       applied_days: leave.applied_days || leave.leave_days,
+//       approved_days: leave.approved_days || 0,
+//       is_half_day: leave.is_half_day,
+//       reason: leave.reason,
+//       status: leave.status,  // 🆕 pending or approved
+//     }));
+
+//     console.log(`📋 On Leave Today: ${leaveEmployees.length} (${onLeaveToday.filter(l => l.status === 'approved').length} approved, ${onLeaveToday.filter(l => l.status === 'pending').length} pending)`);
+
+//     res.json({
+//       success: true,
+//       data: {
+//         date: todayDate,
+//         count: leaveEmployees.length,
+//         employees: leaveEmployees,
+//       },
+//     });
+//   } catch (err) {
+//     console.error('Get on leave today error:', err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+
+// // ════════════════════════════════════════════════════════════
+// // 🆕 SUPER ADMIN - FIX MISSING CHECKOUT
+// // ════════════════════════════════════════════════════════════
+// const fixMissingCheckout = async (req, res) => {
+//   try {
+//     const { attendance_id, out_time, out_address, reason } = req.body;
+
+//     // Validation
+//     if (!attendance_id) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Attendance ID required'
+//       });
+//     }
+
+//     if (!out_time) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Check-out time required'
+//       });
+//     }
+
+//     if (!reason || reason.trim() === '') {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Reason required'
+//       });
+//     }
+
+//     // Validate time format (HH:MM AM/PM)
+//     const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM|am|pm)$/;
+//     if (!timeRegex.test(out_time.trim())) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Invalid time format. Use: 06:30 PM'
+//       });
+//     }
+
+//     // Format time properly (uppercase AM/PM)
+//     const formattedTime = out_time.trim().toUpperCase().replace(/\s+/g, ' ');
+
+//     // Find attendance
+//     const attendance = await Attendance.findById(attendance_id);
+//     if (!attendance) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Attendance record not found'
+//       });
+//     }
+
+//     // Check if IN time exists
+//     if (!attendance.in_time) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'IN time missing - cannot add OUT time'
+//       });
+//     }
+
+//     // Store original data for log
+//     const originalOutTime = attendance.out_time;
+
+//     // Update OUT details
+//     attendance.out_time = formattedTime;
+//     attendance.out_address = out_address || 'Manually added by Super Admin';
+//     attendance.out_site = out_address || 'Manual Entry';
+//     attendance.out_location_status = 'manual-entry';
+//     attendance.out_latitude = 0;
+//     attendance.out_longitude = 0;
+//     attendance.out_distance = 0;
+//     attendance.out_selfie_url = null;
+//     attendance.out_selfie_public_id = null;
+
+//     // 🆕 Recalculate late/half-day status
+//     const finalStatusInfo = getAttendanceStatus(attendance.in_time, formattedTime);
+//     attendance.is_late = finalStatusInfo.is_late;
+//     attendance.is_half_day = finalStatusInfo.is_half_day;
+//     attendance.daily_status = finalStatusInfo.status;
+//     attendance.late_reasons = finalStatusInfo.reasons;
+
+//     // Add to flag reasons (audit trail)
+//     attendance.flag_reasons = [
+//       ...(attendance.flag_reasons || []),
+//       `MANUAL_CHECKOUT: ${reason.trim()} | By: ${req.employee.name} | On: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`
+//     ];
+
+//     // Mark as reviewed by super admin
+//     attendance.reviewed = true;
+//     attendance.reviewed_by = req.employee._id;
+//     attendance.review_notes = `Manual checkout added. Reason: ${reason.trim()}`;
+
+//     await attendance.save();
+
+//     // Calculate working hours
+//     const workingMinutes = calculateWorkingMinutes(attendance.in_time, formattedTime);
+//     const workingHours = formatMinutes(workingMinutes);
+
+//     console.log(`✅ Manual Checkout Added:`);
+//     console.log(`   Employee: ${attendance.name} (${attendance.emp_code})`);
+//     console.log(`   Date: ${attendance.date}`);
+//     console.log(`   IN: ${attendance.in_time} → OUT: ${formattedTime}`);
+//     console.log(`   Working: ${workingHours}`);
+//     console.log(`   By: ${req.employee.name}`);
+
+//     res.json({
+//       success: true,
+//       message: `Checkout added for ${attendance.name}. Working: ${workingHours}`,
+//       data: {
+//         attendance,
+//         working_hours: workingHours,
+//         working_minutes: workingMinutes,
+//         original_out_time: originalOutTime,
+//         new_out_time: formattedTime,
+//         status: finalStatusInfo.status,
+//       },
+//     });
+//   } catch (err) {
+//     console.error('❌ Fix checkout error:', err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// // ════════════════════════════════════════════════════════════
+// // 🆕 SUPER ADMIN - GET MISSING CHECKOUT RECORDS
+// // ════════════════════════════════════════════════════════════
+// const getMissingCheckouts = async (req, res) => {
+//   try {
+//     const { company_id, from_date, to_date, emp_code } = req.query;
+
+//     const filter = {
+//       in_time: { $exists: true, $ne: null, $ne: '' },
+//       $or: [
+//         { out_time: null },
+//         { out_time: '' },
+//         { out_time: { $exists: false } },
+//       ],
+//     };
+
+//     if (company_id && company_id !== 'all') {
+//       filter.company_id = company_id;
+//     }
+
+//     if (emp_code) {
+//       filter.emp_code = { $regex: emp_code, $options: 'i' };
+//     }
+
+//     // Date range filter
+//     if (from_date && to_date) {
+//       const [fd, fm, fy] = from_date.split('/').map(Number);
+//       const [td, tm, ty] = to_date.split('/').map(Number);
+//       const fromDate = new Date(fy, fm - 1, fd);
+//       const toDate = new Date(ty, tm - 1, td);
+
+//       const datesInRange = [];
+//       const current = new Date(fromDate);
+//       while (current <= toDate) {
+//         datesInRange.push(`${current.getDate()}/${current.getMonth() + 1}/${current.getFullYear()}`);
+//         current.setDate(current.getDate() + 1);
+//       }
+//       filter.date = { $in: datesInRange };
+//     }
+
+//     const records = await Attendance.find(filter)
+//       .populate('company_id', 'name code')
+//       .sort({ createdAt: -1 })
+//       .limit(500);
+
+//     console.log(`📋 Missing checkouts found: ${records.length}`);
+
+//     res.json({
+//       success: true,
+//       count: records.length,
+//       data: records,
+//     });
+//   } catch (err) {
+//     console.error('❌ Get missing checkouts error:', err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// // ════════════════════════════════════════════════════════════
+// // 🆕 SUPER ADMIN - EDIT ATTENDANCE (Both IN & OUT)
+// // ════════════════════════════════════════════════════════════
+// const editAttendance = async (req, res) => {
+//   try {
+//     const { attendance_id, in_time, out_time, in_address, out_address, reason } = req.body;
+
+//     if (!attendance_id) {
+//       return res.status(400).json({ success: false, message: 'Attendance ID required' });
+//     }
+
+//     if (!reason || reason.trim() === '') {
+//       return res.status(400).json({ success: false, message: 'Reason required' });
+//     }
+
+//     const attendance = await Attendance.findById(attendance_id);
+//     if (!attendance) {
+//       return res.status(404).json({ success: false, message: 'Record not found' });
+//     }
+
+//     const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM|am|pm)$/;
+
+//     // Update IN if provided
+//     if (in_time && in_time.trim() !== '') {
+//       if (!timeRegex.test(in_time.trim())) {
+//         return res.status(400).json({ success: false, message: 'Invalid IN time format' });
+//       }
+//       attendance.in_time = in_time.trim().toUpperCase().replace(/\s+/g, ' ');
+//       if (in_address) {
+//         attendance.in_address = in_address;
+//         attendance.in_site = in_address;
+//         attendance.in_location_status = 'manual-entry';
+//       }
+//     }
+
+//     // Update OUT if provided
+//     if (out_time && out_time.trim() !== '') {
+//       if (!timeRegex.test(out_time.trim())) {
+//         return res.status(400).json({ success: false, message: 'Invalid OUT time format' });
+//       }
+//       attendance.out_time = out_time.trim().toUpperCase().replace(/\s+/g, ' ');
+//       if (out_address) {
+//         attendance.out_address = out_address;
+//         attendance.out_site = out_address;
+//         attendance.out_location_status = 'manual-entry';
+//       }
+//     }
+
+//     // Recalculate status
+//     if (attendance.in_time) {
+//       const statusInfo = getAttendanceStatus(attendance.in_time, attendance.out_time);
+//       attendance.is_late = statusInfo.is_late;
+//       attendance.is_half_day = statusInfo.is_half_day;
+//       attendance.daily_status = statusInfo.status;
+//       attendance.late_reasons = statusInfo.reasons;
+//     }
+
+//     // Audit trail
+//     attendance.flag_reasons = [
+//       ...(attendance.flag_reasons || []),
+//       `MANUAL_EDIT: ${reason.trim()} | By: ${req.employee.name} | On: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`
+//     ];
+
+//     attendance.reviewed = true;
+//     attendance.reviewed_by = req.employee._id;
+//     attendance.review_notes = `Edited by admin. Reason: ${reason.trim()}`;
+
+//     await attendance.save();
+
+//     const workingMinutes = calculateWorkingMinutes(attendance.in_time, attendance.out_time);
+
+//     console.log(`✅ Attendance Edited: ${attendance.name} on ${attendance.date}`);
+
+//     res.json({
+//       success: true,
+//       message: `Attendance updated for ${attendance.name}`,
+//       data: {
+//         attendance,
+//         working_hours: formatMinutes(workingMinutes),
+//       },
+//     });
+//   } catch (err) {
+//     console.error('❌ Edit attendance error:', err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// // 🆕 ADD YE CODE PEHLE module.exports SE
+
 // module.exports = {
 //   markAttendance,
 //   getMyAttendance,
@@ -1090,9 +1657,14 @@
 //   getCalendar,
 //   getSalaryEstimate,
 //   reviewAttendance,
+//   getEmployeeAttendanceHistory,
+//   searchEmployees,
+//   getAbsentToday,
+//   getOnLeaveToday,
+//   fixMissingCheckout,
+//   getMissingCheckouts,
+//   editAttendance,
 // };
-
-
 
 
 
@@ -1106,7 +1678,7 @@ const Site = require('../models/Site');
 const moment = require('moment-timezone');
 const { uploadSelfie } = require('../utils/cloudinary');
 const { reverseGeocode } = require('../utils/geocoding');
-const { getAttendanceStatus } = require('../utils/attendanceStatus'); // 🆕
+const { getAttendanceStatus } = require('../utils/attendanceStatus');
 
 // ════════════════════════════════════════════════════════════
 // 🔒 STRICT FACE VERIFICATION SETTINGS
@@ -1269,7 +1841,7 @@ const getDatesInMonth = (month, year) => {
 };
 
 // ════════════════════════════════════════════════════════════
-// 🆕 SMART SITE NAME GENERATOR
+// SMART SITE NAME GENERATOR
 // ════════════════════════════════════════════════════════════
 const generateSiteNameFromAddress = (address) => {
   if (!address) return 'Unknown Location';
@@ -1289,7 +1861,7 @@ const generateSiteNameFromAddress = (address) => {
 };
 
 // ════════════════════════════════════════════════════════════
-// 🎯 MARK ATTENDANCE - With Late/Half-Day Detection
+// 🎯 MARK ATTENDANCE - Location-based Late/Half-Day
 // ════════════════════════════════════════════════════════════
 const markAttendance = async (req, res) => {
   try {
@@ -1415,9 +1987,25 @@ const markAttendance = async (req, res) => {
         });
       }
 
-      // 🆕 Calculate initial status based on IN time
-      const inStatusInfo = getAttendanceStatus(currentTime, null);
-      console.log(`⏰ IN Status: ${inStatusInfo.status.toUpperCase()} | ${inStatusInfo.reasons.join(', ') || 'On time'}`);
+      // 🆕 LOCATION-BASED RULE - Skip late/half-day if OFF-SITE
+      const isOfficeLocation = isWithinSiteRadius;
+      
+      let inStatusInfo;
+      if (isOfficeLocation) {
+        // Office worker - Apply rules
+        inStatusInfo = getAttendanceStatus(currentTime, null);
+        console.log(`🏢 OFFICE Worker - Rules Applied`);
+        console.log(`⏰ IN Status: ${inStatusInfo.status.toUpperCase()} | ${inStatusInfo.reasons.join(', ') || 'On time'}`);
+      } else {
+        // Site worker - Skip rules
+        inStatusInfo = {
+          status: 'present',
+          is_late: false,
+          is_half_day: false,
+          reasons: [`Site work - Rules skipped (location: ${locationStatus})`],
+        };
+        console.log(`🚧 SITE Worker - Rules SKIPPED (Location: ${locationStatus})`);
+      }
 
       if (!attendance) {
         attendance = await Attendance.create({
@@ -1440,7 +2028,6 @@ const markAttendance = async (req, res) => {
           confidence: matchResult.confidence,
           flagged: flags.length > 0,
           flag_reasons: flags,
-          // 🆕 Late/Half-Day fields
           is_late: inStatusInfo.is_late,
           is_half_day: inStatusInfo.is_half_day,
           daily_status: inStatusInfo.status,
@@ -1459,7 +2046,6 @@ const markAttendance = async (req, res) => {
         attendance.confidence = matchResult.confidence;
         attendance.flagged = flags.length > 0;
         attendance.flag_reasons = flags;
-        // 🆕 Late/Half-Day fields
         attendance.is_late = inStatusInfo.is_late;
         attendance.is_half_day = inStatusInfo.is_half_day;
         attendance.daily_status = inStatusInfo.status;
@@ -1485,7 +2071,6 @@ const markAttendance = async (req, res) => {
           flag_reasons: flags,
           is_within_site: isWithinSiteRadius,
           site_configured: isSiteConfigured,
-          // 🆕 Status info
           daily_status: inStatusInfo.status,
           is_late: inStatusInfo.is_late,
           is_half_day: inStatusInfo.is_half_day,
@@ -1519,15 +2104,31 @@ const markAttendance = async (req, res) => {
       attendance.out_selfie_public_id = selfieData?.public_id || null;
       attendance.out_address = addressData || '';
 
-      // 🆕 CALCULATE FINAL STATUS (based on IN + OUT)
-      const finalStatusInfo = getAttendanceStatus(attendance.in_time, currentTime);
+      // 🆕 LOCATION-BASED RULE for OUT
+      const wasOnSiteAtIN = attendance.in_location_status === 'on-site';
+
+      let finalStatusInfo;
+      if (wasOnSiteAtIN) {
+        // Office worker - Apply rules
+        finalStatusInfo = getAttendanceStatus(attendance.in_time, currentTime);
+        console.log(`🏢 OFFICE Worker - Final rules applied`);
+      } else {
+        // Site worker - Skip rules
+        finalStatusInfo = {
+          status: 'present',
+          is_late: false,
+          is_half_day: false,
+          reasons: [`Site work - Rules skipped`],
+        };
+        console.log(`🚧 SITE Worker - Final rules SKIPPED`);
+      }
+
       attendance.is_late = finalStatusInfo.is_late;
       attendance.is_half_day = finalStatusInfo.is_half_day;
       attendance.daily_status = finalStatusInfo.status;
       attendance.late_reasons = finalStatusInfo.reasons;
-      
+
       console.log(`⏰ Final Status: ${finalStatusInfo.status.toUpperCase()}`);
-      console.log(`   Reasons: ${finalStatusInfo.reasons.join(', ') || 'On time'}`);
 
       const outFlags = checkSuspiciousActivity({
         locationStatus,
@@ -1565,7 +2166,6 @@ const markAttendance = async (req, res) => {
           flag_reasons: outFlags,
           is_within_site: isWithinSiteRadius,
           site_configured: isSiteConfigured,
-          // 🆕 Final status
           daily_status: finalStatusInfo.status,
           is_late: finalStatusInfo.is_late,
           is_half_day: finalStatusInfo.is_half_day,
@@ -1700,7 +2300,6 @@ const getTodayStatus = async (req, res) => {
         confidence: attendance.confidence,
         flagged: attendance.flagged,
         flag_reasons: attendance.flag_reasons,
-        // 🆕 Late/Half-Day info
         is_late: attendance.is_late,
         is_half_day: attendance.is_half_day,
         daily_status: attendance.daily_status,
@@ -1751,7 +2350,7 @@ const reviewAttendance = async (req, res) => {
 };
 
 // ════════════════════════════════════════════════════════════
-// GET MONTHLY SUMMARY (with late/half-day stats)
+// GET MONTHLY SUMMARY
 // ════════════════════════════════════════════════════════════
 const getMonthlySummary = async (req, res) => {
   try {
@@ -1788,15 +2387,23 @@ const getMonthlySummary = async (req, res) => {
       return m === currentMonth && y === currentYear;
     });
 
+    // 🆕 Detect Site Worker (works Sundays)
+    const sundayAttendances = attendanceRecords.filter(a => {
+      if (!a.in_time) return false;
+      const [d, m, y] = a.date.split('/').map(Number);
+      return new Date(y, m - 1, d).getDay() === 0;
+    });
+    const isSiteWorker = sundayAttendances.length >= 2;
+
     let totalWorkedMinutes = 0;
     let presentDays = 0;
     let absentDays = 0;
     let weekendCount = 0;
     let holidayCount = 0;
     let leaveCount = 0;
-    // 🆕 Late/Half-Day counts
     let lateCount = 0;
     let halfDayCount = 0;
+    let sundayWorked = 0;
 
     const todayIST = getISTMoment();
     const todayDate = todayIST.date();
@@ -1823,6 +2430,21 @@ const getMonthlySummary = async (req, res) => {
       const dayName = getDayName(dateStr);
 
       if (isCurrentMonth && d > todayDate) continue;
+
+      const attendance = attendanceRecords.find((a) => a.date === dateStr);
+
+      // 🆕 SITE WORKER - Sunday work count as present
+      if (isSiteWorker && dayName === 'Sunday' && attendance && attendance.in_time) {
+        presentDays++;
+        sundayWorked++;
+        if (attendance.is_late) lateCount++;
+        if (attendance.is_half_day) halfDayCount++;
+        if (attendance.out_time) {
+          totalWorkedMinutes += calculateWorkingMinutes(attendance.in_time, attendance.out_time);
+        }
+        continue;
+      }
+
       if (weeklyOff.includes(dayName)) { weekendCount++; continue; }
 
       if (holidaySet.has(dateStr)) {
@@ -1842,12 +2464,9 @@ const getMonthlySummary = async (req, res) => {
         }
       }
 
-      const attendance = attendanceRecords.find((a) => a.date === dateStr);
-
       if (attendance && attendance.in_time) {
         presentDays++;
         
-        // 🆕 Count late/half-day
         if (attendance.is_late) lateCount++;
         if (attendance.is_half_day) halfDayCount++;
         
@@ -1890,9 +2509,11 @@ const getMonthlySummary = async (req, res) => {
         leave_days: leaveCount,
         holiday_count: holidayCount,
         weekend_count: weekendCount,
-        // 🆕 Late/Half-Day counts
         late_count: lateCount,
         half_day_count: halfDayCount,
+        // 🆕 Site Worker info
+        is_site_worker: isSiteWorker,
+        sunday_worked: sundayWorked,
         settings: {
           required_hours: requiredHours,
           daily_hours: dailyHours,
@@ -1907,7 +2528,10 @@ const getMonthlySummary = async (req, res) => {
 };
 
 // ════════════════════════════════════════════════════════════
-// GET CALENDAR (with late/half-day info)
+// GET CALENDAR (with Sunday work for site workers)
+// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// GET CALENDAR (with Sunday work support)
 // ════════════════════════════════════════════════════════════
 const getCalendar = async (req, res) => {
   try {
@@ -1935,6 +2559,20 @@ const getCalendar = async (req, res) => {
     });
 
     const allLeaves = await Leave.find({ emp_id: req.employee._id, status: 'approved' });
+
+    // 🆕 Detect Site Worker (works on Sundays)
+    const sundayAttendances = attendanceRecords.filter(a => {
+      if (!a.in_time) return false;
+      const [d, m, y] = a.date.split('/').map(Number);
+      return new Date(y, m - 1, d).getDay() === 0;
+    });
+    
+    // 🆕 Even 1 Sunday work = Consider as site worker for that day
+    const isSiteWorker = sundayAttendances.length >= 1;
+
+    console.log(`📅 Calendar for ${req.employee.name}:`);
+    console.log(`   Sunday Attendances: ${sundayAttendances.length}`);
+    console.log(`   Is Site Worker: ${isSiteWorker}`);
 
     const leaveDateMap = {};
     allLeaves.forEach((l) => {
@@ -1965,28 +2603,28 @@ const getCalendar = async (req, res) => {
       const holiday = holidayMap[dateStr];
       const isFuture = isCurrentMonth && d > todayDate;
       const isToday = isCurrentMonth && d === todayDate;
+      const isSunday = dayName === 'Sunday';
 
       let status = 'absent';
       let hours = '0h 0m';
       let minutes = 0;
       let extraInfo = {};
 
-      if (isFuture) status = 'future';
-      else if (weeklyOff.includes(dayName)) status = 'weekend';
-      else if (holiday) {
-        status = 'holiday';
-        extraInfo.holiday_name = holiday;
-        hours = formatMinutes(dailyMinutes);
-        minutes = dailyMinutes;
-      } else if (leave) {
-        status = leave.is_half_day ? 'half-day-leave' : 'leave';
-        extraInfo.leave_type = leave.leave_type;
-        extraInfo.half_day_period = leave.half_day_period;
-        const creditMin = leave.is_half_day ? dailyMinutes / 2 : dailyMinutes;
-        hours = formatMinutes(creditMin);
-        minutes = creditMin;
-      } else if (attendance && attendance.in_time) {
-        // 🆕 Use daily_status if available (late/half-day/present)
+      // ═══════════════════════════════════════
+      // 🎯 PRIORITY ORDER:
+      // 1. Future
+      // 2. Attendance exists (any day including Sunday) ← IMPORTANT
+      // 3. Weekend (only if no attendance)
+      // 4. Holiday
+      // 5. Leave
+      // 6. Absent
+      // ═══════════════════════════════════════
+
+      if (isFuture) {
+        status = 'future';
+      }
+      // 🆕 PRIORITY 2: If attendance exists, show it (even on Sunday)
+      else if (attendance && attendance.in_time) {
         if (attendance.is_half_day) {
           status = 'half-day';
         } else if (attendance.is_late) {
@@ -2002,6 +2640,11 @@ const getCalendar = async (req, res) => {
         extraInfo.is_late = attendance.is_late;
         extraInfo.is_half_day = attendance.is_half_day;
         extraInfo.late_reasons = attendance.late_reasons;
+        
+        // 🆕 Mark Sunday work
+        if (isSunday) {
+          extraInfo.is_sunday_work = true;
+        }
 
         if (attendance.out_time) {
           minutes = calculateWorkingMinutes(attendance.in_time, attendance.out_time);
@@ -2014,6 +2657,27 @@ const getCalendar = async (req, res) => {
         }
         hours = formatMinutes(minutes);
       }
+      // Priority 3: Weekend (no attendance)
+      else if (weeklyOff.includes(dayName)) {
+        status = 'weekend';
+      }
+      // Priority 4: Holiday
+      else if (holiday) {
+        status = 'holiday';
+        extraInfo.holiday_name = holiday;
+        hours = formatMinutes(dailyMinutes);
+        minutes = dailyMinutes;
+      }
+      // Priority 5: Leave
+      else if (leave) {
+        status = leave.is_half_day ? 'half-day-leave' : 'leave';
+        extraInfo.leave_type = leave.leave_type;
+        extraInfo.half_day_period = leave.half_day_period;
+        const creditMin = leave.is_half_day ? dailyMinutes / 2 : dailyMinutes;
+        hours = formatMinutes(creditMin);
+        minutes = creditMin;
+      }
+      // Priority 6: Absent (default)
 
       return {
         date: dateStr,
@@ -2033,16 +2697,19 @@ const getCalendar = async (req, res) => {
         month: currentMonth,
         year: currentYear,
         month_name: new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long' }),
+        is_site_worker: isSiteWorker,
+        sunday_work_count: sundayAttendances.length,
         days: calendar,
       },
     });
   } catch (err) {
+    console.error('Calendar error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
 // ════════════════════════════════════════════════════════════
-// GET SALARY ESTIMATE (with late/half-day)
+// GET SALARY ESTIMATE
 // ════════════════════════════════════════════════════════════
 const getSalaryEstimate = async (req, res) => {
   try {
@@ -2131,7 +2798,6 @@ const getSalaryEstimate = async (req, res) => {
       if (attendance && attendance.in_time) {
         presentDays++;
         
-        // 🆕 Count late/half-day
         if (attendance.is_late) lateCount++;
         if (attendance.is_half_day) halfDayCount++;
         
@@ -2149,7 +2815,6 @@ const getSalaryEstimate = async (req, res) => {
       }
     }
 
-    // 🆕 Calculate late-to-leave deduction
     const lateLeaveDeduction = calculateLateLeaveDeduction(lateCount);
     const halfDayLeaves = halfDayCount * 0.5;
     const totalLateHalfDayDeduction = lateLeaveDeduction + halfDayLeaves;
@@ -2189,7 +2854,6 @@ const getSalaryEstimate = async (req, res) => {
         present_days: presentDays,
         absent_days: absentDays,
         holiday_count: holidays.length,
-        // 🆕 Late/Half-Day
         late_count: lateCount,
         half_day_count: halfDayCount,
         late_leave_deduction: lateLeaveDeduction,
@@ -2210,10 +2874,8 @@ const getSalaryEstimate = async (req, res) => {
   }
 };
 
-
-
 // ════════════════════════════════════════════════════════════
-// 🆕 GET ABSENT EMPLOYEES TODAY
+// GET ABSENT EMPLOYEES TODAY
 // ════════════════════════════════════════════════════════════
 const getAbsentToday = async (req, res) => {
   try {
@@ -2222,14 +2884,12 @@ const getAbsentToday = async (req, res) => {
       ? {} 
       : { company_id: req.employee.company_id?._id || req.employee.company_id };
 
-    // Get all approved employees
     const allEmployees = await Employee.find({
       ...filter,
       role: { $in: ['employee', 'manager'] },
       status: 'approved',
     }).select('name emp_code email phone department designation');
 
-    // Get today's attendance
     const todayAttendance = await Attendance.find({
       ...filter,
       date: today,
@@ -2239,7 +2899,6 @@ const getAbsentToday = async (req, res) => {
       todayAttendance.map(a => a.emp_id.toString())
     );
 
-    // Filter absent employees
     const absentEmployees = allEmployees.filter(
       emp => !presentEmpIds.has(emp._id.toString())
     );
@@ -2263,7 +2922,7 @@ const getAbsentToday = async (req, res) => {
 };
 
 // ════════════════════════════════════════════════════════════
-// 🆕 SEARCH EMPLOYEES (for dropdown/autocomplete)
+// SEARCH EMPLOYEES
 // ════════════════════════════════════════════════════════════
 const searchEmployees = async (req, res) => {
   try {
@@ -2300,7 +2959,7 @@ const searchEmployees = async (req, res) => {
 };
 
 // ════════════════════════════════════════════════════════════
-// 🆕 GET EMPLOYEE ATTENDANCE HISTORY (with date range)
+// GET EMPLOYEE ATTENDANCE HISTORY
 // ════════════════════════════════════════════════════════════
 const getEmployeeAttendanceHistory = async (req, res) => {
   try {
@@ -2317,7 +2976,6 @@ const getEmployeeAttendanceHistory = async (req, res) => {
       ? {}
       : { company_id: req.employee.company_id?._id || req.employee.company_id };
 
-    // Find employee
     let employee;
     if (emp_id) {
       employee = await Employee.findOne({ _id: emp_id, ...filter });
@@ -2335,7 +2993,6 @@ const getEmployeeAttendanceHistory = async (req, res) => {
       });
     }
 
-    // Build date filter
     const dateFilter = { emp_id: employee._id };
     
     if (from_date && to_date) {
@@ -2355,7 +3012,6 @@ const getEmployeeAttendanceHistory = async (req, res) => {
 
     const records = await Attendance.find(dateFilter).sort({ createdAt: -1 });
 
-    // Calculate summary
     let totalPresent = 0;
     let totalLate = 0;
     let totalHalfDay = 0;
@@ -2404,13 +3060,8 @@ const getEmployeeAttendanceHistory = async (req, res) => {
   }
 };
 
-
-
 // ════════════════════════════════════════════════════════════
-// 🆕 GET EMPLOYEES ON LEAVE TODAY
-// ════════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════════
-// 🆕 GET EMPLOYEES ON LEAVE TODAY (Pending + Approved)
+// GET EMPLOYEES ON LEAVE TODAY
 // ════════════════════════════════════════════════════════════
 const getOnLeaveToday = async (req, res) => {
   try {
@@ -2424,13 +3075,11 @@ const getOnLeaveToday = async (req, res) => {
       ? {}
       : { company_id: req.employee.company_id?._id || req.employee.company_id };
 
-    // 🆕 Find ALL leaves (pending + approved) - NOT rejected
     const allLeaves = await Leave.find({
       ...filter,
-      status: { $in: ['pending', 'approved'] },  // 🆕 Both pending & approved
+      status: { $in: ['pending', 'approved'] },
     });
 
-    // Check which leaves include today's date
     const onLeaveToday = allLeaves.filter(leave => {
       try {
         const [fd, fm, fy] = leave.from_date.split('/').map(Number);
@@ -2445,7 +3094,6 @@ const getOnLeaveToday = async (req, res) => {
       }
     });
 
-    // Get employee details with leave info
     const leaveEmployees = onLeaveToday.map(leave => ({
       _id: leave._id,
       emp_name: leave.name,
@@ -2457,7 +3105,7 @@ const getOnLeaveToday = async (req, res) => {
       approved_days: leave.approved_days || 0,
       is_half_day: leave.is_half_day,
       reason: leave.reason,
-      status: leave.status,  // 🆕 pending or approved
+      status: leave.status,
     }));
 
     console.log(`📋 On Leave Today: ${leaveEmployees.length} (${onLeaveToday.filter(l => l.status === 'approved').length} approved, ${onLeaveToday.filter(l => l.status === 'pending').length} pending)`);
@@ -2476,7 +3124,319 @@ const getOnLeaveToday = async (req, res) => {
   }
 };
 
-// 🆕 ADD YE CODE PEHLE module.exports SE
+// ════════════════════════════════════════════════════════════
+// SUPER ADMIN - FIX MISSING CHECKOUT
+// ════════════════════════════════════════════════════════════
+const fixMissingCheckout = async (req, res) => {
+  try {
+    const { attendance_id, out_time, out_address, reason } = req.body;
+
+    if (!attendance_id) {
+      return res.status(400).json({ success: false, message: 'Attendance ID required' });
+    }
+
+    if (!out_time) {
+      return res.status(400).json({ success: false, message: 'Check-out time required' });
+    }
+
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({ success: false, message: 'Reason required' });
+    }
+
+    const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM|am|pm)$/;
+    if (!timeRegex.test(out_time.trim())) {
+      return res.status(400).json({ success: false, message: 'Invalid time format. Use: 06:30 PM' });
+    }
+
+    const formattedTime = out_time.trim().toUpperCase().replace(/\s+/g, ' ');
+
+    const attendance = await Attendance.findById(attendance_id);
+    if (!attendance) {
+      return res.status(404).json({ success: false, message: 'Attendance record not found' });
+    }
+
+    if (!attendance.in_time) {
+      return res.status(400).json({ success: false, message: 'IN time missing - cannot add OUT time' });
+    }
+
+    const originalOutTime = attendance.out_time;
+
+    attendance.out_time = formattedTime;
+    attendance.out_address = out_address || 'Manually added by Super Admin';
+    attendance.out_site = out_address || 'Manual Entry';
+    attendance.out_location_status = 'manual-entry';
+    attendance.out_latitude = 0;
+    attendance.out_longitude = 0;
+    attendance.out_distance = 0;
+    attendance.out_selfie_url = null;
+    attendance.out_selfie_public_id = null;
+
+    // 🆕 Location-based rule for manual checkout
+    const wasOnSiteAtIN = attendance.in_location_status === 'on-site';
+    
+    let finalStatusInfo;
+    if (wasOnSiteAtIN) {
+      finalStatusInfo = getAttendanceStatus(attendance.in_time, formattedTime);
+    } else {
+      finalStatusInfo = {
+        status: 'present',
+        is_late: false,
+        is_half_day: false,
+        reasons: ['Site work - Rules skipped'],
+      };
+    }
+
+    attendance.is_late = finalStatusInfo.is_late;
+    attendance.is_half_day = finalStatusInfo.is_half_day;
+    attendance.daily_status = finalStatusInfo.status;
+    attendance.late_reasons = finalStatusInfo.reasons;
+
+    attendance.flag_reasons = [
+      ...(attendance.flag_reasons || []),
+      `MANUAL_CHECKOUT: ${reason.trim()} | By: ${req.employee.name} | On: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`
+    ];
+
+    attendance.reviewed = true;
+    attendance.reviewed_by = req.employee._id;
+    attendance.review_notes = `Manual checkout added. Reason: ${reason.trim()}`;
+
+    await attendance.save();
+
+    const workingMinutes = calculateWorkingMinutes(attendance.in_time, formattedTime);
+    const workingHours = formatMinutes(workingMinutes);
+
+    console.log(`✅ Manual Checkout Added: ${attendance.name} (${attendance.emp_code})`);
+
+    res.json({
+      success: true,
+      message: `Checkout added for ${attendance.name}. Working: ${workingHours}`,
+      data: {
+        attendance,
+        working_hours: workingHours,
+        working_minutes: workingMinutes,
+        original_out_time: originalOutTime,
+        new_out_time: formattedTime,
+        status: finalStatusInfo.status,
+      },
+    });
+  } catch (err) {
+    console.error('❌ Fix checkout error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ════════════════════════════════════════════════════════════
+// SUPER ADMIN - GET MISSING CHECKOUT RECORDS
+// ════════════════════════════════════════════════════════════
+const getMissingCheckouts = async (req, res) => {
+  try {
+    const { company_id, from_date, to_date, emp_code } = req.query;
+
+    const filter = {
+      in_time: { $exists: true, $ne: null, $ne: '' },
+      $or: [
+        { out_time: null },
+        { out_time: '' },
+        { out_time: { $exists: false } },
+      ],
+    };
+
+    if (company_id && company_id !== 'all') {
+      filter.company_id = company_id;
+    }
+
+    if (emp_code) {
+      filter.$or = [
+        { emp_code: { $regex: emp_code, $options: 'i' } },
+        { name: { $regex: emp_code, $options: 'i' } },
+      ];
+    }
+
+    if (from_date && to_date) {
+      const [fd, fm, fy] = from_date.split('/').map(Number);
+      const [td, tm, ty] = to_date.split('/').map(Number);
+      const fromDate = new Date(fy, fm - 1, fd);
+      const toDate = new Date(ty, tm - 1, td);
+
+      const datesInRange = [];
+      const current = new Date(fromDate);
+      while (current <= toDate) {
+        datesInRange.push(`${current.getDate()}/${current.getMonth() + 1}/${current.getFullYear()}`);
+        current.setDate(current.getDate() + 1);
+      }
+      filter.date = { $in: datesInRange };
+    }
+
+    const records = await Attendance.find(filter)
+      .populate('company_id', 'name code')
+      .sort({ createdAt: -1 })
+      .limit(500);
+
+    console.log(`📋 Missing checkouts found: ${records.length}`);
+
+    res.json({
+      success: true,
+      count: records.length,
+      data: records,
+    });
+  } catch (err) {
+    console.error('❌ Get missing checkouts error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ════════════════════════════════════════════════════════════
+// SUPER ADMIN - EDIT ATTENDANCE
+// ════════════════════════════════════════════════════════════
+const editAttendance = async (req, res) => {
+  try {
+    const { attendance_id, in_time, out_time, in_address, out_address, reason } = req.body;
+
+    if (!attendance_id) {
+      return res.status(400).json({ success: false, message: 'Attendance ID required' });
+    }
+
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({ success: false, message: 'Reason required' });
+    }
+
+    const attendance = await Attendance.findById(attendance_id);
+    if (!attendance) {
+      return res.status(404).json({ success: false, message: 'Record not found' });
+    }
+
+    const timeRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9]\s?(AM|PM|am|pm)$/;
+
+    if (in_time && in_time.trim() !== '') {
+      if (!timeRegex.test(in_time.trim())) {
+        return res.status(400).json({ success: false, message: 'Invalid IN time format' });
+      }
+      attendance.in_time = in_time.trim().toUpperCase().replace(/\s+/g, ' ');
+      if (in_address) {
+        attendance.in_address = in_address;
+        attendance.in_site = in_address;
+        attendance.in_location_status = 'manual-entry';
+      }
+    }
+
+    if (out_time && out_time.trim() !== '') {
+      if (!timeRegex.test(out_time.trim())) {
+        return res.status(400).json({ success: false, message: 'Invalid OUT time format' });
+      }
+      attendance.out_time = out_time.trim().toUpperCase().replace(/\s+/g, ' ');
+      if (out_address) {
+        attendance.out_address = out_address;
+        attendance.out_site = out_address;
+        attendance.out_location_status = 'manual-entry';
+      }
+    }
+
+    if (attendance.in_time) {
+      // Location-based rule
+      const wasOnSiteAtIN = attendance.in_location_status === 'on-site';
+      
+      let statusInfo;
+      if (wasOnSiteAtIN) {
+        statusInfo = getAttendanceStatus(attendance.in_time, attendance.out_time);
+      } else {
+        statusInfo = {
+          status: 'present',
+          is_late: false,
+          is_half_day: false,
+          reasons: ['Site work - Rules skipped'],
+        };
+      }
+      
+      attendance.is_late = statusInfo.is_late;
+      attendance.is_half_day = statusInfo.is_half_day;
+      attendance.daily_status = statusInfo.status;
+      attendance.late_reasons = statusInfo.reasons;
+    }
+
+    attendance.flag_reasons = [
+      ...(attendance.flag_reasons || []),
+      `MANUAL_EDIT: ${reason.trim()} | By: ${req.employee.name} | On: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`
+    ];
+
+    attendance.reviewed = true;
+    attendance.reviewed_by = req.employee._id;
+    attendance.review_notes = `Edited by admin. Reason: ${reason.trim()}`;
+
+    await attendance.save();
+
+    const workingMinutes = calculateWorkingMinutes(attendance.in_time, attendance.out_time);
+
+    console.log(`✅ Attendance Edited: ${attendance.name} on ${attendance.date}`);
+
+    res.json({
+      success: true,
+      message: `Attendance updated for ${attendance.name}`,
+      data: {
+        attendance,
+        working_hours: formatMinutes(workingMinutes),
+      },
+    });
+  } catch (err) {
+    console.error('❌ Edit attendance error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+// ════════════════════════════════════════════════════════════
+// 🆕 SUPER ADMIN - GET ALL ATTENDANCE (For Fix Page)
+// ════════════════════════════════════════════════════════════
+const getAllAttendanceForFix = async (req, res) => {
+  try {
+    const { company_id, from_date, to_date, emp_code } = req.query;
+
+    const filter = {
+      in_time: { $exists: true, $ne: null, $ne: '' },
+    };
+
+    if (company_id && company_id !== 'all') {
+      filter.company_id = company_id;
+    }
+
+    if (emp_code) {
+      filter.$or = [
+        { emp_code: { $regex: emp_code, $options: 'i' } },
+        { name: { $regex: emp_code, $options: 'i' } },
+      ];
+    }
+
+    if (from_date && to_date) {
+      const [fd, fm, fy] = from_date.split('/').map(Number);
+      const [td, tm, ty] = to_date.split('/').map(Number);
+      const fromDate = new Date(fy, fm - 1, fd);
+      const toDate = new Date(ty, tm - 1, td);
+
+      const datesInRange = [];
+      const current = new Date(fromDate);
+      while (current <= toDate) {
+        datesInRange.push(`${current.getDate()}/${current.getMonth() + 1}/${current.getFullYear()}`);
+        current.setDate(current.getDate() + 1);
+      }
+      filter.date = { $in: datesInRange };
+    }
+
+    const records = await Attendance.find(filter)
+      .populate('company_id', 'name code')
+      .sort({ createdAt: -1 })
+      .limit(500);
+
+    console.log(`📋 All attendance for fix: ${records.length}`);
+
+    res.json({
+      success: true,
+      count: records.length,
+      data: records,
+    });
+  } catch (err) {
+    console.error('❌ Get all attendance error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 
 module.exports = {
   markAttendance,
@@ -2492,4 +3452,8 @@ module.exports = {
   searchEmployees,
   getAbsentToday,
   getOnLeaveToday,
+  fixMissingCheckout,
+  getMissingCheckouts,
+  editAttendance,
+  getAllAttendanceForFix,  // 🆕 ADD THIS
 };

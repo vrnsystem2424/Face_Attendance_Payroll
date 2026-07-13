@@ -247,6 +247,278 @@ const getAllAttendanceGlobal = async (req, res) => {
   }
 };
 
+
+// ════════════════════════════════════════════════════════════
+// 🆕 RESET USER PASSWORD (Admin, Manager, Super Admin)
+// ════════════════════════════════════════════════════════════
+// const resetUserPassword = async (req, res) => {
+//   try {
+//     const { user_id, new_password } = req.body;
+
+//     if (!user_id) {
+//       return res.status(400).json({ 
+//         success: false, 
+//         message: 'User ID required' 
+//       });
+//     }
+
+//     if (!new_password || new_password.length < 6) {
+//       return res.status(400).json({ 
+//         success: false, 
+//         message: 'Password kam se kam 6 characters ka hona chahiye' 
+//       });
+//     }
+
+//     const user = await Employee.findById(user_id);
+//     if (!user) {
+//       return res.status(404).json({ 
+//         success: false, 
+//         message: 'User nahi mila' 
+//       });
+//     }
+
+//     // Only allow password reset for admin/manager/super_admin/employee
+//     const allowedRoles = ['admin', 'manager', 'super_admin', 'employee'];
+//     if (!allowedRoles.includes(user.role)) {
+//       return res.status(403).json({ 
+//         success: false, 
+//         message: 'Is user ka password reset nahi kar sakte' 
+//       });
+//     }
+
+//     // Hash new password
+//     const hashedPassword = await bcrypt.hash(new_password, 10);
+//     user.password = hashedPassword;
+//     await user.save();
+
+//     console.log(`🔑 Password reset: ${user.name} (${user.email})`);
+//     console.log(`   By: ${req.employee.name} (Super Admin)`);
+//     console.log(`   Role: ${user.role}`);
+
+//     return res.json({
+//       success: true,
+//       message: `${user.name} ka password successfully reset ho gaya!`,
+//       data: {
+//         user_id: user._id,
+//         name: user.name,
+//         email: user.email,
+//         role: user.role,
+//       },
+//     });
+//   } catch (err) {
+//     console.error('❌ Reset password error:', err);
+//     res.status(500).json({ 
+//       success: false, 
+//       message: err.message 
+//     });
+//   }
+// };
+
+
+// ════════════════════════════════════════════════════════════
+// 🆕 RESET USER PASSWORD - FINAL FIX
+// ════════════════════════════════════════════════════════════
+const resetUserPassword = async (req, res) => {
+  try {
+    const { user_id, new_password } = req.body;
+
+    console.log('\n═══════════════════════════════════════');
+    console.log('🔑 PASSWORD RESET REQUEST');
+    console.log('═══════════════════════════════════════');
+    console.log(`   User ID: ${user_id}`);
+    console.log(`   New Password Length: ${new_password?.length}`);
+
+    // Validation
+    if (!user_id) {
+      return res.status(400).json({ success: false, message: 'User ID required' });
+    }
+
+    if (!new_password || new_password.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password kam se kam 6 characters ka hona chahiye' 
+      });
+    }
+
+    // Find user
+    const user = await Employee.findById(user_id);
+    if (!user) {
+      console.log('   ❌ User not found');
+      return res.status(404).json({ success: false, message: 'User nahi mila' });
+    }
+
+    console.log(`   👤 User: ${user.name} (${user.email})`);
+    console.log(`   Current Version: ${user.passwordVersion}`);
+
+    // Check allowed roles
+    const allowedRoles = ['admin', 'manager', 'super_admin', 'employee'];
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Is user ka password reset nahi kar sakte' 
+      });
+    }
+
+    // ════════════════════════════════════════
+    // 🎯 HASH PASSWORD - ONLY ONCE
+    // ════════════════════════════════════════
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+    console.log(`   ✅ Hash generated: ${hashedPassword.substring(0, 30)}...`);
+
+    // ════════════════════════════════════════
+    // 🎯 UPDATE USER - Using findByIdAndUpdate
+    // (This bypasses ALL pre-save hooks)
+    // ════════════════════════════════════════
+    const newVersion = (user.passwordVersion || 1) + 1;
+    
+    const updated = await Employee.findByIdAndUpdate(
+      user_id,
+      {
+        password: hashedPassword,
+        passwordVersion: newVersion,
+        passwordChangedAt: new Date(),
+      },
+      { 
+        new: true,
+        runValidators: false,  // Skip validators
+      }
+    );
+
+    if (!updated) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Update failed' 
+      });
+    }
+
+    console.log(`   ✅ Updated in DB`);
+    console.log(`   New Version: ${updated.passwordVersion}`);
+
+    // ════════════════════════════════════════
+    // 🎯 VERIFY PASSWORD WORKS
+    // ════════════════════════════════════════
+    const testMatch = await bcrypt.compare(new_password, updated.password);
+    console.log(`   ✅ Password verification: ${testMatch ? 'WORKS ✅' : 'FAILED ❌'}`);
+    
+    if (!testMatch) {
+      console.log('   🚨 CRITICAL: Password hash mismatch after save!');
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Password save error - contact developer' 
+      });
+    }
+
+    console.log(`✅ SUCCESS - ${user.name} password reset done`);
+    console.log(`   By: ${req.employee.name}`);
+    console.log('═══════════════════════════════════════\n');
+
+    return res.json({
+      success: true,
+      message: `${user.name} ka password reset ho gaya! Woh sab devices se auto-logout ho jaayega.`,
+      data: {
+        user_id: updated._id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+        new_version: updated.passwordVersion,
+      },
+    });
+  } catch (err) {
+    console.error('❌ Reset password error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+const changeOwnPassword = async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+
+    console.log('\n═══════════════════════════════════════');
+    console.log('🔑 SUPER ADMIN PASSWORD CHANGE');
+    console.log('═══════════════════════════════════════');
+
+    if (!current_password || !new_password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current aur new password dono zaroori hain' 
+      });
+    }
+
+    if (new_password.length < 6) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password kam se kam 6 characters ka hona chahiye' 
+      });
+    }
+
+    const superAdmin = await Employee.findById(req.employee._id);
+    if (!superAdmin) {
+      return res.status(404).json({ success: false, message: 'User nahi mila' });
+    }
+
+    console.log(`   User: ${superAdmin.name}`);
+    console.log(`   Current Version: ${superAdmin.passwordVersion}`);
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(current_password, superAdmin.password);
+    if (!isMatch) {
+      console.log('   ❌ Current password wrong');
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Current password galat hai' 
+      });
+    }
+
+    console.log('   ✅ Current password verified');
+
+    // Hash new password ONCE
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+    console.log(`   New Hash: ${hashedPassword.substring(0, 30)}...`);
+
+    // Update using findByIdAndUpdate (bypass hooks)
+    const newVersion = (superAdmin.passwordVersion || 1) + 1;
+    
+    const updated = await Employee.findByIdAndUpdate(
+      req.employee._id,
+      {
+        password: hashedPassword,
+        passwordVersion: newVersion,
+        passwordChangedAt: new Date(),
+      },
+      { 
+        new: true,
+        runValidators: false,
+      }
+    );
+
+    // Verify
+    const testMatch = await bcrypt.compare(new_password, updated.password);
+    console.log(`   ✅ Password verification: ${testMatch ? 'WORKS ✅' : 'FAILED ❌'}`);
+    console.log(`   New Version: ${updated.passwordVersion}`);
+
+    if (!testMatch) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Password save error' 
+      });
+    }
+
+    console.log(`✅ SUCCESS - Super Admin password changed`);
+    console.log('═══════════════════════════════════════\n');
+
+    return res.json({
+      success: true,
+      message: 'Aapka password change ho gaya! Sab devices se logout ho jaayenge.',
+    });
+  } catch (err) {
+    console.error('❌ Change own password error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+
+
 // ════════════════════════════════════════════════════════════
 // EXPORTS
 // ════════════════════════════════════════════════════════════
@@ -258,5 +530,7 @@ module.exports = {
   promoteToManager,
   demoteToEmployee,
   getAllEmployees,
-  getAllAttendanceGlobal,  // 🆕
+  getAllAttendanceGlobal, 
+   resetUserPassword,    // 🆕
+  changeOwnPassword, // 🆕
 };

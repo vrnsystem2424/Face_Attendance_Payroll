@@ -234,9 +234,12 @@ const Login = () => {
                 <div>
                   <div className="mb-2 flex items-center justify-between">
                     <label className="block text-sm font-semibold text-[#1A1A2E]">Password</label>
-                    <button type="button" className="text-xs font-medium text-[#E8590C] hover:text-[#D14800] transition-colors">
-                      Forgot password?
-                    </button>
+                    <Link
+  to="/forgot-password"
+  className="text-xs font-medium text-[#E8590C] hover:text-[#D14800] transition-colors"
+>
+  Forgot password?
+</Link>
                   </div>
                   <div className="group relative">
                     <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#9CA3AF] transition-colors group-focus-within:text-[#E8590C]">

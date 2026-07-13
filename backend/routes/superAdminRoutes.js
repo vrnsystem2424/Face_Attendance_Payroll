@@ -11,7 +11,9 @@ const {
   promoteToManager,
   demoteToEmployee,
   getAllEmployees,
-  getAllAttendanceGlobal,  // 🆕
+  getAllAttendanceGlobal,
+  resetUserPassword,    // 🆕
+  changeOwnPassword,    // 🆕
 } = require('../controllers/superAdminController');
 
 // All routes need super admin
@@ -25,7 +27,11 @@ router.get('/employees', getAllEmployees);
 router.put('/promote/:id', promoteToManager);
 router.put('/demote/:id', demoteToEmployee);
 
-// 🆕 All Attendance (across companies)
+// All Attendance (across companies)
 router.get('/all-attendance', getAllAttendanceGlobal);
+
+// 🆕 Password Management
+router.post('/reset-password', resetUserPassword);      // Reset any user password
+router.post('/change-own-password', changeOwnPassword); // Change own password
 
 module.exports = router;

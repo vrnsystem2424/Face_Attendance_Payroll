@@ -1,4 +1,3 @@
-// // models/Employee.js
 
 // const mongoose = require('mongoose');
 
@@ -11,7 +10,6 @@
 //   department: { type: String, required: true },
 //   designation: { type: String, required: true },
 
-//   // ── MULTI-COMPANY ──
 //   company_id: {
 //     type: mongoose.Schema.Types.ObjectId,
 //     ref: 'Company',
@@ -20,28 +18,25 @@
 //     },
 //   },
 
-//   // Leave approval manager (name from master)
 //   leave_approval_manager: {
 //     type: String,
 //     default: '',
 //   },
-//   // 🆕 For admin who manages specific manager's leaves only
-// assigned_manager: { type: String, default: '' },
-// admin_type: { type: String, enum: ['full', 'followup', ''], default: '' },
-//   // 💰 Monthly Salary (for payroll)
+
+//   assigned_manager: { type: String, default: '' },
+//   admin_type: { type: String, enum: ['full', 'followup', ''], default: '' },
+
 //   monthly_salary: {
 //     type: Number,
 //     default: 0,
 //     min: 0,
 //   },
 
-//   // Face encodings
 //   face_encoding: { type: [Number], default: [] },
 //   all_encodings: { type: [[Number]], default: [] },
 //   face_capture_count: { type: Number, default: 0 },
 //   face_registered: { type: Boolean, default: false },
 
-//   // Device Lock
 //   device_id: { type: String, default: null },
 //   device_info: {
 //     screen:       { type: String, default: '' },
@@ -74,8 +69,6 @@
 
 
 
-// Koi change nahi - same as aapka existing file
-// Already designation aur leave_approval_manager fields hain ✅
 
 const mongoose = require('mongoose');
 
@@ -87,6 +80,13 @@ const employeeSchema = new mongoose.Schema({
   password: { type: String, required: true },
   department: { type: String, required: true },
   designation: { type: String, required: true },
+
+  // 🆕 PASSWORD VERSION - Increments on password change
+  // Auto-logout old sessions
+  passwordVersion: { type: Number, default: 1 },
+
+  // 🆕 Track last password change time
+  passwordChangedAt: { type: Date, default: Date.now },
 
   company_id: {
     type: mongoose.Schema.Types.ObjectId,
