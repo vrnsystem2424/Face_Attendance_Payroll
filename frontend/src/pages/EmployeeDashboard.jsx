@@ -125,7 +125,7 @@
 //     },
 //   ];
 
-//   // 🆕 UPDATED - Added 'late' and 'half-day' colors
+//   // 🆕 UPDATED - All statuses with colors
 //   const statusColors = {
 //     'present':         { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Present' },
 //     'in-progress':     { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Working' },
@@ -149,6 +149,9 @@
 //   const grid = buildCalendarGrid();
 //   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 //   const years = Array.from({ length: 3 }, (_, i) => now.getFullYear() - i);
+
+//   // 🆕 Check if site worker
+//   const isSiteWorker = calendar?.is_site_worker || false;
 
 //   return (
 //     <div className="relative min-h-screen overflow-hidden bg-[#faf8f5]">
@@ -313,65 +316,34 @@
 //         </div>
 
 //         {/* LEAVE BANK */}
-//         {myBalance && (
-//           <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
-//             <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-cyan-500" />
-//             <div className="p-6">
-//               <div className="mb-5 flex items-center justify-between">
-//                 <div className="flex items-center gap-3">
-//                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-//                     <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-//                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-//                     </svg>
-//                   </div>
-//                   <div>
-//                     <h3 className="text-base font-bold text-[#1A1A2E]">Leave Bank</h3>
-//                     <p className="text-xs text-[#9CA3AF]">Your free leaves balance</p>
-//                   </div>
-//                 </div>
-//                 <div className="text-right">
-//                   <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">Available</p>
-//                   <p className="text-3xl font-extrabold text-blue-600">{myBalance.current_balance || 0}</p>
-//                 </div>
-//               </div>
-
-//               <div className="grid grid-cols-3 gap-3 mb-4">
-//                 <div className="rounded-xl bg-blue-50/50 p-3 text-center">
-//                   <p className="text-[10px] font-bold uppercase text-blue-700">Carried</p>
-//                   <p className="mt-1 text-base font-extrabold text-blue-700">
-//                     {myBalance.current_month?.opening_balance || 0}
-//                   </p>
-//                 </div>
-//                 <div className="rounded-xl bg-emerald-50/50 p-3 text-center">
-//                   <p className="text-[10px] font-bold uppercase text-emerald-700">Credited</p>
-//                   <p className="mt-1 text-base font-extrabold text-emerald-700">
-//                     +{myBalance.current_month?.credited || 0}
-//                   </p>
-//                 </div>
-//                 <div className="rounded-xl bg-red-50/50 p-3 text-center">
-//                   <p className="text-[10px] font-bold uppercase text-red-700">Used</p>
-//                   <p className="mt-1 text-base font-extrabold text-red-700">
-//                     -{myBalance.current_month?.used || 0}
-//                   </p>
-//                 </div>
-//               </div>
-
-//               <div className="rounded-xl bg-[#faf8f5] p-3 flex justify-between items-center">
-//                 <div>
-//                   <p className="text-[10px] text-[#9CA3AF]">Lifetime Total</p>
-//                   <p className="text-xs font-bold text-[#1A1A2E]">
-//                     {myBalance.total_credited} credited · {myBalance.total_used} used
-//                   </p>
-//                 </div>
-//                 <p className="text-[10px] text-[#9CA3AF]">
-//                   {myBalance.current_balance > 0
-//                     ? `${myBalance.current_balance} leaves saved`
-//                     : 'No balance — leaves will be unpaid'}
-//                 </p>
-//               </div>
-//             </div>
+//       {/* LEAVE BANK - Simple View */}
+// {myBalance && (
+//   <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
+//     <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-cyan-500" />
+//     <div className="p-6">
+//       <div className="flex items-center justify-between">
+//         <div className="flex items-center gap-3">
+//           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50">
+//             <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+//               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+//             </svg>
 //           </div>
-//         )}
+//           <div>
+//             <h3 className="text-base font-bold text-[#1A1A2E]">Available Leaves</h3>
+//             <p className="text-xs text-[#9CA3AF]">Your leave balance</p>
+//           </div>
+//         </div>
+        
+//         <div className="text-right">
+//           <p className="text-4xl font-extrabold text-blue-600">{myBalance.current_balance || 0}</p>
+//           <p className="text-[11px] font-semibold uppercase tracking-widest text-[#9CA3AF] mt-1">
+//             {myBalance.current_balance === 1 ? 'Leave' : 'Leaves'}
+//           </p>
+//         </div>
+//       </div>
+//     </div>
+//   </div>
+// )}
 
 //         {/* CALENDAR */}
 //         <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
@@ -383,9 +355,17 @@
 //                 </svg>
 //               </div>
 //               <div>
-//                 <h3 className="text-sm font-bold text-[#1A1A2E]">
-//                   {months[month - 1]} {year} Calendar
-//                 </h3>
+//                 <div className="flex items-center gap-2">
+//                   <h3 className="text-sm font-bold text-[#1A1A2E]">
+//                     {months[month - 1]} {year} Calendar
+//                   </h3>
+//                   {/* 🆕 Site Worker Badge */}
+//                   {isSiteWorker && (
+//                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700">
+//                       🚧 SITE WORKER
+//                     </span>
+//                   )}
+//                 </div>
 //                 <p className="text-xs text-[#9CA3AF]">Click date for details</p>
 //               </div>
 //             </div>
@@ -447,24 +427,39 @@
 //                         )}
 //                       </div>
 
-//                       {day.status !== 'future' && day.status !== 'weekend' && (
+//                       {/* 🆕 UPDATED - All statuses show hours */}
+//                       {day.status !== 'future' && (
 //                         <div className="mt-auto">
+//                           {/* Holiday */}
 //                           {day.status === 'holiday' && (
 //                             <span className="text-[8px] font-bold text-purple-700 sm:text-[9px]">🎉</span>
 //                           )}
+                          
+//                           {/* Leave */}
 //                           {(day.status === 'leave' || day.status === 'half-day-leave') && (
 //                             <span className="text-[8px] font-bold sm:text-[9px]" style={{ color: sc.text }}>
 //                               {day.status === 'half-day-leave' ? '½ Leave' : 'Leave'}
 //                             </span>
 //                           )}
-//                           {/* 🆕 UPDATED - Late and Half Day bhi hours dikhayenge */}
+                          
+//                           {/* 🆕 Weekend with work (Sunday work) */}
+//                           {day.status === 'weekend' && day.minutes > 0 && (
+//                             <span className="text-[8px] font-bold sm:text-[9px] text-emerald-600">
+//                               ☀️ {Math.floor(day.minutes / 60)}h{day.minutes % 60 > 0 ? `${day.minutes % 60}m` : ''}
+//                             </span>
+//                           )}
+                          
+//                           {/* Present / Late / Half Day / In Progress */}
 //                           {(day.status === 'present' || day.status === 'in-progress' || day.status === 'late' || day.status === 'half-day') && day.minutes > 0 && (
 //                             <span className="text-[8px] font-bold sm:text-[9px]" style={{ color: sc.text }}>
 //                               {day.status === 'late' && '⏰ '}
 //                               {day.status === 'half-day' && '½ '}
+//                               {day.is_sunday_work && '☀️ '}
 //                               {Math.floor(day.minutes / 60)}h{day.minutes % 60 > 0 ? `${day.minutes % 60}m` : ''}
 //                             </span>
 //                           )}
+                          
+//                           {/* Absent */}
 //                           {day.status === 'absent' && (
 //                             <span className="text-[8px] font-bold text-red-700 sm:text-[9px]">Absent</span>
 //                           )}
@@ -472,6 +467,7 @@
 //                       )}
 //                     </div>
 
+//                     {/* Tooltip */}
 //                     {day.status !== 'future' && (
 //                       <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[200px] -translate-x-1/2 rounded-lg bg-[#1A1A2E] px-3 py-2 text-xs text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
 //                         <p className="font-bold">{day.date}</p>
@@ -487,12 +483,17 @@
 //                         {day.leave_type && (
 //                           <p className="text-amber-300 capitalize">📋 {day.leave_type} leave</p>
 //                         )}
-//                         {/* 🆕 Show late/half-day info in tooltip */}
 //                         {day.is_late && (
 //                           <p className="text-orange-300">⏰ Late</p>
 //                         )}
 //                         {day.is_half_day && (
 //                           <p className="text-yellow-300">½ Half Day</p>
+//                         )}
+//                         {day.is_sunday_work && (
+//                           <p className="text-emerald-300">☀️ Sunday Work</p>
+//                         )}
+//                         {day.in_site && (
+//                           <p className="text-blue-300">📍 {day.in_site}</p>
 //                         )}
 //                       </div>
 //                     )}
@@ -501,7 +502,7 @@
 //               })}
 //             </div>
 
-//             {/* 🆕 UPDATED LEGEND - Added Late and Half Day */}
+//             {/* 🆕 UPDATED LEGEND */}
 //             <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
 //               {[
 //                 { key: 'present', label: 'Present' },
@@ -521,6 +522,13 @@
 //                   </div>
 //                 );
 //               })}
+//               {/* 🆕 Sunday Work Legend */}
+//               {isSiteWorker && (
+//                 <div className="flex items-center gap-1.5">
+//                   <span className="text-xs">☀️</span>
+//                   <span className="text-[11px] font-medium text-[#4B5563]">Sunday Work</span>
+//                 </div>
+//               )}
 //             </div>
 //           </div>
 //         </div>
@@ -581,6 +589,7 @@
 
 
 
+
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
@@ -605,7 +614,7 @@ const EmployeeDashboard = () => {
   const [currentTime, setCurrentTime] = useState('');
   const [liveWorkingTime, setLiveWorkingTime] = useState('0h 0m');
 
-  // 🔧 FIXED - IST Time Clock
+  // IST Time Clock
   useEffect(() => {
     const t = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString('en-IN', {
@@ -630,38 +639,38 @@ const EmployeeDashboard = () => {
     dispatch(fetchCalendar({ month, year }));
   }, [dispatch, month, year]);
 
-  // 🔧 FIXED - Live Working Timer with IST
+  // 🔧 FIXED - Live Working Timer (100% Working)
   useEffect(() => {
     if (todayStatus?.status === 'in-progress' && todayStatus?.in_time) {
       const updateTimer = () => {
+        // Get current time in IST
+        const now = new Date();
+        const istNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const currentMinutes = istNow.getHours() * 60 + istNow.getMinutes();
+        
+        // Parse IN time (e.g., "09:37 AM")
         const inTime = todayStatus.in_time;
-
-        const nowStr = new Date().toLocaleTimeString('en-IN', {
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-          timeZone: 'Asia/Kolkata',
-        });
-
-        const parseTime = (t) => {
-          const [time, period] = t.split(' ');
-          let [h, m] = time.split(':').map(Number);
-          if (period === 'PM' && h !== 12) h += 12;
-          if (period === 'AM' && h === 12) h = 0;
-          return h * 60 + m;
-        };
-
-        let diff = parseTime(nowStr) - parseTime(inTime);
-
-        if (diff < 0) diff = 0;
+        const parts = inTime.split(' ');
+        const [hStr, mStr] = parts[0].split(':');
+        let inHours = parseInt(hStr);
+        const inMins = parseInt(mStr);
+        
+        if (parts[1] === 'PM' && inHours !== 12) inHours += 12;
+        if (parts[1] === 'AM' && inHours === 12) inHours = 0;
+        
+        const inMinutes = inHours * 60 + inMins;
+        
+        let diff = currentMinutes - inMinutes;
+        if (diff < 0) diff += 24 * 60;
         if (diff > 24 * 60) diff = 0;
-
+        
         const hours = Math.floor(diff / 60);
         const minutes = diff % 60;
         setLiveWorkingTime(`${hours}h ${minutes}m`);
       };
+      
       updateTimer();
-      const interval = setInterval(updateTimer, 60000);
+      const interval = setInterval(updateTimer, 30000); // Update every 30 seconds
       return () => clearInterval(interval);
     }
   }, [todayStatus]);
@@ -707,7 +716,7 @@ const EmployeeDashboard = () => {
     },
   ];
 
-  // 🆕 UPDATED - All statuses with colors
+  // All status colors
   const statusColors = {
     'present':         { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Present' },
     'in-progress':     { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Working' },
@@ -732,7 +741,7 @@ const EmployeeDashboard = () => {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const years = Array.from({ length: 3 }, (_, i) => now.getFullYear() - i);
 
-  // 🆕 Check if site worker
+  // Check if site worker
   const isSiteWorker = calendar?.is_site_worker || false;
 
   return (
@@ -897,62 +906,30 @@ const EmployeeDashboard = () => {
           ))}
         </div>
 
-        {/* LEAVE BANK */}
+        {/* LEAVE BANK - Simple View */}
         {myBalance && (
           <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
             <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-cyan-500" />
             <div className="p-6">
-              <div className="mb-5 flex items-center justify-between">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50">
+                    <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-[#1A1A2E]">Leave Bank</h3>
-                    <p className="text-xs text-[#9CA3AF]">Your free leaves balance</p>
+                    <h3 className="text-base font-bold text-[#1A1A2E]">Available Leaves</h3>
+                    <p className="text-xs text-[#9CA3AF]">Your leave balance</p>
                   </div>
                 </div>
+
                 <div className="text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">Available</p>
-                  <p className="text-3xl font-extrabold text-blue-600">{myBalance.current_balance || 0}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="rounded-xl bg-blue-50/50 p-3 text-center">
-                  <p className="text-[10px] font-bold uppercase text-blue-700">Carried</p>
-                  <p className="mt-1 text-base font-extrabold text-blue-700">
-                    {myBalance.current_month?.opening_balance || 0}
+                  <p className="text-4xl font-extrabold text-blue-600">{myBalance.current_balance || 0}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[#9CA3AF] mt-1">
+                    {myBalance.current_balance === 1 ? 'Leave' : 'Leaves'}
                   </p>
                 </div>
-                <div className="rounded-xl bg-emerald-50/50 p-3 text-center">
-                  <p className="text-[10px] font-bold uppercase text-emerald-700">Credited</p>
-                  <p className="mt-1 text-base font-extrabold text-emerald-700">
-                    +{myBalance.current_month?.credited || 0}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-red-50/50 p-3 text-center">
-                  <p className="text-[10px] font-bold uppercase text-red-700">Used</p>
-                  <p className="mt-1 text-base font-extrabold text-red-700">
-                    -{myBalance.current_month?.used || 0}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-[#faf8f5] p-3 flex justify-between items-center">
-                <div>
-                  <p className="text-[10px] text-[#9CA3AF]">Lifetime Total</p>
-                  <p className="text-xs font-bold text-[#1A1A2E]">
-                    {myBalance.total_credited} credited · {myBalance.total_used} used
-                  </p>
-                </div>
-                <p className="text-[10px] text-[#9CA3AF]">
-                  {myBalance.current_balance > 0
-                    ? `${myBalance.current_balance} leaves saved`
-                    : 'No balance — leaves will be unpaid'}
-                </p>
               </div>
             </div>
           </div>
@@ -972,7 +949,6 @@ const EmployeeDashboard = () => {
                   <h3 className="text-sm font-bold text-[#1A1A2E]">
                     {months[month - 1]} {year} Calendar
                   </h3>
-                  {/* 🆕 Site Worker Badge */}
                   {isSiteWorker && (
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700">
                       🚧 SITE WORKER
@@ -1040,7 +1016,6 @@ const EmployeeDashboard = () => {
                         )}
                       </div>
 
-                      {/* 🆕 UPDATED - All statuses show hours */}
                       {day.status !== 'future' && (
                         <div className="mt-auto">
                           {/* Holiday */}
@@ -1055,7 +1030,7 @@ const EmployeeDashboard = () => {
                             </span>
                           )}
                           
-                          {/* 🆕 Weekend with work (Sunday work) */}
+                          {/* Weekend with work (Sunday work) */}
                           {day.status === 'weekend' && day.minutes > 0 && (
                             <span className="text-[8px] font-bold sm:text-[9px] text-emerald-600">
                               ☀️ {Math.floor(day.minutes / 60)}h{day.minutes % 60 > 0 ? `${day.minutes % 60}m` : ''}
@@ -1115,7 +1090,7 @@ const EmployeeDashboard = () => {
               })}
             </div>
 
-            {/* 🆕 UPDATED LEGEND */}
+            {/* Legend */}
             <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
               {[
                 { key: 'present', label: 'Present' },
@@ -1135,7 +1110,6 @@ const EmployeeDashboard = () => {
                   </div>
                 );
               })}
-              {/* 🆕 Sunday Work Legend */}
               {isSiteWorker && (
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs">☀️</span>
