@@ -2352,6 +2352,9 @@ const reviewAttendance = async (req, res) => {
 // ════════════════════════════════════════════════════════════
 // GET MONTHLY SUMMARY
 // ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// GET MONTHLY SUMMARY (FIXED - Only worked hours)
+// ════════════════════════════════════════════════════════════
 const getMonthlySummary = async (req, res) => {
   try {
     const { month, year } = req.query;
@@ -2387,7 +2390,7 @@ const getMonthlySummary = async (req, res) => {
       return m === currentMonth && y === currentYear;
     });
 
-    // 🆕 Detect Site Worker (works Sundays)
+    // 🆕 Detect Site Worker
     const sundayAttendances = attendanceRecords.filter(a => {
       if (!a.in_time) return false;
       const [d, m, y] = a.date.split('/').map(Number);
@@ -2395,6 +2398,7 @@ const getMonthlySummary = async (req, res) => {
     });
     const isSiteWorker = sundayAttendances.length >= 2;
 
+    // 🎯 FIXED - Track only WORKED minutes (not leave/holiday)
     let totalWorkedMinutes = 0;
     let presentDays = 0;
     let absentDays = 0;
@@ -2433,7 +2437,7 @@ const getMonthlySummary = async (req, res) => {
 
       const attendance = attendanceRecords.find((a) => a.date === dateStr);
 
-      // 🆕 SITE WORKER - Sunday work count as present
+      // 🆕 Site Worker Sunday work = Present count
       if (isSiteWorker && dayName === 'Sunday' && attendance && attendance.in_time) {
         presentDays++;
         sundayWorked++;
@@ -2441,29 +2445,43 @@ const getMonthlySummary = async (req, res) => {
         if (attendance.is_half_day) halfDayCount++;
         if (attendance.out_time) {
           totalWorkedMinutes += calculateWorkingMinutes(attendance.in_time, attendance.out_time);
+        } else if (isCurrentMonth && d === todayDate) {
+          const nowIST = getISTMoment().format('hh:mm A');
+          const liveMin = calculateWorkingMinutes(attendance.in_time, nowIST);
+          if (liveMin >= 0 && liveMin < 24 * 60) {
+            totalWorkedMinutes += liveMin;
+          }
         }
         continue;
       }
 
-      if (weeklyOff.includes(dayName)) { weekendCount++; continue; }
-
-      if (holidaySet.has(dateStr)) {
-        holidayCount++;
-        totalWorkedMinutes += dailyMinutes;
+      // Skip weekends
+      if (weeklyOff.includes(dayName)) {
+        weekendCount++;
         continue;
       }
 
+      // 🎯 FIXED - Holiday: Count but DON'T add to worked minutes
+      if (holidaySet.has(dateStr)) {
+        holidayCount++;
+        // ❌ REMOVED: totalWorkedMinutes += dailyMinutes;
+        continue;
+      }
+
+      // 🎯 FIXED - Leave: Count but DON'T add to worked minutes
       if (leaveDateMap[dateStr]) {
         const leave = leaveDateMap[dateStr];
         if (leave.is_half_day) {
           leaveCount += 0.5;
-          totalWorkedMinutes += dailyMinutes / 2;
+          // ❌ REMOVED: totalWorkedMinutes += dailyMinutes / 2;
         } else {
           leaveCount += 1;
-          totalWorkedMinutes += dailyMinutes;
+          // ❌ REMOVED: totalWorkedMinutes += dailyMinutes;
         }
+        continue;
       }
 
+      // Present - actual work
       if (attendance && attendance.in_time) {
         presentDays++;
         
@@ -2497,7 +2515,7 @@ const getMonthlySummary = async (req, res) => {
         month_name: new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long' }),
         required_hours: requiredHours,
         required_minutes: requiredMinutes,
-        worked_hours: formatMinutes(totalWorkedMinutes),
+        worked_hours: formatMinutes(totalWorkedMinutes),   // ✅ Only actual worked
         worked_minutes: totalWorkedMinutes,
         pending_hours: formatMinutes(pendingMinutes),
         pending_minutes: pendingMinutes,
@@ -2511,7 +2529,6 @@ const getMonthlySummary = async (req, res) => {
         weekend_count: weekendCount,
         late_count: lateCount,
         half_day_count: halfDayCount,
-        // 🆕 Site Worker info
         is_site_worker: isSiteWorker,
         sunday_worked: sundayWorked,
         settings: {
@@ -2526,7 +2543,6 @@ const getMonthlySummary = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
 // ════════════════════════════════════════════════════════════
 // GET CALENDAR (with Sunday work for site workers)
 // ════════════════════════════════════════════════════════════
