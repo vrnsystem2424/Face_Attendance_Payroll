@@ -3402,6 +3402,7 @@ const editAttendance = async (req, res) => {
 // ════════════════════════════════════════════════════════════
 // 🆕 SUPER ADMIN - GET ALL ATTENDANCE (For Fix Page)
 // ════════════════════════════════════════════════════════════
+
 const getAllAttendanceForFix = async (req, res) => {
   try {
     const { company_id, from_date, to_date, emp_code } = req.query;
