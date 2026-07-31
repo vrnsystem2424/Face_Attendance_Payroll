@@ -583,29 +583,33 @@ const getAllAttendance = async (req, res) => {
     if (req.employee.role === 'super_admin') {
       filter = {};
     }
-    // 🆕 Regular admin with assigned_manager - sees ONLY that manager's employees
+    // 🆕 Regular admin with assigned_manager
     else if (req.employee.role === 'admin' && req.employee.assigned_manager) {
       const managerName = req.employee.assigned_manager.trim();
       const companyId = req.employee.company_id?._id || req.employee.company_id;
 
-      // Find all employees whose leave_approval_manager matches
+      // 🆕 Escape special regex characters
+      const escapedManagerName = managerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
       const managedEmployees = await Employee.find({
         company_id: companyId,
-        leave_approval_manager: { $regex: new RegExp(`^${managerName}$`, 'i') }
+        leave_approval_manager: { 
+          $regex: new RegExp(`^\\s*${escapedManagerName}\\s*$`, 'i') 
+        }
       }).select('_id name');
 
       const managedEmpIds = managedEmployees.map(e => e._id);
 
       console.log(`🎯 Manager Admin Attendance: ${req.employee.name} → Manager: ${managerName}`);
+      console.log(`   Escaped: "${escapedManagerName}"`);
       console.log(`   Found ${managedEmployees.length} employees managed`);
-      console.log(`   Employees: ${managedEmployees.map(e => e.name).join(', ')}`);
 
       filter = {
         company_id: companyId,
         emp_id: { $in: managedEmpIds },
       };
     }
-    // Regular admin - sees all of company
+    // Regular admin
     else {
       filter = { company_id: req.employee.company_id?._id || req.employee.company_id };
     }

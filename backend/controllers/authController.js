@@ -899,8 +899,8 @@ const otpStore = new Map();
 const generateToken = (id, passwordVersion = 1) => {
   return jwt.sign(
     { id, passwordVersion }, 
-    process.env.JWT_SECRET, 
-    { expiresIn: '30d' }
+    process.env.JWT_SECRET
+    // expiresIn को हटा दिया गया है
   );
 };
 

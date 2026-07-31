@@ -15,23 +15,13 @@
 
 // const FREE_LEAVES_PER_MONTH = 1;
 
-// // ════════════════════════════════════════════
-// // 🆕 LATE RULE START CONFIG
-// // July 2026 se system chalu hua - 6 July se late count
-// // August 2026 onwards - normal (1st se)
-// // ════════════════════════════════════════════
 // const getLateStartDay = (month, year) => {
-//   // Special case: July 2026 - System launch month
 //   if (month === 7 && year === 2026) {
-//     return 6;  // 6 July se late count
+//     return 6;
 //   }
-//   // Normal months - 1st se count
 //   return 1;
 // };
 
-// // ════════════════════════════════════════════
-// // HELPERS
-// // ════════════════════════════════════════════
 // const parseTimeToMinutes = (timeStr) => {
 //   if (!timeStr) return null;
 //   const parts = timeStr.trim().split(' ');
@@ -77,12 +67,20 @@
 // };
 
 // // ════════════════════════════════════════════
-// // DETECT OFF DAYS (per employee)
+// // 🆕 DETECT OFF DAYS (with Site Worker logic)
 // // ════════════════════════════════════════════
 // const detectOffDays = (allDates, attendanceRecords) => {
 //   const attendedDates = new Set(
 //     attendanceRecords.filter(a => a.in_time).map(a => a.date)
 //   );
+
+//   // 🆕 Detect Site Worker
+//   const sundayAttendances = attendanceRecords.filter(a => {
+//     if (!a.in_time) return false;
+//     const [d, m, y] = a.date.split('/').map(Number);
+//     return new Date(y, m - 1, d).getDay() === 0;
+//   });
+//   const isSiteWorker = sundayAttendances.length >= 2;
 
 //   const weeks = [];
 //   let currentWeek = [];
@@ -112,12 +110,21 @@
 //     const sundayInWeek = week.find(d => d.dayIdx === 0);
 //     const sundayAttended = sundayInWeek?.attended || false;
 
-//     if (!sundayAttended) {
-//       if (sundayInWeek) offDates.add(sundayInWeek.dateStr);
-//     } else {
-//       const notAttendedDays = week.filter(d => !d.attended && d.dayIdx !== 0);
+//     if (isSiteWorker) {
+//       // Site worker - Take first non-attended day as off
+//       const notAttendedDays = week.filter(d => !d.attended);
 //       if (notAttendedDays.length > 0) {
 //         offDates.add(notAttendedDays[0].dateStr);
+//       }
+//     } else {
+//       // Office worker - Traditional logic
+//       if (!sundayAttended) {
+//         if (sundayInWeek) offDates.add(sundayInWeek.dateStr);
+//       } else {
+//         const notAttendedDays = week.filter(d => !d.attended && d.dayIdx !== 0);
+//         if (notAttendedDays.length > 0) {
+//           offDates.add(notAttendedDays[0].dateStr);
+//         }
 //       }
 //     }
 //   }
@@ -126,7 +133,7 @@
 // };
 
 // // ════════════════════════════════════════════
-// // 🎯 PAYROLL CALCULATION with LATE/HALF-DAY LOGIC
+// // 🎯 PAYROLL CALCULATION
 // // ════════════════════════════════════════════
 // const calculateEmployeePayroll = async (employee, month, year, settings) => {
 //   const monthlySalary = employee.monthly_salary || 0;
@@ -134,7 +141,6 @@
 //   const dailyMinutes = dailyHours * 60;
 //   const holidays = settings?.holidays || [];
 
-//   // 🆕 Get late start day based on month/year
 //   const lateStartDay = getLateStartDay(month, year);
 
 //   const allDates = getDatesInMonth(month, year);
@@ -172,6 +178,14 @@
 
 //   const offDates = detectOffDays(allDates, attendanceRecords);
 
+//   // 🆕 Detect if Site Worker
+//   const sundayAttendances = attendanceRecords.filter(a => {
+//     if (!a.in_time) return false;
+//     const [d, m, y] = a.date.split('/').map(Number);
+//     return new Date(y, m - 1, d).getDay() === 0;
+//   });
+//   const isSiteWorker = sundayAttendances.length >= 2;
+
 //   let totalWorkingDays = 0;
 //   let offDayCount = 0;
 //   let holidayCount = 0;
@@ -193,15 +207,15 @@
 //   const requiredMinutes = requiredHours * 60;
 
 //   // ════════════════════════════════════════
-//   // 🆕 PROCESS ATTENDANCE WITH LATE/HALF-DAY
-//   // (Only count late from lateStartDay onwards)
+//   // PROCESS ATTENDANCE
 //   // ════════════════════════════════════════
 //   let totalWorkedMinutes = 0;
 //   let presentDays = 0;
 //   let sundayWorked = 0;
 //   let lateCount = 0;
 //   let halfDayCount = 0;
-//   let ignoredLateCount = 0;  // 🆕 Before start date
+//   let ignoredLateCount = 0;
+//   let ignoredAbsentCount = 0;
 //   const lateDates = [];
 //   const halfDayDates = [];
 
@@ -225,22 +239,25 @@
 //         totalWorkedMinutes += calculateWorkingMinutes(attendance.in_time, attendance.out_time);
 //       }
 
-//       // 🆕 CHECK LATE/HALF-DAY STATUS (only from lateStartDay)
+//       // 🆕 LOCATION-BASED RULE
+//       const wasOnSiteAtIN = attendance.in_location_status === 'on-site';
 //       const statusInfo = getAttendanceStatus(attendance.in_time, attendance.out_time);
       
 //       if (d >= lateStartDay) {
-//         // ✅ Count late/half-day (rule applies)
-//         if (statusInfo.is_late) {
-//           lateCount++;
-//           lateDates.push(dateStr);
+//         if (wasOnSiteAtIN) {
+//           // Office worker - Rules apply
+//           if (statusInfo.is_late) {
+//             lateCount++;
+//             lateDates.push(dateStr);
+//           }
+          
+//           if (statusInfo.is_half_day) {
+//             halfDayCount++;
+//             halfDayDates.push(dateStr);
+//           }
 //         }
-        
-//         if (statusInfo.is_half_day) {
-//           halfDayCount++;
-//           halfDayDates.push(dateStr);
-//         }
+//         // Site worker - Skip rules
 //       } else {
-//         // ⏭️ Before start day - ignore (grace period)
 //         if (statusInfo.is_late || statusInfo.is_half_day) {
 //           ignoredLateCount++;
 //         }
@@ -248,6 +265,7 @@
 //     }
 //   }
 
+//   // Calculate expected work days
 //   let expectedWorkDays = 0;
 //   for (const dateStr of allDates) {
 //     const [d] = dateStr.split('/').map(Number);
@@ -255,19 +273,27 @@
 //     if (offDates.has(dateStr)) continue;
 //     if (holidaySet.has(dateStr)) continue;
 //     if (leaveDateSet.has(dateStr)) continue;
-//     expectedWorkDays++;
+
+//     const attendance = attendanceRecords.find(a => a.date === dateStr);
+//     const isPresent = attendance && attendance.in_time;
+
+//     if (d >= lateStartDay) {
+//       expectedWorkDays++;
+//     } else {
+//       if (isPresent) {
+//         expectedWorkDays++;
+//       } else {
+//         ignoredAbsentCount++;
+//       }
+//     }
 //   }
 
 //   const absentDays = Math.max(0, expectedWorkDays - presentDays);
 
-//   // ════════════════════════════════════════
-//   // 🆕 CALCULATE LATE-TO-LEAVE CONVERSION
-//   // ════════════════════════════════════════
 //   const lateLeaveDeduction = calculateLateLeaveDeduction(lateCount);
 //   const halfDayLeaves = halfDayCount * 0.5;
 //   const totalLateHalfDayDeduction = lateLeaveDeduction + halfDayLeaves;
 
-//   // Leave Balance
 //   const leaveBalance = await LeaveBalance.findOne({ emp_id: employee._id });
 
 //   let openingBalance = 0;
@@ -283,13 +309,8 @@
 //     }
 //   }
 
-//   // ════════════════════════════════════════
-//   // 🎯 SMART LEAVE LOGIC WITH LATE DEDUCTION
-//   // ════════════════════════════════════════
 //   const compensatoryOffs = sundayWorked;
-  
 //   const totalLeavesNeeded = totalLeavesTaken + totalLateHalfDayDeduction;
-  
 //   const effectiveLeaves = Math.max(0, totalLeavesNeeded - compensatoryOffs);
 //   const totalAvailableLeaves = openingBalance + creditedThisMonth;
   
@@ -297,13 +318,9 @@
 //   const unpaidLeaves = Math.max(0, effectiveLeaves - totalAvailableLeaves);
 //   const carryForward = Math.max(0, totalAvailableLeaves - effectiveLeaves);
 
-//   // ════════════════════════════════════════
-//   // SALARY CALCULATION
-//   // ════════════════════════════════════════
 //   const perDayRate = totalWorkingDays > 0 ? (monthlySalary / totalWorkingDays) : 0;
 //   const perHourRate = requiredHours > 0 ? (monthlySalary / requiredHours) : 0;
 
-//   // HOURS BASED
 //   const paidLeaveMinutes = paidLeaves * dailyMinutes;
 //   const totalWorkingHourMinutes = totalWorkedMinutes + paidLeaveMinutes;
 //   let hoursProgressPercent = 0;
@@ -314,7 +331,6 @@
 //   const hoursBasedEarned = Math.round((monthlySalary * cappedHoursProgress) / 100);
 //   const hoursBasedDeduction = monthlySalary - hoursBasedEarned;
 
-//   // DAYS BASED
 //   const payableDays = presentDays + paidLeaves - totalLateHalfDayDeduction;
 //   let daysProgressPercent = 0;
 //   if (totalWorkingDays > 0) {
@@ -328,24 +344,20 @@
 //   const unpaidLeaveDeduction = Math.round(perDayRate * unpaidLeaves);
 //   const lateHalfDayDeductionAmount = Math.round(perDayRate * totalLateHalfDayDeduction);
 
-//   // Default (backward compat)
 //   const earnedSalary = hoursBasedEarned;
 //   const totalDeduction = hoursBasedDeduction;
 //   const netPayable = earnedSalary;
 //   const progressPercent = hoursProgressPercent;
 //   const deductionPercent = Math.max(0, 100 - progressPercent);
 
-//   // Debug log
 //   console.log(`\n📊 ${employee.name} (${employee.emp_code}):`);
+//   console.log(`   👷 Worker Type: ${isSiteWorker ? '🚧 SITE' : '🏢 OFFICE'}`);
 //   console.log(`   📅 Working Days: ${totalWorkingDays} | Off: ${offDayCount} | Holiday: ${holidayCount}`);
 //   console.log(`   👤 Present: ${presentDays} | Absent: ${absentDays}`);
-//   console.log(`   ⏰ Late Rule Start: Day ${lateStartDay} of ${month}/${year}`);
-//   console.log(`   ⏰ Late (counted): ${lateCount} → Deduction: ${lateLeaveDeduction} days`);
-//   console.log(`   ⏭️  Late (ignored before day ${lateStartDay}): ${ignoredLateCount}`);
-//   console.log(`   🕐 Half Days: ${halfDayCount} → Deduction: ${halfDayLeaves} days`);
-//   console.log(`   📋 Actual Leaves: ${totalLeavesTaken}`);
-//   console.log(`   📊 Total Leave Deduction: ${totalLateHalfDayDeduction} days`);
-//   console.log(`   💼 Paid: ${paidLeaves} | Unpaid: ${unpaidLeaves} | Carry: ${carryForward}`);
+//   console.log(`   ☀️  Sunday Worked: ${sundayWorked}`);
+//   console.log(`   ⏰ Late (counted): ${lateCount} | Ignored: ${ignoredLateCount}`);
+//   console.log(`   🕐 Half Days: ${halfDayCount}`);
+//   console.log(`   📋 Leaves: ${totalLeavesTaken} | Paid: ${paidLeaves} | Unpaid: ${unpaidLeaves}`);
 //   console.log(`   💰 [HOURS]: ${hoursProgressPercent.toFixed(2)}% → ₹${hoursBasedEarned}`);
 //   console.log(`   💰 [DAYS]:  ${daysProgressPercent.toFixed(2)}% → ₹${daysBasedEarned}`);
 //   console.log('   ═══════════════════════════════════');
@@ -366,14 +378,15 @@
 //     total_absent: absentDays,
 //     present_days: presentDays,
 //     absent_days: absentDays,
+//     ignored_absent_count: ignoredAbsentCount,
 //     sunday_count: offDayCount,
 //     holiday_count: holidayCount,
 //     sunday_worked: sundayWorked,
+//     is_site_worker: isSiteWorker,  // 🆕
 
-//     // 🆕 LATE / HALF DAY STATS
 //     late_count: lateCount,
-//     ignored_late_count: ignoredLateCount,  // 🆕 Grace period lates
-//     late_start_day: lateStartDay,           // 🆕 Rule start day
+//     ignored_late_count: ignoredLateCount,
+//     late_start_day: lateStartDay,
 //     half_day_count: halfDayCount,
 //     late_dates: lateDates,
 //     half_day_dates: halfDayDates,
@@ -382,7 +395,6 @@
 //     total_late_half_day_deduction: totalLateHalfDayDeduction,
 //     late_half_day_amount: lateHalfDayDeductionAmount,
 
-//     // Leave Balance
 //     leave_opening_balance: openingBalance,
 //     leave_credited: creditedThisMonth,
 //     leave_used: totalLeavesTaken,
@@ -472,17 +484,12 @@
 //     const lateStartDay = getLateStartDay(currentMonth, currentYear);
 
 //     console.log('\n═══════════════════════════════════════');
-//     console.log(`📊 PAYROLL WITH LATE/HALF-DAY RULES`);
+//     console.log(`📊 PAYROLL WITH LOCATION-BASED RULES`);
 //     console.log(`   Company: ${company.name}`);
 //     console.log(`   Month: ${currentMonth}/${currentYear}`);
-//     console.log(`   Office: 9:30 AM - 6:30 PM`);
-//     console.log(`   ⏰ Late Rule Start: Day ${lateStartDay} of month`);
-//     if (lateStartDay > 1) {
-//       console.log(`   ⚠️  GRACE PERIOD: Late ignored for days 1 to ${lateStartDay - 1}`);
-//     }
-//     console.log(`   Late Rules: 3L=0.5d | 5L=1d | Extra L=0.5d each`);
-//     console.log(`   Half Day: IN≥11AM or OUT≤4PM`);
-//     console.log(`   Free Leaves: ${FREE_LEAVES_PER_MONTH}/month`);
+//     console.log(`   ⏰ Rule Start: Day ${lateStartDay} of month`);
+//     console.log(`   🚧 Site Workers: Late/Half-Day SKIPPED`);
+//     console.log(`   🏢 Office Workers: Rules APPLY`);
 //     console.log('═══════════════════════════════════════\n');
 
 //     const filter = {
@@ -529,6 +536,8 @@
 //     const summary = {
 //       total_employees: payrollData.length,
 //       total_monthly_salary: payrollData.reduce((s, p) => s + p.monthly_salary, 0),
+//       total_site_workers: payrollData.filter(p => p.is_site_worker).length,  // 🆕
+//       total_office_workers: payrollData.filter(p => !p.is_site_worker).length,  // 🆕
 
 //       total_earned_hours: payrollData.reduce((s, p) => s + p.hours_based.earned, 0),
 //       total_deduction_hours: payrollData.reduce((s, p) => s + p.hours_based.deduction, 0),
@@ -553,13 +562,13 @@
 //       total_compensatory: payrollData.reduce((s, p) => s + (p.compensatory_offs || 0), 0),
       
 //       total_late: payrollData.reduce((s, p) => s + (p.late_count || 0), 0),
-//       total_ignored_late: payrollData.reduce((s, p) => s + (p.ignored_late_count || 0), 0),  // 🆕
+//       total_ignored_late: payrollData.reduce((s, p) => s + (p.ignored_late_count || 0), 0),
 //       total_half_day: payrollData.reduce((s, p) => s + (p.half_day_count || 0), 0),
 //       total_late_deduction_days: payrollData.reduce((s, p) => s + (p.total_late_half_day_deduction || 0), 0),
 //     };
 
 //     console.log(`\n✅ TOTAL: ${summary.total_employees} employees`);
-//     console.log(`⏰ Late (counted): ${summary.total_late} | Ignored: ${summary.total_ignored_late} | Half Day: ${summary.total_half_day}`);
+//     console.log(`🚧 Site Workers: ${summary.total_site_workers} | 🏢 Office: ${summary.total_office_workers}`);
 //     console.log(`💰 [HOURS] Earned: ₹${summary.total_earned_hours} | Cut: ₹${summary.total_deduction_hours}`);
 //     console.log(`💰 [DAYS]  Earned: ₹${summary.total_earned_days} | Cut: ₹${summary.total_deduction_days}\n`);
 
@@ -587,8 +596,9 @@
 //           late_in_limit: '09:45 AM',
 //           half_day_in_limit: '11:00 AM',
 //           half_day_out_limit: '04:00 PM',
-//           late_start_day: lateStartDay,  // 🆕
-//           grace_period_active: lateStartDay > 1,  // 🆕
+//           late_start_day: lateStartDay,
+//           grace_period_active: lateStartDay > 1,
+//           location_based_rules: true,  // 🆕
 //         },
 //         employees: payrollData,
 //         summary,
@@ -634,8 +644,6 @@
 
 
 
-
-
 const Employee = require('../models/Employee');
 const Attendance = require('../models/Attendance');
 const Leave = require('../models/Leave');
@@ -649,6 +657,11 @@ const {
 
 const FREE_LEAVES_PER_MONTH = 1;
 
+// ════════════════════════════════════════════
+// LATE RULE START CONFIG
+// July 2026 se system chalu hua - 6 July se late count
+// August 2026 onwards - normal (1st se)
+// ════════════════════════════════════════════
 const getLateStartDay = (month, year) => {
   if (month === 7 && year === 2026) {
     return 6;
@@ -656,6 +669,9 @@ const getLateStartDay = (month, year) => {
   return 1;
 };
 
+// ════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════
 const parseTimeToMinutes = (timeStr) => {
   if (!timeStr) return null;
   const parts = timeStr.trim().split(' ');
@@ -701,79 +717,14 @@ const formatHours = (totalMinutes) => {
 };
 
 // ════════════════════════════════════════════
-// 🆕 DETECT OFF DAYS (with Site Worker logic)
-// ════════════════════════════════════════════
-const detectOffDays = (allDates, attendanceRecords) => {
-  const attendedDates = new Set(
-    attendanceRecords.filter(a => a.in_time).map(a => a.date)
-  );
-
-  // 🆕 Detect Site Worker
-  const sundayAttendances = attendanceRecords.filter(a => {
-    if (!a.in_time) return false;
-    const [d, m, y] = a.date.split('/').map(Number);
-    return new Date(y, m - 1, d).getDay() === 0;
-  });
-  const isSiteWorker = sundayAttendances.length >= 2;
-
-  const weeks = [];
-  let currentWeek = [];
-
-  for (const dateStr of allDates) {
-    const [d, m, y] = dateStr.split('/').map(Number);
-    const date = new Date(y, m - 1, d);
-    const dayIdx = date.getDay();
-
-    if (dayIdx === 0 && currentWeek.length > 0) {
-      weeks.push(currentWeek);
-      currentWeek = [];
-    }
-
-    currentWeek.push({
-      dateStr,
-      dayName: getDayName(dateStr),
-      dayIdx,
-      attended: attendedDates.has(dateStr),
-    });
-  }
-  if (currentWeek.length > 0) weeks.push(currentWeek);
-
-  const offDates = new Set();
-
-  for (const week of weeks) {
-    const sundayInWeek = week.find(d => d.dayIdx === 0);
-    const sundayAttended = sundayInWeek?.attended || false;
-
-    if (isSiteWorker) {
-      // Site worker - Take first non-attended day as off
-      const notAttendedDays = week.filter(d => !d.attended);
-      if (notAttendedDays.length > 0) {
-        offDates.add(notAttendedDays[0].dateStr);
-      }
-    } else {
-      // Office worker - Traditional logic
-      if (!sundayAttended) {
-        if (sundayInWeek) offDates.add(sundayInWeek.dateStr);
-      } else {
-        const notAttendedDays = week.filter(d => !d.attended && d.dayIdx !== 0);
-        if (notAttendedDays.length > 0) {
-          offDates.add(notAttendedDays[0].dateStr);
-        }
-      }
-    }
-  }
-
-  return offDates;
-};
-
-// ════════════════════════════════════════════
-// 🎯 PAYROLL CALCULATION
+// 🎯 PAYROLL CALCULATION - STANDARD WORKING DAYS
 // ════════════════════════════════════════════
 const calculateEmployeePayroll = async (employee, month, year, settings) => {
   const monthlySalary = employee.monthly_salary || 0;
   const dailyHours = settings?.daily_hours || 8;
   const dailyMinutes = dailyHours * 60;
   const holidays = settings?.holidays || [];
+  const weeklyOffSetting = settings?.weekly_off || ['Sunday'];
 
   const lateStartDay = getLateStartDay(month, year);
 
@@ -810,9 +761,7 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     }
   });
 
-  const offDates = detectOffDays(allDates, attendanceRecords);
-
-  // 🆕 Detect if Site Worker
+  // 🆕 Detect Site Worker (for informational purposes only)
   const sundayAttendances = attendanceRecords.filter(a => {
     if (!a.in_time) return false;
     const [d, m, y] = a.date.split('/').map(Number);
@@ -820,19 +769,24 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   });
   const isSiteWorker = sundayAttendances.length >= 2;
 
+  // 🆕 STANDARD CALCULATION - Same for ALL employees
   let totalWorkingDays = 0;
   let offDayCount = 0;
   let holidayCount = 0;
 
   for (const dateStr of allDates) {
-    if (offDates.has(dateStr)) {
-      offDayCount++;
-    } else if (holidaySet.has(dateStr)) {
+    const dayName = getDayName(dateStr);
+    
+    if (holidaySet.has(dateStr)) {
       holidayCount++;
+    } else if (weeklyOffSetting.includes(dayName)) {
+      offDayCount++;
     } else {
       totalWorkingDays++;
     }
   }
+
+  console.log(`📅 ${employee.name}: Total=${allDates.length}, Off=${offDayCount}, Holidays=${holidayCount}, Working=${totalWorkingDays}`);
 
   const autoHours = totalWorkingDays * dailyHours;
   const requiredHours = settings?.required_hours
@@ -873,7 +827,7 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
         totalWorkedMinutes += calculateWorkingMinutes(attendance.in_time, attendance.out_time);
       }
 
-      // 🆕 LOCATION-BASED RULE
+      // LOCATION-BASED RULE
       const wasOnSiteAtIN = attendance.in_location_status === 'on-site';
       const statusInfo = getAttendanceStatus(attendance.in_time, attendance.out_time);
       
@@ -899,21 +853,22 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     }
   }
 
-  // Calculate expected work days
+  // 🆕 Expected work days - based on standard weekly off
   let expectedWorkDays = 0;
   for (const dateStr of allDates) {
     const [d] = dateStr.split('/').map(Number);
+    const dayName = getDayName(dateStr);
+    
     if (isCurrentMonth && d > todayDate) continue;
-    if (offDates.has(dateStr)) continue;
+    if (weeklyOffSetting.includes(dayName)) continue;  // Skip Sundays
     if (holidaySet.has(dateStr)) continue;
     if (leaveDateSet.has(dateStr)) continue;
-
-    const attendance = attendanceRecords.find(a => a.date === dateStr);
-    const isPresent = attendance && attendance.in_time;
 
     if (d >= lateStartDay) {
       expectedWorkDays++;
     } else {
+      const attendance = attendanceRecords.find(a => a.date === dateStr);
+      const isPresent = attendance && attendance.in_time;
       if (isPresent) {
         expectedWorkDays++;
       } else {
@@ -922,7 +877,9 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     }
   }
 
-  const absentDays = Math.max(0, expectedWorkDays - presentDays);
+  // 🆕 Absent = Expected - Present (excluding Sunday work)
+  const nonSundayPresent = presentDays - sundayWorked;
+  const absentDays = Math.max(0, expectedWorkDays - nonSundayPresent);
 
   const lateLeaveDeduction = calculateLateLeaveDeduction(lateCount);
   const halfDayLeaves = halfDayCount * 0.5;
@@ -955,6 +912,7 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   const perDayRate = totalWorkingDays > 0 ? (monthlySalary / totalWorkingDays) : 0;
   const perHourRate = requiredHours > 0 ? (monthlySalary / requiredHours) : 0;
 
+  // HOURS BASED
   const paidLeaveMinutes = paidLeaves * dailyMinutes;
   const totalWorkingHourMinutes = totalWorkedMinutes + paidLeaveMinutes;
   let hoursProgressPercent = 0;
@@ -965,7 +923,8 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   const hoursBasedEarned = Math.round((monthlySalary * cappedHoursProgress) / 100);
   const hoursBasedDeduction = monthlySalary - hoursBasedEarned;
 
-  const payableDays = presentDays + paidLeaves - totalLateHalfDayDeduction;
+  // 🆕 DAYS BASED - Payable Days include Sunday work as extra
+  const payableDays = nonSundayPresent + paidLeaves + sundayWorked - totalLateHalfDayDeduction;
   let daysProgressPercent = 0;
   if (totalWorkingDays > 0) {
     daysProgressPercent = (payableDays / totalWorkingDays) * 100;
@@ -987,7 +946,7 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   console.log(`\n📊 ${employee.name} (${employee.emp_code}):`);
   console.log(`   👷 Worker Type: ${isSiteWorker ? '🚧 SITE' : '🏢 OFFICE'}`);
   console.log(`   📅 Working Days: ${totalWorkingDays} | Off: ${offDayCount} | Holiday: ${holidayCount}`);
-  console.log(`   👤 Present: ${presentDays} | Absent: ${absentDays}`);
+  console.log(`   👤 Present: ${presentDays} (Non-Sun: ${nonSundayPresent}) | Absent: ${absentDays}`);
   console.log(`   ☀️  Sunday Worked: ${sundayWorked}`);
   console.log(`   ⏰ Late (counted): ${lateCount} | Ignored: ${ignoredLateCount}`);
   console.log(`   🕐 Half Days: ${halfDayCount}`);
@@ -1016,7 +975,7 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     sunday_count: offDayCount,
     holiday_count: holidayCount,
     sunday_worked: sundayWorked,
-    is_site_worker: isSiteWorker,  // 🆕
+    is_site_worker: isSiteWorker,
 
     late_count: lateCount,
     ignored_late_count: ignoredLateCount,
@@ -1118,10 +1077,12 @@ const getCompanyPayroll = async (req, res) => {
     const lateStartDay = getLateStartDay(currentMonth, currentYear);
 
     console.log('\n═══════════════════════════════════════');
-    console.log(`📊 PAYROLL WITH LOCATION-BASED RULES`);
+    console.log(`📊 PAYROLL WITH STANDARD WORKING DAYS`);
     console.log(`   Company: ${company.name}`);
     console.log(`   Month: ${currentMonth}/${currentYear}`);
     console.log(`   ⏰ Rule Start: Day ${lateStartDay} of month`);
+    console.log(`   📅 Standard Weekly Off: Sunday`);
+    console.log(`   ☀️  Sunday Work: Extra Payment`);
     console.log(`   🚧 Site Workers: Late/Half-Day SKIPPED`);
     console.log(`   🏢 Office Workers: Rules APPLY`);
     console.log('═══════════════════════════════════════\n');
@@ -1170,8 +1131,8 @@ const getCompanyPayroll = async (req, res) => {
     const summary = {
       total_employees: payrollData.length,
       total_monthly_salary: payrollData.reduce((s, p) => s + p.monthly_salary, 0),
-      total_site_workers: payrollData.filter(p => p.is_site_worker).length,  // 🆕
-      total_office_workers: payrollData.filter(p => !p.is_site_worker).length,  // 🆕
+      total_site_workers: payrollData.filter(p => p.is_site_worker).length,
+      total_office_workers: payrollData.filter(p => !p.is_site_worker).length,
 
       total_earned_hours: payrollData.reduce((s, p) => s + p.hours_based.earned, 0),
       total_deduction_hours: payrollData.reduce((s, p) => s + p.hours_based.deduction, 0),
@@ -1203,6 +1164,7 @@ const getCompanyPayroll = async (req, res) => {
 
     console.log(`\n✅ TOTAL: ${summary.total_employees} employees`);
     console.log(`🚧 Site Workers: ${summary.total_site_workers} | 🏢 Office: ${summary.total_office_workers}`);
+    console.log(`☀️  Total Sunday Work: ${summary.total_sunday_worked}`);
     console.log(`💰 [HOURS] Earned: ₹${summary.total_earned_hours} | Cut: ₹${summary.total_deduction_hours}`);
     console.log(`💰 [DAYS]  Earned: ₹${summary.total_earned_days} | Cut: ₹${summary.total_deduction_days}\n`);
 
@@ -1232,7 +1194,8 @@ const getCompanyPayroll = async (req, res) => {
           half_day_out_limit: '04:00 PM',
           late_start_day: lateStartDay,
           grace_period_active: lateStartDay > 1,
-          location_based_rules: true,  // 🆕
+          location_based_rules: true,
+          standard_working_days: true,
         },
         employees: payrollData,
         summary,
@@ -1248,6 +1211,9 @@ const getCompanyPayroll = async (req, res) => {
   }
 };
 
+// ════════════════════════════════════════════
+// GET COMPANY DEPARTMENTS
+// ════════════════════════════════════════════
 const getCompanyDepartments = async (req, res) => {
   try {
     const { company_id } = req.query;
