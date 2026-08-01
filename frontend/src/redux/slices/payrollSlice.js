@@ -1,8 +1,11 @@
-
+// src/redux/slices/payrollSlice.js
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import API from '../../api/axios';
 
+// ════════════════════════════════════════════
+// FETCH PAYROLL DATA (Super Admin)
+// ════════════════════════════════════════════
 export const fetchCompanyPayroll = createAsyncThunk(
   'payroll/fetchCompanyPayroll',
   async ({ company_id, department, month, year }, { rejectWithValue }) => {
@@ -21,6 +24,9 @@ export const fetchCompanyPayroll = createAsyncThunk(
   }
 );
 
+// ════════════════════════════════════════════
+// FETCH DEPARTMENTS
+// ════════════════════════════════════════════
 export const fetchCompanyDepartments = createAsyncThunk(
   'payroll/fetchCompanyDepartments',
   async (company_id, { rejectWithValue }) => {
@@ -33,6 +39,9 @@ export const fetchCompanyDepartments = createAsyncThunk(
   }
 );
 
+// ════════════════════════════════════════════
+// DOWNLOAD PDF
+// ════════════════════════════════════════════
 export const downloadPayrollPDF = createAsyncThunk(
   'payroll/downloadPayrollPDF',
   async ({ company_id, department, month, year, company_name, month_name }, { rejectWithValue }) => {
@@ -64,7 +73,9 @@ export const downloadPayrollPDF = createAsyncThunk(
   }
 );
 
-// 🆕 FINALIZE PAYROLL
+// ════════════════════════════════════════════
+// FINALIZE PAYROLL
+// ════════════════════════════════════════════
 export const finalizePayroll = createAsyncThunk(
   'payroll/finalizePayroll',
   async ({ company_id, department, month, year }, { rejectWithValue }) => {
@@ -79,19 +90,43 @@ export const finalizePayroll = createAsyncThunk(
   }
 );
 
+// ════════════════════════════════════════════
+// 🆕 FETCH MY SALARY (Employee/Manager)
+// ════════════════════════════════════════════
+export const fetchMySalary = createAsyncThunk(
+  'payroll/fetchMySalary',
+  async ({ month, year }, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      if (month) params.append('month', month);
+      if (year) params.append('year', year);
+
+      const response = await API.get(`/payroll/my-salary?${params.toString()}`);
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch salary');
+    }
+  }
+);
+
+// ════════════════════════════════════════════
+// SLICE
+// ════════════════════════════════════════════
 const payrollSlice = createSlice({
   name: 'payroll',
   initialState: {
     payrollData: null,
+    mySalary: null,           // 🆕
     departments: [],
     loading: false,
     downloading: false,
-    finalizing: false,  // 🆕
+    finalizing: false,
     error: null,
   },
   reducers: {
     clearPayrollData: (state) => {
       state.payrollData = null;
+      state.mySalary = null;  // 🆕
       state.error = null;
     },
     clearPayrollError: (state) => {
@@ -99,6 +134,7 @@ const payrollSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // Fetch Payroll (Super Admin)
     builder
       .addCase(fetchCompanyPayroll.pending, (state) => {
         state.loading = true;
@@ -113,10 +149,12 @@ const payrollSlice = createSlice({
         state.error = action.payload;
       });
 
+    // Departments
     builder.addCase(fetchCompanyDepartments.fulfilled, (state, action) => {
       state.departments = action.payload;
     });
 
+    // Download PDF
     builder
       .addCase(downloadPayrollPDF.pending, (state) => { state.downloading = true; })
       .addCase(downloadPayrollPDF.fulfilled, (state) => { state.downloading = false; })
@@ -125,7 +163,7 @@ const payrollSlice = createSlice({
         state.error = action.payload;
       });
 
-    // 🆕 Finalize
+    // Finalize
     builder
       .addCase(finalizePayroll.pending, (state) => { state.finalizing = true; })
       .addCase(finalizePayroll.fulfilled, (state) => {
@@ -134,6 +172,21 @@ const payrollSlice = createSlice({
       })
       .addCase(finalizePayroll.rejected, (state, action) => {
         state.finalizing = false;
+        state.error = action.payload;
+      });
+
+    // 🆕 My Salary
+    builder
+      .addCase(fetchMySalary.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchMySalary.fulfilled, (state, action) => {
+        state.loading = false;
+        state.mySalary = action.payload;
+      })
+      .addCase(fetchMySalary.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload;
       });
   },

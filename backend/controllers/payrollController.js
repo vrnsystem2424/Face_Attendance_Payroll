@@ -1123,9 +1123,75 @@ const getCompanyDepartments = async (req, res) => {
   }
 };
 
+
+
+// ════════════════════════════════════════════
+// 🆕 GET MY SALARY (Employee's own payroll)
+// ════════════════════════════════════════════
+const getMySalary = async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    const employee = req.employee;  // From auth middleware
+
+    if (!employee) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const currentMonth = parseInt(month) || new Date().getMonth() + 1;
+    const currentYear = parseInt(year) || new Date().getFullYear();
+
+    const settings = await MonthlySettings.findOne({
+      company_id: employee.company_id,
+      month: currentMonth,
+      year: currentYear,
+    });
+
+    // Full employee data with company
+    const fullEmployee = await Employee.findById(employee._id).populate('company_id');
+    
+    if (!fullEmployee) {
+      return res.status(404).json({ success: false, message: 'Employee not found' });
+    }
+
+    // Calculate payroll
+    const payroll = await calculateEmployeePayroll(fullEmployee, currentMonth, currentYear, settings);
+
+    // Check if finalized
+    const balance = await LeaveBalance.findOne({ emp_id: employee._id });
+    let isFinalized = false;
+    if (balance) {
+      const entry = balance.history?.find(
+        h => Number(h.month) === currentMonth && Number(h.year) === currentYear
+      );
+      isFinalized = entry?.payroll_finalized || false;
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        company: {
+          name: fullEmployee.company_id?.name,
+          code: fullEmployee.company_id?.code,
+        },
+        month: currentMonth,
+        year: currentYear,
+        month_name: new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long' }),
+        is_finalized: isFinalized,
+        payroll,
+      },
+    });
+  } catch (error) {
+    console.error('getMySalary error:', error);
+    return res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+
+
 module.exports = { 
   getCompanyPayroll, 
   getCompanyDepartments, 
   calculateEmployeePayroll,
   finalizePayroll,
+  getMySalary,
 };

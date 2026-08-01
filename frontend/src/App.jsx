@@ -49,6 +49,8 @@ import LeaveAdjustments from './pages/super-admin/LeaveAdjustments';
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import PendingLeaves from './pages/manager/PendingLeaves';
 
+
+import MySalary from './pages/MySalary';
 // ════════════════════════════════════════════════════════════
 // FACE REGISTER WRAPPER
 // ════════════════════════════════════════════════════════════
@@ -99,7 +101,7 @@ function App() {
         <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
         <Route path="/leave" element={<ProtectedRoute><LeaveForm /></ProtectedRoute>} />
         <Route path="/my-records" element={<ProtectedRoute><MyRecords /></ProtectedRoute>} />
-
+        <Route path="/my-salary" element={<ProtectedRoute><MySalary /></ProtectedRoute>} />
         {/* MANAGER ROUTES */}
         <Route path="/manager/dashboard" element={<ManagerRoute><ManagerDashboard /></ManagerRoute>} />
         <Route path="/manager/leaves" element={<ManagerRoute><PendingLeaves /></ManagerRoute>} />

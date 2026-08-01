@@ -1,10 +1,14 @@
+
+
+
+
 // // src/components/Navbar.jsx
 
 // import { useState, useRef, useEffect } from 'react';
 // import { Link, useNavigate, useLocation } from 'react-router-dom';
 // import { useDispatch, useSelector } from 'react-redux';
 // import { logout } from '../redux/slices/authSlice';
-// // 
+
 // const Navbar = () => {
 //   const dispatch = useDispatch();
 //   const navigate = useNavigate();
@@ -43,195 +47,70 @@
 
 //   const isActive = (path) => location.pathname === path;
 
-//   // ═══════════════════════════════════════════════
-//   // EMPLOYEE LINKS
-//   // ═══════════════════════════════════════════════
+//   // Employee Links
 //   const employeeLinks = [
-//     {
-//       to: '/dashboard',
-//       label: 'Dashboard',
-//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6z',
-//     },
-//     {
-//       to: '/attendance',
-//       label: 'Attendance',
-//       icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25',
-//     },
-//     {
-//       to: '/leave',
-//       label: 'Leave',
-//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25',
-//     },
-//     {
-//       to: '/my-records',
-//       label: 'Records',
-//       icon: 'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5',
-//     },
+//     { to: '/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6z' },
+//     { to: '/attendance', label: 'Attendance', icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25' },
+//     { to: '/leave', label: 'Leave', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25' },
+//     { to: '/my-records', label: 'Records', icon: 'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5' },
 //   ];
 
-//   // ═══════════════════════════════════════════════
-//   // MANAGER LINKS
-//   // ═══════════════════════════════════════════════
+//   // Manager Links
 //   const managerLinks = [
-//     {
-//       to: '/manager/dashboard',
-//       label: 'Dashboard',
-//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25',
-//     },
-//     {
-//       to: '/manager/leaves',
-//       label: 'Pending Leaves',
-//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5',
-//     },
+//     { to: '/manager/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
+//     { to: '/manager/leaves', label: 'Pending Leaves', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5' },
 //   ];
 
-//   // ═══════════════════════════════════════════════
-//   // ADMIN LINKS (Full Access)
-//   // ═══════════════════════════════════════════════
+//   // Admin Links (Full Access)
 //   const adminLinks = [
-//     {
-//       to: '/admin/dashboard',
-//       label: 'Dashboard',
-//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25',
-//     },
-//     {
-//       to: '/admin/employees',
-//       label: 'Employees',
-//       icon: 'M15 19.128a9.38 9.38 0 002.625.372',
-//     },
-//     {
-//       to: '/admin/attendance',
-//       label: 'Attendance',
-//       icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-//     },
-//     {
-//       to: '/admin/leaves',
-//       label: 'Leaves',
-//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5',
-//     },
-//     {
-//       to: '/admin/master-data',
-//       label: 'Master Data',
-//       icon: 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125',
-//     },
-//     {
-//       to: '/admin/reception',
-//       label: 'Reception',
-//       icon: 'M6.827 6.175A2.31 2.31 0 015.186 7.23',
-//       highlight: true,
-//     },
+//     { to: '/admin/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
+//     { to: '/admin/employees', label: 'Employees', icon: 'M15 19.128a9.38 9.38 0 002.625.372' },
+//     { to: '/admin/attendance', label: 'Attendance', icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+//     { to: '/admin/leaves', label: 'Leaves', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5' },
+//     { to: '/admin/master-data', label: 'Master Data', icon: 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125' },
+//     { to: '/admin/reception', label: 'Reception', icon: 'M6.827 6.175A2.31 2.31 0 015.186 7.23', highlight: true },
 //   ];
 
-//   // ═══════════════════════════════════════════════
-//   // MANAGER ADMIN LINKS (Only Leaves)
-//   // ═══════════════════════════════════════════════
+//   // 🆕 MANAGER ADMIN LINKS (Leaves + Attendance)
 //   const managerAdminLinks = [
-//     {
-//       to: '/admin/leaves',
-//       label: 'Pending Leaves',
-//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5',
-//     },
+//     { to: '/admin/attendance', label: 'Attendance', icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+//     { to: '/admin/leaves', label: 'Pending Leaves', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5' },
 //   ];
 
-//   // ═══════════════════════════════════════════════
-//   // FOLLOWUP ADMIN LINKS (Only Dashboard)
-//   // ═══════════════════════════════════════════════
+//   // Follow-up Admin Links (Only Dashboard)
 //   const followupAdminLinks = [
-//     {
-//       to: '/admin/dashboard',
-//       label: 'Dashboard',
-//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25',
-//     },
+//     { to: '/admin/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
 //   ];
 
-//   // ═══════════════════════════════════════════════
-//   // 🆕 SUPER ADMIN - MAIN LINKS (Always visible)
-//   // ═══════════════════════════════════════════════
+//   // Super Admin Main Links
 //   const superAdminLinks = [
-//     {
-//       to: '/super-admin/dashboard',
-//       label: 'Dashboard',
-//       icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25',
-//     },
-//     {
-//       to: '/super-admin/employees',
-//       label: 'Employees',
-//       icon: 'M15 19.128a9.38 9.38 0 002.625.372',
-//     },
-//     {
-//       to: '/super-admin/attendance',
-//       label: 'Attendance',
-//       icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-//     },
-//     {
-//       to: '/super-admin/leaves',
-//       label: 'Leaves',
-//       icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5',
-//     },
-//     {
-//       to: '/super-admin/payroll',
-//       label: 'Payroll',
-//       icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101',
-//       highlight: true,
-//     },
+//     { to: '/super-admin/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
+//     { to: '/super-admin/employees', label: 'Employees', icon: 'M15 19.128a9.38 9.38 0 002.625.372' },
+//     { to: '/super-admin/attendance', label: 'Attendance', icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+//     { to: '/super-admin/leaves', label: 'Leaves', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5' },
+//     { to: '/super-admin/payroll', label: 'Payroll', icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101', highlight: true },
 //   ];
 
-//   // ═══════════════════════════════════════════════
-//   // 🆕 SUPER ADMIN - MORE LINKS (Dropdown)
-//   // ═══════════════════════════════════════════════
+//   // Super Admin More Links
 //   const superAdminMoreLinks = [
-//     {
-//       to: '/super-admin/companies',
-//       label: 'Companies',
-//       icon: 'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18',
-//       desc: 'Manage companies',
-//     },
-//     {
-//       to: '/super-admin/admins',
-//       label: 'Admins',
-//       icon: 'M17.982 18.725A7.488 7.488 0 0012 15.75',
-//       desc: 'Create & manage admins',
-//     },
-//     {
-//       to: '/super-admin/sites',
-//       label: 'Sites',
-//       icon: 'M15 10.5a3 3 0 11-6 0 3 3 0 016 0z',
-//       desc: 'GPS office locations',
-//     },
-//     {
-//       to: '/super-admin/leave-adjustments',
-//       label: 'Adjust Leaves',
-//       icon: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0',
-//       desc: 'Manual leave credit',
-//     },
-//     {
-//       to: '/super-admin/fix-attendance',
-//       label: 'Fix Attendance',
-//       icon: 'M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07',
-//       desc: 'Missing checkouts',
-//     },
-//     {
-//       to: '/super-admin/monthly-settings',
-//       label: 'Monthly Settings',
-//       icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5',
-//       desc: 'Holidays & rules',
-//     },
+//     { to: '/super-admin/companies', label: 'Companies', icon: 'M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18', desc: 'Manage companies' },
+//     { to: '/super-admin/admins', label: 'Admins', icon: 'M17.982 18.725A7.488 7.488 0 0012 15.75', desc: 'Create & manage admins' },
+//     { to: '/super-admin/sites', label: 'Sites', icon: 'M15 10.5a3 3 0 11-6 0 3 3 0 016 0z', desc: 'GPS office locations' },
+//     { to: '/super-admin/leave-adjustments', label: 'Adjust Leaves', icon: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0', desc: 'Manual leave credit' },
+//     { to: '/super-admin/fix-attendance', label: 'Fix Attendance', icon: 'M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07', desc: 'Missing checkouts' },
+//     { to: '/super-admin/monthly-settings', label: 'Monthly Settings', icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5', desc: 'Holidays & rules' },
 //   ];
 
-//   // ═══════════════════════════════════════════════
-//   // 🎯 PICK LINKS BASED ON ROLE + ADMIN TYPE
-//   // ═══════════════════════════════════════════════
+//   // Pick links based on role
 //   let links = [];
 //   if (user?.role === 'super_admin') {
 //     links = superAdminLinks;
 //   } else if (user?.role === 'admin') {
 //     if (user?.admin_type === 'followup') {
 //       links = followupAdminLinks;
-//     }
-//     else if (user?.assigned_manager && user.assigned_manager.trim() !== '') {
+//     } else if (user?.assigned_manager && user.assigned_manager.trim() !== '') {
 //       links = managerAdminLinks;
-//     }
-//     else {
+//     } else {
 //       links = adminLinks;
 //     }
 //   } else if (user?.role === 'manager') {
@@ -240,9 +119,7 @@
 //     links = employeeLinks;
 //   }
 
-//   // ═══════════════════════════════════════════════
-//   // ROLE BADGE COLORS
-//   // ═══════════════════════════════════════════════
+//   // Role Badge Colors
 //   const getRoleBadge = (role) => {
 //     switch (role) {
 //       case 'super_admin':
@@ -252,7 +129,7 @@
 //           return { label: 'Follow-up', bg: 'bg-cyan-100', text: 'text-cyan-700', dot: 'bg-cyan-500' };
 //         }
 //         if (user?.assigned_manager && user.assigned_manager.trim() !== '') {
-//           return { label: 'Leave Admin', bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500' };
+//           return { label: 'Manager Admin', bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500' };
 //         }
 //         return { label: 'Admin', bg: 'bg-[#FFF3E8]', text: 'text-[#E8590C]', dot: 'bg-[#E8590C]' };
 //       case 'manager':
@@ -306,7 +183,7 @@
 //                 </Link>
 //               ))}
 
-//               {/* 🆕 MORE DROPDOWN (Only for Super Admin) */}
+//               {/* MORE DROPDOWN (Only for Super Admin) */}
 //               {user?.role === 'super_admin' && (
 //                 <div className="relative" ref={moreRef}>
 //                   <button
@@ -323,7 +200,6 @@
 //                     </svg>
 //                   </button>
 
-//                   {/* Dropdown Menu */}
 //                   {moreOpen && (
 //                     <div className="absolute right-0 top-full mt-2 w-72 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl shadow-gray-200/50 animate-dropdown z-50">
 //                       <div className="border-b border-gray-100 bg-gradient-to-r from-[#FFF8F3] to-[#FFF3E8] px-4 py-3">
@@ -336,9 +212,7 @@
 //                             to={item.to}
 //                             onClick={() => setMoreOpen(false)}
 //                             className={`flex items-start gap-3 rounded-xl px-3 py-2.5 transition-all duration-200 ${
-//                               isActive(item.to)
-//                                 ? 'bg-[#FFF3E8]'
-//                                 : 'hover:bg-gray-50'
+//                               isActive(item.to) ? 'bg-[#FFF3E8]' : 'hover:bg-gray-50'
 //                             }`}
 //                           >
 //                             <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
@@ -363,7 +237,7 @@
 //               )}
 //             </div>
 
-//             {/* Right Section */}
+//             {/* Right Section - Profile */}
 //             <div className="flex items-center gap-3 flex-shrink-0">
 //               <div className="relative" ref={profileRef}>
 //                 <button
@@ -382,7 +256,6 @@
 //                   </svg>
 //                 </button>
 
-//                 {/* Profile Dropdown */}
 //                 {profileOpen && (
 //                   <div className="absolute right-0 mt-2 w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl shadow-gray-200/50 animate-dropdown">
 //                     <div className="border-b border-gray-100 bg-gradient-to-r from-[#FFF8F3] to-[#FFF3E8] p-4">
@@ -475,7 +348,6 @@
 //                 </Link>
 //               ))}
 
-//               {/* 🆕 Mobile - More Links for Super Admin */}
 //               {user?.role === 'super_admin' && (
 //                 <>
 //                   <div className="mt-4 mb-2 px-4 border-t border-gray-100 pt-3">
@@ -486,9 +358,7 @@
 //                       key={link.to}
 //                       to={link.to}
 //                       className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
-//                         isActive(link.to)
-//                           ? 'bg-[#FFF3E8] text-[#E8590C]'
-//                           : 'text-[#4B5563] hover:bg-gray-50'
+//                         isActive(link.to) ? 'bg-[#FFF3E8] text-[#E8590C]' : 'text-[#4B5563] hover:bg-gray-50'
 //                       }`}
 //                     >
 //                       <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -521,23 +391,18 @@
 //           from { opacity: 0; transform: translateY(-8px) scale(0.96); }
 //           to { opacity: 1; transform: translateY(0) scale(1); }
 //         }
-//         .animate-dropdown {
-//           animation: dropdown 0.2s ease-out;
-//         }
+//         .animate-dropdown { animation: dropdown 0.2s ease-out; }
 //         @keyframes slideDown {
 //           from { opacity: 0; max-height: 0; }
 //           to { opacity: 1; max-height: 800px; }
 //         }
-//         .animate-slideDown {
-//           animation: slideDown 0.3s ease-out;
-//         }
+//         .animate-slideDown { animation: slideDown 0.3s ease-out; }
 //       `}</style>
 //     </>
 //   );
 // };
 
 // export default Navbar;
-
 
 
 
@@ -588,18 +453,20 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  // Employee Links
+  // Employee Links (🆕 My Salary added)
   const employeeLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6z' },
     { to: '/attendance', label: 'Attendance', icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25' },
     { to: '/leave', label: 'Leave', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25' },
     { to: '/my-records', label: 'Records', icon: 'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5' },
+    { to: '/my-salary', label: 'My Salary', icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75' },
   ];
 
-  // Manager Links
+  // Manager Links (🆕 My Salary added)
   const managerLinks = [
     { to: '/manager/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
     { to: '/manager/leaves', label: 'Pending Leaves', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5' },
+    { to: '/my-salary', label: 'My Salary', icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75' },
   ];
 
   // Admin Links (Full Access)
@@ -612,13 +479,13 @@ const Navbar = () => {
     { to: '/admin/reception', label: 'Reception', icon: 'M6.827 6.175A2.31 2.31 0 015.186 7.23', highlight: true },
   ];
 
-  // 🆕 MANAGER ADMIN LINKS (Leaves + Attendance)
+  // Manager Admin Links
   const managerAdminLinks = [
     { to: '/admin/attendance', label: 'Attendance', icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     { to: '/admin/leaves', label: 'Pending Leaves', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5' },
   ];
 
-  // Follow-up Admin Links (Only Dashboard)
+  // Follow-up Admin Links
   const followupAdminLinks = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
   ];
