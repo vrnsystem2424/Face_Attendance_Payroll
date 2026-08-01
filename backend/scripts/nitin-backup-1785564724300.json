@@ -1,0 +1,62 @@
+{
+  "_id": "6a54a4916c10f7f1e8e55960",
+  "emp_id": "6a449190bc8c6b8da0b529bf",
+  "emp_code": "VRN-NI2412",
+  "name": "Nitin Kumar Jayswal",
+  "company_id": "6a43b217494db1a6fc516e23",
+  "current_balance": 2.5,
+  "total_credited": 4,
+  "total_used": 1.5,
+  "history": [
+    {
+      "month": 7,
+      "year": 2026,
+      "opening_balance": 0,
+      "credited": 3,
+      "used": 0.5,
+      "closing_balance": 3.5,
+      "leaves_log": [
+        {
+          "leave_id": null,
+          "from_date": "ADJUSTMENT",
+          "to_date": "ADJUSTMENT",
+          "applied_days": 0,
+          "approved_days": 2,
+          "paid_days": 2,
+          "unpaid_days": 0,
+          "approved_on": "2026-07-13T09:02:16.778Z",
+          "_id": "6a54a998d0183d010cb90ce2"
+        },
+        {
+          "leave_id": null,
+          "from_date": "PAYROLL",
+          "to_date": "PAYROLL",
+          "applied_days": 0,
+          "approved_days": 0.5,
+          "paid_days": 0.5,
+          "unpaid_days": 0,
+          "approved_on": "2026-08-01T05:33:28.782Z",
+          "_id": "6a6d85286155d05a03f8fbc5"
+        }
+      ],
+      "credited_on": "2026-06-30T18:30:00.000Z",
+      "_id": "6a54a4916c10f7f1e8e55961"
+    },
+    {
+      "month": 8,
+      "year": 2026,
+      "opening_balance": 3,
+      "credited": 1,
+      "used": 0,
+      "closing_balance": 4,
+      "leaves_log": [],
+      "credited_on": "2026-08-01T04:12:56.186Z",
+      "_id": "6a6d72482b403cb85b39ec40"
+    }
+  ],
+  "last_credited_month": 8,
+  "last_credited_year": 2026,
+  "createdAt": "2026-07-13T08:40:49.683Z",
+  "updatedAt": "2026-08-01T06:07:30.424Z",
+  "__v": 3
+}

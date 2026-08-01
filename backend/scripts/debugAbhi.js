@@ -1,127 +1,135 @@
-require('dotenv').config();
-const mongoose = require('mongoose');
-const Attendance = require('../models/Attendance');
-const Leave = require('../models/Leave');
-const Employee = require('../models/Employee');
+const path = require('path');
+const fs = require('fs');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-const debug = async () => {
+const mongoose = require('mongoose');
+const LeaveBalance = require('../models/LeaveBalance');
+const Employee = require('../models/Employee');
+const Leave = require('../models/Leave');
+
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || process.env.DB_URI;
+const EMP_CODE = 'RCC-AB2424';
+
+const round = (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100;
+
+const fix = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(MONGO_URI);
     console.log('✅ Connected\n');
 
-    // Change this to whichever employee you want to check
-    const empCode = 'RCC-AJ1929';  // Ajay dey
+    const emp = await Employee.findOne({ emp_code: EMP_CODE });
+    const balance = await LeaveBalance.findOne({ emp_id: emp._id });
+
+    // Backup
+    const backupPath = path.resolve(__dirname, `backup-abhi-${Date.now()}.json`);
+    fs.writeFileSync(backupPath, JSON.stringify(balance.toObject(), null, 2));
+    console.log(`💾 Backup: ${backupPath}\n`);
+
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log(`👤 ${emp.name} (${emp.emp_code})`);
+    console.log('═══════════════════════════════════════════════════════════\n');
+
+    console.log('📌 BEFORE:');
+    console.log(`   Current: ${balance.current_balance} | Credited: ${balance.total_credited} | Used: ${balance.total_used}\n`);
+
+    // ═══════════════════════════════════════════
+    // 🎯 EXPECTED VALUES
+    // ═══════════════════════════════════════════
+    // July: +1 auto credit, 4 leaves used, balance 1 → paid 1, unpaid 3
+    // Closing July: 0
+    // August: 0 opening + 1 auto = 1 closing
     
-    const emp = await Employee.findOne({ emp_code: empCode });
-    if (!emp) {
-      console.log('❌ Employee not found');
-      process.exit(1);
-    }
+    const JULY_CREDITED = 1;
+    const JULY_USED = 1;  // Only 1 paid (balance 1 thi)
+    const JULY_CLOSING = 0;
+    
+    const AUGUST_OPENING = 0;
+    const AUGUST_CREDITED = 1;
+    const AUGUST_USED = 0;
+    const AUGUST_CLOSING = 1;
 
-    console.log(`👤 Employee: ${emp.name} (${emp.emp_code})`);
-    console.log(`   Joined: ${new Date(emp.createdAt).toLocaleDateString('en-IN')}\n`);
-
-    // Get July 2026 attendance
-    const attendances = await Attendance.find({
-      emp_id: emp._id,
-      date: { $regex: '/7/2026$' }
-    }).sort({ date: 1 });
-
-    const attendedDates = new Set(attendances.map(a => a.date));
-
-    // Get approved leaves
-    const leaves = await Leave.find({
+    // ─── Get July leaves ───
+    const julyLeaves = await Leave.find({
       emp_id: emp._id,
       status: 'approved',
     });
-
-    const leaveDateSet = new Set();
-    leaves.forEach(l => {
-      const [fd, fm, fy] = l.from_date.split('/').map(Number);
-      const [td, tm, ty] = l.to_date.split('/').map(Number);
-      if (fm !== 7 || fy !== 2026) return;
-      
-      const fromDate = new Date(fy, fm - 1, fd);
-      const toDate = new Date(ty, tm - 1, td);
-      const current = new Date(fromDate);
-      while (current <= toDate) {
-        leaveDateSet.add(`${current.getDate()}/${current.getMonth() + 1}/${current.getFullYear()}`);
-        current.setDate(current.getDate() + 1);
-      }
+    const julyLeavesFiltered = julyLeaves.filter(l => {
+      const [d, m, y] = l.from_date.split('/').map(Number);
+      return m === 7 && y === 2026;
     });
 
-    console.log('═══════════════════════════════════════');
-    console.log('📅 JULY 2026 - DAY BY DAY');
-    console.log('═══════════════════════════════════════');
+    console.log(`📋 Found ${julyLeavesFiltered.length} July leaves\n`);
 
-    const today = new Date();
-    const daysInMonth = 31;
-    const isCurrentMonth = today.getMonth() + 1 === 7 && today.getFullYear() === 2026;
-    const todayDate = today.getDate();
+    // ─── FIX JULY ───
+    let julyEntry = balance.history.find(h => Number(h.month) === 7 && Number(h.year) === 2026);
+    
+    if (julyEntry) {
+      julyEntry.opening_balance = 0;
+      julyEntry.credited = JULY_CREDITED;
+      julyEntry.used = JULY_USED;
+      julyEntry.closing_balance = JULY_CLOSING;
 
-    let presentCount = 0;
-    let sundayCount = 0;
-    let holidayCount = 0;
-    let leaveCount = 0;
-    let absentCount = 0;
-    let futureCount = 0;
-
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${d}/7/2026`;
-      const date = new Date(2026, 6, d);
-      const dayName = dayNames[date.getDay()];
-      const isSunday = date.getDay() === 0;
-      const isFuture = isCurrentMonth && d > todayDate;
-      const isPresent = attendedDates.has(dateStr);
-      const isLeave = leaveDateSet.has(dateStr);
-
-      let status = '';
-      let icon = '';
-
-      if (isFuture) {
-        status = 'FUTURE';
-        icon = '⏸️';
-        futureCount++;
-      } else if (isSunday) {
-        status = 'SUNDAY (Off)';
-        icon = '🟣';
-        sundayCount++;
-      } else if (isPresent) {
-        status = 'PRESENT';
-        icon = '✅';
-        presentCount++;
-      } else if (isLeave) {
-        status = 'LEAVE';
-        icon = '📋';
-        leaveCount++;
-      } else {
-        status = 'ABSENT ❌';
-        icon = '🔴';
-        absentCount++;
-      }
-
-      console.log(`${d.toString().padStart(2)}/7 ${dayName} ${icon} ${status}`);
+      // Rebuild leaves_log with actual leaves only
+      // Balance 1, leave 4 days → 1 paid, 3 unpaid
+      let remainingBalance = JULY_CREDITED;
+      
+      julyEntry.leaves_log = julyLeavesFiltered.map(l => {
+        const days = Number(l.approved_days) || Number(l.leave_days) || (l.is_half_day ? 0.5 : 1);
+        const paid = Math.min(days, remainingBalance);
+        const unpaid = round(days - paid);
+        remainingBalance = round(remainingBalance - paid);
+        
+        return {
+          leave_id: l._id,
+          from_date: l.from_date,
+          to_date: l.to_date,
+          applied_days: days,
+          approved_days: days,
+          paid_days: paid,
+          unpaid_days: unpaid,
+          approved_on: l.updatedAt || new Date(),
+        };
+      });
     }
 
-    console.log('\n═══════════════════════════════════════');
-    console.log('📊 SUMMARY');
-    console.log('═══════════════════════════════════════');
-    console.log(`✅ Present:  ${presentCount}`);
-    console.log(`📋 Leaves:   ${leaveCount}`);
-    console.log(`🟣 Sundays:  ${sundayCount}`);
-    console.log(`🎉 Holidays: ${holidayCount}`);
-    console.log(`❌ Absent:   ${absentCount}`);
-    console.log(`⏸️  Future:   ${futureCount}`);
-    console.log(`───────────────────────`);
-    console.log(`Total:      ${presentCount + leaveCount + sundayCount + holidayCount + absentCount + futureCount}`);
+    // ─── FIX AUGUST ───
+    let augEntry = balance.history.find(h => Number(h.month) === 8 && Number(h.year) === 2026);
+    if (augEntry) {
+      augEntry.opening_balance = AUGUST_OPENING;
+      augEntry.credited = AUGUST_CREDITED;
+      augEntry.used = AUGUST_USED;
+      augEntry.closing_balance = AUGUST_CLOSING;
+      augEntry.leaves_log = [];
+    }
 
+    // ─── MAIN FIELDS ───
+    balance.current_balance = AUGUST_CLOSING;
+    balance.total_credited = round(JULY_CREDITED + AUGUST_CREDITED);
+    balance.total_used = round(JULY_USED + AUGUST_USED);
+    balance.last_credited_month = 8;
+    balance.last_credited_year = 2026;
+
+    balance.markModified('history');
+    await balance.save();
+
+    // AFTER
+    const jA = balance.history.find(h => Number(h.month) === 7 && Number(h.year) === 2026);
+    const aA = balance.history.find(h => Number(h.month) === 8 && Number(h.year) === 2026);
+
+    console.log('✅ AFTER:');
+    console.log(`   Current: ${balance.current_balance}`);
+    console.log(`   Credited: ${balance.total_credited}`);
+    console.log(`   Used: ${balance.total_used}`);
+    console.log(`   July  : Open=${jA.opening_balance} | Cr=+${jA.credited} | Us=-${jA.used} | Close=${jA.closing_balance}`);
+    console.log(`   August: Open=${aA.opening_balance} | Cr=+${aA.credited} | Us=-${aA.used} | Close=${aA.closing_balance}`);
+    console.log('\n🎉 SUCCESS! Abhinandan ka balance ab 1 hai\n');
+
+    await mongoose.disconnect();
     process.exit(0);
   } catch (err) {
-    console.error('❌ Error:', err);
+    console.error('❌ Error:', err.message);
     process.exit(1);
   }
 };
 
-debug();
+fix();

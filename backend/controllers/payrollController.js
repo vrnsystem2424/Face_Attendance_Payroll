@@ -1,7 +1,4 @@
 
-
-
-
 // const Employee = require('../models/Employee');
 // const Attendance = require('../models/Attendance');
 // const Leave = require('../models/Leave');
@@ -16,9 +13,7 @@
 // const FREE_LEAVES_PER_MONTH = 1;
 
 // const getLateStartDay = (month, year) => {
-//   if (month === 7 && year === 2026) {
-//     return 6;
-//   }
+//   if (month === 7 && year === 2026) return 6;
 //   return 1;
 // };
 
@@ -46,179 +41,93 @@
 
 // const getDayName = (dateStr) => {
 //   const [d, m, y] = dateStr.split('/').map(Number);
-//   const date = new Date(y, m - 1, d);
-//   return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
+//   return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(y, m-1, d).getDay()];
 // };
 
 // const getDatesInMonth = (month, year) => {
 //   const dates = [];
 //   const daysInMonth = new Date(year, month, 0).getDate();
-//   for (let d = 1; d <= daysInMonth; d++) {
-//     dates.push(`${d}/${month}/${year}`);
-//   }
+//   for (let d = 1; d <= daysInMonth; d++) dates.push(`${d}/${month}/${year}`);
 //   return dates;
 // };
 
 // const formatHours = (totalMinutes) => {
 //   if (!totalMinutes || totalMinutes < 0) return '0h 0m';
-//   const hours = Math.floor(totalMinutes / 60);
-//   const minutes = totalMinutes % 60;
-//   return `${hours}h ${minutes}m`;
+//   return `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
+// };
+
+// const normalizeDate = (dateStr) => {
+//   const [d, m, y] = dateStr.split('/').map(Number);
+//   return `${d}/${m}/${y}`;
 // };
 
 // // ════════════════════════════════════════════
-// // 🆕 DETECT OFF DAYS (with Site Worker logic)
-// // ════════════════════════════════════════════
-// const detectOffDays = (allDates, attendanceRecords) => {
-//   const attendedDates = new Set(
-//     attendanceRecords.filter(a => a.in_time).map(a => a.date)
-//   );
-
-//   // 🆕 Detect Site Worker
-//   const sundayAttendances = attendanceRecords.filter(a => {
-//     if (!a.in_time) return false;
-//     const [d, m, y] = a.date.split('/').map(Number);
-//     return new Date(y, m - 1, d).getDay() === 0;
-//   });
-//   const isSiteWorker = sundayAttendances.length >= 2;
-
-//   const weeks = [];
-//   let currentWeek = [];
-
-//   for (const dateStr of allDates) {
-//     const [d, m, y] = dateStr.split('/').map(Number);
-//     const date = new Date(y, m - 1, d);
-//     const dayIdx = date.getDay();
-
-//     if (dayIdx === 0 && currentWeek.length > 0) {
-//       weeks.push(currentWeek);
-//       currentWeek = [];
-//     }
-
-//     currentWeek.push({
-//       dateStr,
-//       dayName: getDayName(dateStr),
-//       dayIdx,
-//       attended: attendedDates.has(dateStr),
-//     });
-//   }
-//   if (currentWeek.length > 0) weeks.push(currentWeek);
-
-//   const offDates = new Set();
-
-//   for (const week of weeks) {
-//     const sundayInWeek = week.find(d => d.dayIdx === 0);
-//     const sundayAttended = sundayInWeek?.attended || false;
-
-//     if (isSiteWorker) {
-//       // Site worker - Take first non-attended day as off
-//       const notAttendedDays = week.filter(d => !d.attended);
-//       if (notAttendedDays.length > 0) {
-//         offDates.add(notAttendedDays[0].dateStr);
-//       }
-//     } else {
-//       // Office worker - Traditional logic
-//       if (!sundayAttended) {
-//         if (sundayInWeek) offDates.add(sundayInWeek.dateStr);
-//       } else {
-//         const notAttendedDays = week.filter(d => !d.attended && d.dayIdx !== 0);
-//         if (notAttendedDays.length > 0) {
-//           offDates.add(notAttendedDays[0].dateStr);
-//         }
-//       }
-//     }
-//   }
-
-//   return offDates;
-// };
-
-// // ════════════════════════════════════════════
-// // 🎯 PAYROLL CALCULATION
+// // 🎯 PAYROLL CALCULATION - TOTAL DAYS BASED
 // // ════════════════════════════════════════════
 // const calculateEmployeePayroll = async (employee, month, year, settings) => {
 //   const monthlySalary = employee.monthly_salary || 0;
-//   const dailyHours = settings?.daily_hours || 8;
-//   const dailyMinutes = dailyHours * 60;
 //   const holidays = settings?.holidays || [];
-
+//   const weeklyOffSetting = settings?.weekly_off || ['Sunday'];
 //   const lateStartDay = getLateStartDay(month, year);
-
 //   const allDates = getDatesInMonth(month, year);
 //   const holidaySet = new Set(holidays.map(h => h.date));
 
-//   const attendanceRecords = await Attendance.find({
-//     emp_id: employee._id,
-//     date: { $in: allDates },
-//   });
+//   const totalDaysInMonth = new Date(year, month, 0).getDate();
 
-//   const allLeaves = await Leave.find({
-//     emp_id: employee._id,
-//     status: 'approved',
-//   });
+//   const attendanceRecords = await Attendance.find({ emp_id: employee._id, date: { $in: allDates } });
+//   const allLeaves = await Leave.find({ emp_id: employee._id, status: 'approved' });
 
 //   const monthLeaves = allLeaves.filter(l => {
 //     const [d, m, y] = l.from_date.split('/').map(Number);
 //     return m === month && y === year;
 //   });
 
-//   const totalLeavesTaken = monthLeaves.reduce((sum, l) => sum + (l.leave_days || 1), 0);
+//   // LEAVES
+//   let fullDayLeaves = 0;
+//   let halfDayLeaves = 0;
 
-//   const leaveDateSet = new Set();
 //   monthLeaves.forEach(l => {
-//     const [fd, fm, fy] = l.from_date.split('/').map(Number);
-//     const [td, tm, ty] = l.to_date.split('/').map(Number);
-//     const fromDate = new Date(fy, fm - 1, fd);
-//     const toDate = new Date(ty, tm - 1, td);
-//     const current = new Date(fromDate);
-//     while (current <= toDate) {
-//       leaveDateSet.add(`${current.getDate()}/${current.getMonth() + 1}/${current.getFullYear()}`);
-//       current.setDate(current.getDate() + 1);
-//     }
+//     if (l.is_half_day) halfDayLeaves += 1;
+//     else fullDayLeaves += (l.leave_days || l.approved_days || 1);
 //   });
 
-//   const offDates = detectOffDays(allDates, attendanceRecords);
-
-//   // 🆕 Detect if Site Worker
-//   const sundayAttendances = attendanceRecords.filter(a => {
-//     if (!a.in_time) return false;
-//     const [d, m, y] = a.date.split('/').map(Number);
-//     return new Date(y, m - 1, d).getDay() === 0;
-//   });
-//   const isSiteWorker = sundayAttendances.length >= 2;
-
-//   let totalWorkingDays = 0;
-//   let offDayCount = 0;
-//   let holidayCount = 0;
-
-//   for (const dateStr of allDates) {
-//     if (offDates.has(dateStr)) {
-//       offDayCount++;
-//     } else if (holidaySet.has(dateStr)) {
-//       holidayCount++;
+//   // Approved leave dates
+//   const halfDayLeaveDates = new Set();
+//   const fullLeaveDates = new Set();
+  
+//   monthLeaves.forEach(l => {
+//     if (l.is_half_day) {
+//       halfDayLeaveDates.add(normalizeDate(l.from_date));
 //     } else {
-//       totalWorkingDays++;
+//       const [fd, fm, fy] = l.from_date.split('/').map(Number);
+//       const [td, tm, ty] = l.to_date.split('/').map(Number);
+//       const startDate = new Date(fy, fm - 1, fd);
+//       const endDate = new Date(ty, tm - 1, td);
+      
+//       for (let curr = new Date(startDate); curr <= endDate; curr.setDate(curr.getDate() + 1)) {
+//         const key = `${curr.getDate()}/${curr.getMonth() + 1}/${curr.getFullYear()}`;
+//         fullLeaveDates.add(key);
+//       }
 //     }
+//   });
+
+//   // Count Sundays, Holidays, Working Days
+//   let sundayCount = 0, holidayCount = 0, workingDaysCount = 0;
+//   for (const dateStr of allDates) {
+//     const dayName = getDayName(dateStr);
+//     if (holidaySet.has(dateStr)) holidayCount++;
+//     else if (weeklyOffSetting.includes(dayName)) sundayCount++;
+//     else workingDaysCount++;
 //   }
 
-//   const autoHours = totalWorkingDays * dailyHours;
-//   const requiredHours = settings?.required_hours
-//     ? Number(settings.required_hours)
-//     : autoHours;
-//   const requiredMinutes = requiredHours * 60;
-
 //   // ════════════════════════════════════════
-//   // PROCESS ATTENDANCE
+//   // ATTENDANCE
 //   // ════════════════════════════════════════
-//   let totalWorkedMinutes = 0;
-//   let presentDays = 0;
-//   let sundayWorked = 0;
-//   let lateCount = 0;
-//   let halfDayCount = 0;
-//   let ignoredLateCount = 0;
-//   let ignoredAbsentCount = 0;
-//   const lateDates = [];
-//   const halfDayDates = [];
-
+//   let totalWorkedMinutes = 0, totalCheckins = 0, sundayWorked = 0;
+//   let weekdayCheckins = 0;  // 🆕 Only weekday check-ins
+//   let lateCount = 0, halfDayCount = 0, ignoredLateCount = 0;
+//   let hdLeaveWithAttendance = 0;
+//   const lateDates = [], halfDayDates = [];
 //   const today = new Date();
 //   const todayDate = today.getDate();
 //   const isCurrentMonth = (month === today.getMonth() + 1 && year === today.getFullYear());
@@ -226,141 +135,123 @@
 //   for (const dateStr of allDates) {
 //     const [d] = dateStr.split('/').map(Number);
 //     const dayName = getDayName(dateStr);
-
 //     if (isCurrentMonth && d > todayDate) continue;
 
-//     const attendance = attendanceRecords.find(a => a.date === dateStr);
-
-//     if (attendance && attendance.in_time) {
-//       presentDays++;
-//       if (dayName === 'Sunday') sundayWorked++;
+//     const att = attendanceRecords.find(a => a.date === dateStr);
+//     if (att && att.in_time) {
+//       totalCheckins++;
+//       const isSunday = weeklyOffSetting.includes(dayName);
       
-//       if (attendance.out_time) {
-//         totalWorkedMinutes += calculateWorkingMinutes(attendance.in_time, attendance.out_time);
+//       if (isSunday) {
+//         sundayWorked++;  // Sunday worked = bonus day
+//       } else {
+//         weekdayCheckins++;  // 🆕 Weekday attendance
 //       }
+      
+//       if (att.out_time) totalWorkedMinutes += calculateWorkingMinutes(att.in_time, att.out_time);
 
-//       // 🆕 LOCATION-BASED RULE
-//       const wasOnSiteAtIN = attendance.in_location_status === 'on-site';
-//       const statusInfo = getAttendanceStatus(attendance.in_time, attendance.out_time);
+//       const wasOnSite = att.in_location_status === 'on-site';
+//       const status = getAttendanceStatus(att.in_time, att.out_time);
+      
+//       const normalizedDate = normalizeDate(dateStr);
+//       const isHalfDayLeaveDay = halfDayLeaveDates.has(normalizedDate);
+//       const isFullLeaveDay = fullLeaveDates.has(normalizedDate);
+      
+//       if (isHalfDayLeaveDay) hdLeaveWithAttendance++;
       
 //       if (d >= lateStartDay) {
-//         if (wasOnSiteAtIN) {
-//           // Office worker - Rules apply
-//           if (statusInfo.is_late) {
-//             lateCount++;
-//             lateDates.push(dateStr);
-//           }
-          
-//           if (statusInfo.is_half_day) {
-//             halfDayCount++;
-//             halfDayDates.push(dateStr);
+//         if (wasOnSite) {
+//           if (isHalfDayLeaveDay || isFullLeaveDay) {
+//             // Skip
+//           } else if (!isSunday) {  // 🆕 Sunday ke liye late/HD count nahi karte
+//             if (status.is_late) { lateCount++; lateDates.push(dateStr); }
+//             if (status.is_half_day) { halfDayCount++; halfDayDates.push(dateStr); }
 //           }
 //         }
-//         // Site worker - Skip rules
 //       } else {
-//         if (statusInfo.is_late || statusInfo.is_half_day) {
-//           ignoredLateCount++;
-//         }
+//         if (status.is_late || status.is_half_day) ignoredLateCount++;
 //       }
 //     }
 //   }
 
-//   // Calculate expected work days
-//   let expectedWorkDays = 0;
-//   for (const dateStr of allDates) {
-//     const [d] = dateStr.split('/').map(Number);
-//     if (isCurrentMonth && d > todayDate) continue;
-//     if (offDates.has(dateStr)) continue;
-//     if (holidaySet.has(dateStr)) continue;
-//     if (leaveDateSet.has(dateStr)) continue;
-
-//     const attendance = attendanceRecords.find(a => a.date === dateStr);
-//     const isPresent = attendance && attendance.in_time;
-
-//     if (d >= lateStartDay) {
-//       expectedWorkDays++;
-//     } else {
-//       if (isPresent) {
-//         expectedWorkDays++;
-//       } else {
-//         ignoredAbsentCount++;
-//       }
-//     }
-//   }
-
-//   const absentDays = Math.max(0, expectedWorkDays - presentDays);
-
+//   // ════════════════════════════════════════
+//   // 🎯 PRESENT CALCULATION (Weekdays only)
+//   // ════════════════════════════════════════
+//   // Present = Weekday checkins - HD count - HD leave days + 0.5 per HD leave day
+//   const presentDays = Math.max(0, weekdayCheckins - halfDayCount - hdLeaveWithAttendance + (hdLeaveWithAttendance * 0.5));
+//   const halfDayValue = halfDayCount * 0.5;
 //   const lateLeaveDeduction = calculateLateLeaveDeduction(lateCount);
-//   const halfDayLeaves = halfDayCount * 0.5;
-//   const totalLateHalfDayDeduction = lateLeaveDeduction + halfDayLeaves;
 
+//   // Leave balance
 //   const leaveBalance = await LeaveBalance.findOne({ emp_id: employee._id });
-
-//   let openingBalance = 0;
-//   let creditedThisMonth = FREE_LEAVES_PER_MONTH;
-
+//   let openingBalance = 0, creditedThisMonth = FREE_LEAVES_PER_MONTH;
 //   if (leaveBalance) {
-//     const monthEntry = leaveBalance.history?.find(h => h.month === month && h.year === year);
-//     if (monthEntry) {
-//       openingBalance = monthEntry.opening_balance || 0;
-//       creditedThisMonth = monthEntry.credited || FREE_LEAVES_PER_MONTH;
+//     const entry = leaveBalance.history?.find(h => Number(h.month) === Number(month) && Number(h.year) === Number(year));
+//     if (entry) {
+//       openingBalance = entry.opening_balance || 0;
+//       creditedThisMonth = entry.credited || FREE_LEAVES_PER_MONTH;
 //     } else {
 //       openingBalance = leaveBalance.current_balance || 0;
 //     }
 //   }
+//   const totalAvailable = openingBalance + creditedThisMonth;
 
-//   const compensatoryOffs = sundayWorked;
-//   const totalLeavesNeeded = totalLeavesTaken + totalLateHalfDayDeduction;
-//   const effectiveLeaves = Math.max(0, totalLeavesNeeded - compensatoryOffs);
-//   const totalAvailableLeaves = openingBalance + creditedThisMonth;
-  
-//   const paidLeaves = Math.min(effectiveLeaves, totalAvailableLeaves);
-//   const unpaidLeaves = Math.max(0, effectiveLeaves - totalAvailableLeaves);
-//   const carryForward = Math.max(0, totalAvailableLeaves - effectiveLeaves);
+//   // HD + Late + Leave balance se paid
+//   const halfDayDeduction = halfDayCount * 0.5;
+//   const totalLeavesDays = fullDayLeaves + (halfDayLeaves * 0.5);
+//   const totalNeeded = totalLeavesDays + lateLeaveDeduction + halfDayDeduction;
+//   const paidLeaves = Math.min(totalNeeded, totalAvailable);
+//   const unpaidLeaves = Math.max(0, totalNeeded - totalAvailable);
+//   const carryForward = Math.max(0, totalAvailable - paidLeaves);
 
-//   const perDayRate = totalWorkingDays > 0 ? (monthlySalary / totalWorkingDays) : 0;
-//   const perHourRate = requiredHours > 0 ? (monthlySalary / requiredHours) : 0;
+//   // ════════════════════════════════════════
+//   // 🆕 WEEKLY OFF - Full sundayCount credit
+//   // Chahe Sunday worked ho ya na ho, full 4 Sundays paid
+//   // ════════════════════════════════════════
+//   const weeklyOffPaid = sundayCount;
+//   const holidaysPaid = holidayCount;
 
-//   const paidLeaveMinutes = paidLeaves * dailyMinutes;
-//   const totalWorkingHourMinutes = totalWorkedMinutes + paidLeaveMinutes;
-//   let hoursProgressPercent = 0;
-//   if (requiredMinutes > 0) {
-//     hoursProgressPercent = (totalWorkingHourMinutes / requiredMinutes) * 100;
+//   // ════════════════════════════════════════
+//   // 🎯 FINAL DAYS
+//   // = Present (weekdays) + Sunday Worked (bonus) + Weekly Off + Holidays + HD + Paid Leaves - Late
+//   // ════════════════════════════════════════
+//   const finalPayableDaysRaw = presentDays + sundayWorked + weeklyOffPaid + holidaysPaid + halfDayValue + paidLeaves - lateLeaveDeduction;
+//   const finalPayableDays = Math.min(Math.max(0, finalPayableDaysRaw), totalDaysInMonth);
+
+//   // Salary
+//   const perDayRate = totalDaysInMonth > 0 ? (monthlySalary / totalDaysInMonth) : 0;
+//   let progressPercent = totalDaysInMonth > 0 ? (finalPayableDays / totalDaysInMonth) * 100 : 0;
+//   progressPercent = Math.min(progressPercent, 100);
+//   const earned = Math.min(Math.round(perDayRate * finalPayableDays), monthlySalary);
+//   const cut = Math.max(0, monthlySalary - earned);
+
+//   // Absent (weekday, no attendance, no leave)
+//   let absentDays = 0;
+//   for (const dateStr of allDates) {
+//     const [d] = dateStr.split('/').map(Number);
+//     const dayName = getDayName(dateStr);
+//     if (isCurrentMonth && d > todayDate) continue;
+//     if (holidaySet.has(dateStr)) continue;
+//     if (weeklyOffSetting.includes(dayName)) continue;
+    
+//     const normalizedDate = normalizeDate(dateStr);
+//     const att = attendanceRecords.find(a => a.date === dateStr);
+//     const hasAttendance = att && att.in_time;
+//     const isLeave = fullLeaveDates.has(normalizedDate) || halfDayLeaveDates.has(normalizedDate);
+    
+//     if (!hasAttendance && !isLeave) absentDays++;
 //   }
-//   const cappedHoursProgress = Math.min(hoursProgressPercent, 100);
-//   const hoursBasedEarned = Math.round((monthlySalary * cappedHoursProgress) / 100);
-//   const hoursBasedDeduction = monthlySalary - hoursBasedEarned;
-
-//   const payableDays = presentDays + paidLeaves - totalLateHalfDayDeduction;
-//   let daysProgressPercent = 0;
-//   if (totalWorkingDays > 0) {
-//     daysProgressPercent = (payableDays / totalWorkingDays) * 100;
-//   }
-//   const cappedDaysProgress = Math.min(daysProgressPercent, 100);
-//   const daysBasedEarned = Math.round(perDayRate * Math.max(0, payableDays));
-//   const daysBasedDeduction = Math.max(0, monthlySalary - daysBasedEarned);
-  
-//   const absentDeduction = Math.round(perDayRate * absentDays);
-//   const unpaidLeaveDeduction = Math.round(perDayRate * unpaidLeaves);
-//   const lateHalfDayDeductionAmount = Math.round(perDayRate * totalLateHalfDayDeduction);
-
-//   const earnedSalary = hoursBasedEarned;
-//   const totalDeduction = hoursBasedDeduction;
-//   const netPayable = earnedSalary;
-//   const progressPercent = hoursProgressPercent;
-//   const deductionPercent = Math.max(0, 100 - progressPercent);
 
 //   console.log(`\n📊 ${employee.name} (${employee.emp_code}):`);
-//   console.log(`   👷 Worker Type: ${isSiteWorker ? '🚧 SITE' : '🏢 OFFICE'}`);
-//   console.log(`   📅 Working Days: ${totalWorkingDays} | Off: ${offDayCount} | Holiday: ${holidayCount}`);
-//   console.log(`   👤 Present: ${presentDays} | Absent: ${absentDays}`);
-//   console.log(`   ☀️  Sunday Worked: ${sundayWorked}`);
-//   console.log(`   ⏰ Late (counted): ${lateCount} | Ignored: ${ignoredLateCount}`);
-//   console.log(`   🕐 Half Days: ${halfDayCount}`);
-//   console.log(`   📋 Leaves: ${totalLeavesTaken} | Paid: ${paidLeaves} | Unpaid: ${unpaidLeaves}`);
-//   console.log(`   💰 [HOURS]: ${hoursProgressPercent.toFixed(2)}% → ₹${hoursBasedEarned}`);
-//   console.log(`   💰 [DAYS]:  ${daysProgressPercent.toFixed(2)}% → ₹${daysBasedEarned}`);
-//   console.log('   ═══════════════════════════════════');
+//   console.log(`   📅 Total: ${totalDaysInMonth} | Working: ${workingDaysCount} | Sundays: ${sundayCount} | Holidays: ${holidayCount}`);
+//   console.log(`   👤 Weekday Present: ${presentDays} | Sunday Worked: ${sundayWorked} (bonus) | Absent: ${absentDays}`);
+//   console.log(`   ☀️  Weekly Off: ${weeklyOffPaid} (full) | Holiday Paid: ${holidaysPaid}`);
+//   console.log(`   ⏰ Late: ${lateCount}(-${lateLeaveDeduction}d) | HD: ${halfDayCount}(-${halfDayDeduction}d)`);
+//   console.log(`   📋 Leaves: ${fullDayLeaves}F + ${halfDayLeaves}HD = ${totalLeavesDays}d | Paid: ${paidLeaves} | Unpaid: ${unpaidLeaves}`);
+//   console.log(`   💰 Balance: ${totalAvailable} | Carry: ${carryForward}`);
+//   console.log(`   💵 Per Day: ₹${perDayRate.toFixed(2)}`);
+//   console.log(`   🎯 Final: ${presentDays}+${sundayWorked}+${weeklyOffPaid}+${holidaysPaid}+${halfDayValue}+${paidLeaves}-${lateLeaveDeduction} = ${finalPayableDays}/${totalDaysInMonth}`);
+//   console.log(`   💵 Earned: ₹${earned} | Cut: ₹${cut}`);
 
 //   return {
 //     emp_id: employee._id,
@@ -368,91 +259,54 @@
 //     name: employee.name,
 //     department: employee.department,
 //     designation: employee.designation,
-
 //     monthly_salary: monthlySalary,
-//     targeted_hours: requiredHours,
-//     targeted_hours_formatted: `${requiredHours}h`,
-
-//     total_working_days: totalWorkingDays,
+//     total_working_days: totalDaysInMonth,
+//     actual_working_days: workingDaysCount,
 //     total_present: presentDays,
+//     total_checkins: totalCheckins,
+//     weekday_checkins: weekdayCheckins,
 //     total_absent: absentDays,
-//     present_days: presentDays,
 //     absent_days: absentDays,
-//     ignored_absent_count: ignoredAbsentCount,
-//     sunday_count: offDayCount,
-//     holiday_count: holidayCount,
-//     sunday_worked: sundayWorked,
-//     is_site_worker: isSiteWorker,  // 🆕
-
 //     late_count: lateCount,
 //     ignored_late_count: ignoredLateCount,
-//     late_start_day: lateStartDay,
-//     half_day_count: halfDayCount,
-//     late_dates: lateDates,
-//     half_day_dates: halfDayDates,
 //     late_leave_deduction: lateLeaveDeduction,
-//     half_day_leaves: halfDayLeaves,
-//     total_late_half_day_deduction: totalLateHalfDayDeduction,
-//     late_half_day_amount: lateHalfDayDeductionAmount,
-
+//     late_dates: lateDates,
+//     half_day_count: halfDayCount,
+//     half_day_value: halfDayValue,
+//     half_day_deduction: halfDayDeduction,
+//     half_day_dates: halfDayDates,
+//     half_day_leave_count: halfDayLeaves,
+//     full_day_leaves: fullDayLeaves,
+//     total_leave_approved: totalLeavesDays,
 //     leave_opening_balance: openingBalance,
 //     leave_credited: creditedThisMonth,
-//     leave_used: totalLeavesTaken,
-//     leave_closing_balance: carryForward,
-//     leave_available: totalAvailableLeaves,
-
-//     payble_leave: paidLeaves,
+//     leave_available: totalAvailable,
 //     paid_leave_days: paidLeaves,
 //     unpaid_leave_days: unpaidLeaves,
-//     total_leave_approved: totalLeavesTaken,
-//     free_paid_leaves_allowed: FREE_LEAVES_PER_MONTH,
-//     compensatory_offs: compensatoryOffs,
-//     effective_leaves: effectiveLeaves,
-
+//     leave_closing_balance: carryForward,
+//     final_payable_days: finalPayableDays,
+//     sunday_worked: sundayWorked,
+//     sunday_count: sundayCount,
+//     weekly_off_paid: weeklyOffPaid,
+//     holiday_count: holidayCount,
+//     holiday_paid: holidaysPaid,
+//     total_days_in_month: totalDaysInMonth,
+//     per_day_rate: parseFloat(perDayRate.toFixed(2)),
+//     progress_percent: parseFloat(progressPercent.toFixed(2)),
+//     earned_salary: earned,
+//     total_deduction: cut,
+//     net_payable: earned,
 //     worked_hours: formatHours(totalWorkedMinutes),
 //     worked_minutes: totalWorkedMinutes,
-//     total_working_hour: formatHours(totalWorkingHourMinutes),
-//     total_paid_hours: formatHours(totalWorkingHourMinutes),
-//     total_paid_minutes: totalWorkingHourMinutes,
-
-//     hours_based: {
-//       progress_percent: parseFloat(hoursProgressPercent.toFixed(2)),
-//       capped_percent: parseFloat(cappedHoursProgress.toFixed(2)),
-//       earned: hoursBasedEarned,
-//       deduction: hoursBasedDeduction,
-//       net_payable: hoursBasedEarned,
-//       total_hours_worked: formatHours(totalWorkedMinutes),
-//       paid_leave_hours: formatHours(paidLeaveMinutes),
-//       total_effective_hours: formatHours(totalWorkingHourMinutes),
-//     },
-
-//     days_based: {
-//       progress_percent: parseFloat(daysProgressPercent.toFixed(2)),
-//       capped_percent: parseFloat(cappedDaysProgress.toFixed(2)),
-//       earned: daysBasedEarned,
-//       deduction: daysBasedDeduction,
-//       net_payable: daysBasedEarned,
-//       payable_days: payableDays,
-//       absent_deduction: absentDeduction,
-//       unpaid_leave_deduction: unpaidLeaveDeduction,
-//       late_half_day_deduction: lateHalfDayDeductionAmount,
-//       per_day_rate: parseFloat(perDayRate.toFixed(2)),
-//     },
-
-//     total_progress_percent: parseFloat(progressPercent.toFixed(2)),
-//     fix_salary_percent: 100,
-//     deduction_percent: parseFloat(deductionPercent.toFixed(2)),
-//     progress_according_percent: parseFloat(progressPercent.toFixed(2)),
-
-//     hours_amount: Math.round((totalWorkedMinutes / 60) * perHourRate),
-//     earned_salary: earnedSalary,
-//     total_deduction: totalDeduction,
-//     net_payable: netPayable,
-//     unpaid_deduction: unpaidLeaveDeduction,
-//     absent_deduction: absentDeduction,
-
-//     per_hour_rate: parseFloat(perHourRate.toFixed(2)),
-//     per_day_rate: parseFloat(perDayRate.toFixed(2)),
+//     is_site_worker: false,
+//     late_start_day: lateStartDay,
+//     ignored_absent_count: 0,
+//     compensatory_offs: 0,
+//     present_days: presentDays,
+//     days_based: { progress_percent: parseFloat(progressPercent.toFixed(2)), earned, deduction: cut, net_payable: earned, payable_days: finalPayableDays, per_day_rate: parseFloat(perDayRate.toFixed(2)) },
+//     hours_based: { progress_percent: parseFloat(progressPercent.toFixed(2)), earned, deduction: cut, net_payable: earned },
+//     total_earned_days: earned,
+//     total_deduction_days: cut,
 //   };
 // };
 
@@ -462,45 +316,19 @@
 // const getCompanyPayroll = async (req, res) => {
 //   try {
 //     const { company_id, department, month, year } = req.query;
-
-//     if (!company_id) {
-//       return res.status(400).json({ success: false, message: 'company_id required' });
-//     }
+//     if (!company_id) return res.status(400).json({ success: false, message: 'company_id required' });
 
 //     const currentMonth = parseInt(month) || new Date().getMonth() + 1;
 //     const currentYear = parseInt(year) || new Date().getFullYear();
-
 //     const company = await Company.findById(company_id);
-//     if (!company) {
-//       return res.status(404).json({ success: false, message: 'Company not found' });
-//     }
+//     if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
 
-//     const settings = await MonthlySettings.findOne({
-//       company_id,
-//       month: currentMonth,
-//       year: currentYear,
-//     });
+//     const settings = await MonthlySettings.findOne({ company_id, month: currentMonth, year: currentYear });
 
-//     const lateStartDay = getLateStartDay(currentMonth, currentYear);
+//     console.log(`\n📊 PAYROLL: ${company.name} - ${currentMonth}/${currentYear}\n`);
 
-//     console.log('\n═══════════════════════════════════════');
-//     console.log(`📊 PAYROLL WITH LOCATION-BASED RULES`);
-//     console.log(`   Company: ${company.name}`);
-//     console.log(`   Month: ${currentMonth}/${currentYear}`);
-//     console.log(`   ⏰ Rule Start: Day ${lateStartDay} of month`);
-//     console.log(`   🚧 Site Workers: Late/Half-Day SKIPPED`);
-//     console.log(`   🏢 Office Workers: Rules APPLY`);
-//     console.log('═══════════════════════════════════════\n');
-
-//     const filter = {
-//       company_id,
-//       status: 'approved',
-//       role: { $ne: 'super_admin' },
-//     };
-//     if (department && department !== 'all') {
-//       filter.department = department;
-//     }
-
+//     const filter = { company_id, status: 'approved', role: { $ne: 'super_admin' } };
+//     if (department && department !== 'all') filter.department = department;
 //     const employees = await Employee.find(filter).sort({ name: 1 });
 
 //     if (employees.length === 0) {
@@ -508,97 +336,63 @@
 //         success: true,
 //         data: {
 //           company: { name: company.name, code: company.code, address: company.address },
-//           month: currentMonth,
-//           year: currentYear,
+//           month: currentMonth, year: currentYear,
 //           month_name: new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long' }),
-//           employees: [],
-//           summary: {
-//             total_employees: 0,
-//             total_monthly_salary: 0,
-//             total_earned: 0,
-//             total_earned_hours: 0,
-//             total_earned_days: 0,
-//             total_deduction: 0,
-//             total_deduction_hours: 0,
-//             total_deduction_days: 0,
-//             total_net_payable: 0,
-//           },
-//         },
+//           employees: [], summary: { total_employees: 0 }
+//         }
 //       });
 //     }
 
 //     const payrollData = [];
 //     for (const emp of employees) {
-//       const payroll = await calculateEmployeePayroll(emp, currentMonth, currentYear, settings);
-//       payrollData.push(payroll);
+//       payrollData.push(await calculateEmployeePayroll(emp, currentMonth, currentYear, settings));
 //     }
+
+//     const anyBalance = await LeaveBalance.findOne({ 
+//       emp_id: { $in: employees.map(e => e._id) },
+//       'history.payroll_finalized': true,
+//       'history.month': currentMonth,
+//       'history.year': currentYear
+//     });
+//     const isFinalized = !!anyBalance;
 
 //     const summary = {
 //       total_employees: payrollData.length,
 //       total_monthly_salary: payrollData.reduce((s, p) => s + p.monthly_salary, 0),
-//       total_site_workers: payrollData.filter(p => p.is_site_worker).length,  // 🆕
-//       total_office_workers: payrollData.filter(p => !p.is_site_worker).length,  // 🆕
-
-//       total_earned_hours: payrollData.reduce((s, p) => s + p.hours_based.earned, 0),
-//       total_deduction_hours: payrollData.reduce((s, p) => s + p.hours_based.deduction, 0),
-//       total_net_payable_hours: payrollData.reduce((s, p) => s + p.hours_based.net_payable, 0),
-
-//       total_earned_days: payrollData.reduce((s, p) => s + p.days_based.earned, 0),
-//       total_deduction_days: payrollData.reduce((s, p) => s + p.days_based.deduction, 0),
-//       total_net_payable_days: payrollData.reduce((s, p) => s + p.days_based.net_payable, 0),
-//       total_absent_deduction: payrollData.reduce((s, p) => s + (p.days_based.absent_deduction || 0), 0),
-//       total_unpaid_leave_deduction: payrollData.reduce((s, p) => s + (p.days_based.unpaid_leave_deduction || 0), 0),
-
+//       total_present: payrollData.reduce((s, p) => s + p.total_present, 0),
+//       total_absent: payrollData.reduce((s, p) => s + (p.total_absent || 0), 0),
+//       total_late: payrollData.reduce((s, p) => s + (p.late_count || 0), 0),
+//       total_half_day: payrollData.reduce((s, p) => s + (p.half_day_count || 0), 0),
+//       total_leaves: payrollData.reduce((s, p) => s + (p.full_day_leaves || 0), 0),
+//       total_paid_leaves: payrollData.reduce((s, p) => s + (p.paid_leave_days || 0), 0),
+//       total_unpaid_leaves: payrollData.reduce((s, p) => s + (p.unpaid_leave_days || 0), 0),
 //       total_earned: payrollData.reduce((s, p) => s + p.earned_salary, 0),
 //       total_deduction: payrollData.reduce((s, p) => s + p.total_deduction, 0),
 //       total_net_payable: payrollData.reduce((s, p) => s + p.net_payable, 0),
-//       total_hours_amount: payrollData.reduce((s, p) => s + (p.hours_amount || 0), 0),
-
-//       total_present: payrollData.reduce((s, p) => s + p.total_present, 0),
-//       total_absent: payrollData.reduce((s, p) => s + p.total_absent, 0),
-//       total_leaves: payrollData.reduce((s, p) => s + p.total_leave_approved, 0),
 //       total_carry_forward: payrollData.reduce((s, p) => s + (p.leave_closing_balance || 0), 0),
 //       total_sunday_worked: payrollData.reduce((s, p) => s + (p.sunday_worked || 0), 0),
-//       total_compensatory: payrollData.reduce((s, p) => s + (p.compensatory_offs || 0), 0),
-      
-//       total_late: payrollData.reduce((s, p) => s + (p.late_count || 0), 0),
-//       total_ignored_late: payrollData.reduce((s, p) => s + (p.ignored_late_count || 0), 0),
-//       total_half_day: payrollData.reduce((s, p) => s + (p.half_day_count || 0), 0),
-//       total_late_deduction_days: payrollData.reduce((s, p) => s + (p.total_late_half_day_deduction || 0), 0),
+//       total_earned_days: payrollData.reduce((s, p) => s + p.earned_salary, 0),
+//       total_deduction_days: payrollData.reduce((s, p) => s + p.total_deduction, 0),
+//       total_earned_hours: payrollData.reduce((s, p) => s + p.earned_salary, 0),
+//       total_deduction_hours: payrollData.reduce((s, p) => s + p.total_deduction, 0),
 //     };
 
-//     console.log(`\n✅ TOTAL: ${summary.total_employees} employees`);
-//     console.log(`🚧 Site Workers: ${summary.total_site_workers} | 🏢 Office: ${summary.total_office_workers}`);
-//     console.log(`💰 [HOURS] Earned: ₹${summary.total_earned_hours} | Cut: ₹${summary.total_deduction_hours}`);
-//     console.log(`💰 [DAYS]  Earned: ₹${summary.total_earned_days} | Cut: ₹${summary.total_deduction_days}\n`);
+//     console.log(`\n✅ ${summary.total_employees} emps | Earned: ₹${summary.total_earned} | Cut: ₹${summary.total_deduction}\n`);
 
 //     return res.json({
 //       success: true,
 //       data: {
-//         company: {
-//           _id: company._id,
-//           name: company.name,
-//           code: company.code,
-//           address: company.address,
-//         },
-//         month: currentMonth,
-//         year: currentYear,
+//         company: { _id: company._id, name: company.name, code: company.code, address: company.address },
+//         month: currentMonth, year: currentYear,
 //         month_name: new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long' }),
 //         department: department || 'all',
+//         is_finalized: isFinalized,
 //         settings: {
-//           required_hours: settings?.required_hours || (payrollData[0]?.targeted_hours || 0),
 //           daily_hours: settings?.daily_hours || 8,
 //           holidays_count: (settings?.holidays || []).length,
 //           weekly_off: settings?.weekly_off || ['Sunday'],
 //           free_paid_leaves: FREE_LEAVES_PER_MONTH,
-//           office_in_time: '09:30 AM',
-//           office_out_time: '06:30 PM',
-//           late_in_limit: '09:45 AM',
-//           half_day_in_limit: '11:00 AM',
-//           half_day_out_limit: '04:00 PM',
-//           late_start_day: lateStartDay,
-//           grace_period_active: lateStartDay > 1,
-//           location_based_rules: true,  // 🆕
+//           late_start_day: getLateStartDay(currentMonth, currentYear),
 //         },
 //         employees: payrollData,
 //         summary,
@@ -606,40 +400,170 @@
 //     });
 //   } catch (error) {
 //     console.error('getCompanyPayroll error:', error);
-//     return res.status(500).json({
-//       success: false,
-//       message: 'Server error',
-//       error: error.message,
+//     return res.status(500).json({ success: false, message: 'Server error', error: error.message });
+//   }
+// };
+
+// // ════════════════════════════════════════════
+// // FINALIZE PAYROLL
+// // ════════════════════════════════════════════
+// const finalizePayroll = async (req, res) => {
+//   try {
+//     const { company_id, month, year, department } = req.body;
+
+//     if (!company_id || !month || !year) {
+//       return res.status(400).json({ success: false, message: 'company_id, month, year required' });
+//     }
+
+//     const currentMonth = parseInt(month);
+//     const currentYear = parseInt(year);
+
+//     const company = await Company.findById(company_id);
+//     if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
+
+//     const settings = await MonthlySettings.findOne({ company_id, month: currentMonth, year: currentYear });
+
+//     const filter = { company_id, status: 'approved', role: { $ne: 'super_admin' } };
+//     if (department && department !== 'all') filter.department = department;
+
+//     const employees = await Employee.find(filter);
+//     if (employees.length === 0) {
+//       return res.status(404).json({ success: false, message: 'No employees found' });
+//     }
+
+//     const results = [];
+//     let alreadyFinalizedCount = 0;
+//     let processedCount = 0;
+
+//     for (const emp of employees) {
+//       const payroll = await calculateEmployeePayroll(emp, currentMonth, currentYear, settings);
+
+//       let balance = await LeaveBalance.findOne({ emp_id: emp._id });
+//       if (!balance) {
+//         balance = await LeaveBalance.create({
+//           emp_id: emp._id,
+//           emp_code: emp.emp_code,
+//           name: emp.name,
+//           company_id: emp.company_id,
+//           current_balance: 0,
+//           total_credited: 0,
+//           total_used: 0,
+//           history: [],
+//         });
+//       }
+
+//       let monthEntry = balance.history.find(
+//         h => Number(h.month) === currentMonth && Number(h.year) === currentYear
+//       );
+
+//       if (!monthEntry) {
+//         balance.history.push({
+//           month: currentMonth,
+//           year: currentYear,
+//           opening_balance: balance.current_balance,
+//           credited: FREE_LEAVES_PER_MONTH,
+//           used: 0,
+//           closing_balance: balance.current_balance + FREE_LEAVES_PER_MONTH,
+//           leaves_log: [],
+//         });
+//         balance.current_balance += FREE_LEAVES_PER_MONTH;
+//         balance.total_credited += FREE_LEAVES_PER_MONTH;
+//         monthEntry = balance.history[balance.history.length - 1];
+//       }
+
+//       if (monthEntry.payroll_finalized) {
+//         alreadyFinalizedCount++;
+//         results.push({
+//           name: emp.name,
+//           emp_code: emp.emp_code,
+//           status: 'already_finalized',
+//           balance: balance.current_balance,
+//         });
+//         continue;
+//       }
+
+//       const totalDeductFromBalance = payroll.paid_leave_days || 0;
+
+//       if (totalDeductFromBalance > 0) {
+//         const beforeBalance = balance.current_balance;
+//         balance.current_balance = Math.max(0, balance.current_balance - totalDeductFromBalance);
+//         balance.total_used += totalDeductFromBalance;
+
+//         monthEntry.used += totalDeductFromBalance;
+//         monthEntry.closing_balance = balance.current_balance;
+
+//         monthEntry.leaves_log.push({
+//           leave_id: null,
+//           from_date: 'PAYROLL',
+//           to_date: 'PAYROLL',
+//           applied_days: 0,
+//           approved_days: totalDeductFromBalance,
+//           paid_days: totalDeductFromBalance,
+//           unpaid_days: 0,
+//           approved_on: new Date(),
+//           is_payroll_deduction: true,
+//           payroll_month: currentMonth,
+//           payroll_year: currentYear,
+//           hd_deducted: payroll.half_day_deduction || 0,
+//           late_deducted: payroll.late_leave_deduction || 0,
+//           full_leave_deducted: payroll.full_day_leaves || 0,
+//         });
+
+//         console.log(`✅ ${emp.name}: Cut ${totalDeductFromBalance} | ${beforeBalance} → ${balance.current_balance}`);
+//       }
+
+//       monthEntry.payroll_finalized = true;
+//       monthEntry.finalized_on = new Date();
+//       monthEntry.finalized_by = req.employee?.name || 'System';
+
+//       await balance.save();
+//       processedCount++;
+
+//       results.push({
+//         name: emp.name,
+//         emp_code: emp.emp_code,
+//         status: 'finalized',
+//         deducted: totalDeductFromBalance,
+//         balance_after: balance.current_balance,
+//       });
+//     }
+
+//     return res.json({
+//       success: true,
+//       message: `Payroll finalized! ${processedCount} processed, ${alreadyFinalizedCount} already finalized`,
+//       data: {
+//         month: currentMonth,
+//         year: currentYear,
+//         total_employees: employees.length,
+//         processed: processedCount,
+//         already_finalized: alreadyFinalizedCount,
+//         results,
+//       },
 //     });
+//   } catch (error) {
+//     console.error('finalizePayroll error:', error);
+//     return res.status(500).json({ success: false, message: 'Finalize failed', error: error.message });
 //   }
 // };
 
 // const getCompanyDepartments = async (req, res) => {
 //   try {
 //     const { company_id } = req.query;
-//     if (!company_id) {
-//       return res.status(400).json({ success: false, message: 'company_id required' });
-//     }
-
-//     const departments = await Employee.distinct('department', {
-//       company_id,
-//       status: 'approved',
-//     });
-
-//     return res.json({
-//       success: true,
-//       data: departments.filter(d => d && d.trim() !== ''),
-//     });
+//     if (!company_id) return res.status(400).json({ success: false, message: 'company_id required' });
+//     const departments = await Employee.distinct('department', { company_id, status: 'approved' });
+//     return res.json({ success: true, data: departments.filter(d => d && d.trim() !== '') });
 //   } catch (error) {
 //     return res.status(500).json({ success: false, message: 'Server error', error: error.message });
 //   }
 // };
 
-// module.exports = {
-//   getCompanyPayroll,
-//   getCompanyDepartments,
+// module.exports = { 
+//   getCompanyPayroll, 
+//   getCompanyDepartments, 
 //   calculateEmployeePayroll,
+//   finalizePayroll,
 // };
+
 
 
 
@@ -657,21 +581,11 @@ const {
 
 const FREE_LEAVES_PER_MONTH = 1;
 
-// ════════════════════════════════════════════
-// LATE RULE START CONFIG
-// July 2026 se system chalu hua - 6 July se late count
-// August 2026 onwards - normal (1st se)
-// ════════════════════════════════════════════
 const getLateStartDay = (month, year) => {
-  if (month === 7 && year === 2026) {
-    return 6;
-  }
+  if (month === 7 && year === 2026) return 6;
   return 1;
 };
 
-// ════════════════════════════════════════════
-// HELPERS
-// ════════════════════════════════════════════
 const parseTimeToMinutes = (timeStr) => {
   if (!timeStr) return null;
   const parts = timeStr.trim().split(' ');
@@ -696,117 +610,93 @@ const calculateWorkingMinutes = (inTime, outTime) => {
 
 const getDayName = (dateStr) => {
   const [d, m, y] = dateStr.split('/').map(Number);
-  const date = new Date(y, m - 1, d);
-  return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][date.getDay()];
+  return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(y, m-1, d).getDay()];
 };
 
 const getDatesInMonth = (month, year) => {
   const dates = [];
   const daysInMonth = new Date(year, month, 0).getDate();
-  for (let d = 1; d <= daysInMonth; d++) {
-    dates.push(`${d}/${month}/${year}`);
-  }
+  for (let d = 1; d <= daysInMonth; d++) dates.push(`${d}/${month}/${year}`);
   return dates;
 };
 
 const formatHours = (totalMinutes) => {
   if (!totalMinutes || totalMinutes < 0) return '0h 0m';
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${hours}h ${minutes}m`;
+  return `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
+};
+
+const normalizeDate = (dateStr) => {
+  const [d, m, y] = dateStr.split('/').map(Number);
+  return `${d}/${m}/${y}`;
 };
 
 // ════════════════════════════════════════════
-// 🎯 PAYROLL CALCULATION - STANDARD WORKING DAYS
+// 🎯 PAYROLL CALCULATION - TOTAL DAYS BASED
 // ════════════════════════════════════════════
 const calculateEmployeePayroll = async (employee, month, year, settings) => {
   const monthlySalary = employee.monthly_salary || 0;
-  const dailyHours = settings?.daily_hours || 8;
-  const dailyMinutes = dailyHours * 60;
   const holidays = settings?.holidays || [];
   const weeklyOffSetting = settings?.weekly_off || ['Sunday'];
-
   const lateStartDay = getLateStartDay(month, year);
-
   const allDates = getDatesInMonth(month, year);
   const holidaySet = new Set(holidays.map(h => h.date));
 
-  const attendanceRecords = await Attendance.find({
-    emp_id: employee._id,
-    date: { $in: allDates },
-  });
+  const totalDaysInMonth = new Date(year, month, 0).getDate();
 
-  const allLeaves = await Leave.find({
-    emp_id: employee._id,
-    status: 'approved',
-  });
+  const attendanceRecords = await Attendance.find({ emp_id: employee._id, date: { $in: allDates } });
+  const allLeaves = await Leave.find({ emp_id: employee._id, status: 'approved' });
 
   const monthLeaves = allLeaves.filter(l => {
     const [d, m, y] = l.from_date.split('/').map(Number);
     return m === month && y === year;
   });
 
-  const totalLeavesTaken = monthLeaves.reduce((sum, l) => sum + (l.leave_days || 1), 0);
+  // LEAVES
+  let fullDayLeaves = 0;
+  let halfDayLeaves = 0;
 
-  const leaveDateSet = new Set();
   monthLeaves.forEach(l => {
-    const [fd, fm, fy] = l.from_date.split('/').map(Number);
-    const [td, tm, ty] = l.to_date.split('/').map(Number);
-    const fromDate = new Date(fy, fm - 1, fd);
-    const toDate = new Date(ty, tm - 1, td);
-    const current = new Date(fromDate);
-    while (current <= toDate) {
-      leaveDateSet.add(`${current.getDate()}/${current.getMonth() + 1}/${current.getFullYear()}`);
-      current.setDate(current.getDate() + 1);
+    if (l.is_half_day) halfDayLeaves += 1;
+    else fullDayLeaves += (l.leave_days || l.approved_days || 1);
+  });
+
+  // Approved leave dates
+  const halfDayLeaveDates = new Set();
+  const fullLeaveDates = new Set();
+  
+  monthLeaves.forEach(l => {
+    if (l.is_half_day) {
+      halfDayLeaveDates.add(normalizeDate(l.from_date));
+    } else {
+      const [fd, fm, fy] = l.from_date.split('/').map(Number);
+      const [td, tm, ty] = l.to_date.split('/').map(Number);
+      const startDate = new Date(fy, fm - 1, fd);
+      const endDate = new Date(ty, tm - 1, td);
+      
+      for (let curr = new Date(startDate); curr <= endDate; curr.setDate(curr.getDate() + 1)) {
+        const key = `${curr.getDate()}/${curr.getMonth() + 1}/${curr.getFullYear()}`;
+        fullLeaveDates.add(key);
+      }
     }
   });
 
-  // 🆕 Detect Site Worker (for informational purposes only)
-  const sundayAttendances = attendanceRecords.filter(a => {
-    if (!a.in_time) return false;
-    const [d, m, y] = a.date.split('/').map(Number);
-    return new Date(y, m - 1, d).getDay() === 0;
-  });
-  const isSiteWorker = sundayAttendances.length >= 2;
-
-  // 🆕 STANDARD CALCULATION - Same for ALL employees
-  let totalWorkingDays = 0;
-  let offDayCount = 0;
-  let holidayCount = 0;
-
+  // Count Sundays, Holidays, Working Days
+  let sundayCount = 0, holidayCount = 0, workingDaysCount = 0;
   for (const dateStr of allDates) {
     const dayName = getDayName(dateStr);
-    
-    if (holidaySet.has(dateStr)) {
-      holidayCount++;
-    } else if (weeklyOffSetting.includes(dayName)) {
-      offDayCount++;
-    } else {
-      totalWorkingDays++;
-    }
+    if (holidaySet.has(dateStr)) holidayCount++;
+    else if (weeklyOffSetting.includes(dayName)) sundayCount++;
+    else workingDaysCount++;
   }
 
-  console.log(`📅 ${employee.name}: Total=${allDates.length}, Off=${offDayCount}, Holidays=${holidayCount}, Working=${totalWorkingDays}`);
-
-  const autoHours = totalWorkingDays * dailyHours;
-  const requiredHours = settings?.required_hours
-    ? Number(settings.required_hours)
-    : autoHours;
-  const requiredMinutes = requiredHours * 60;
-
   // ════════════════════════════════════════
-  // PROCESS ATTENDANCE
+  // ATTENDANCE
   // ════════════════════════════════════════
-  let totalWorkedMinutes = 0;
-  let presentDays = 0;
-  let sundayWorked = 0;
-  let lateCount = 0;
-  let halfDayCount = 0;
-  let ignoredLateCount = 0;
-  let ignoredAbsentCount = 0;
-  const lateDates = [];
-  const halfDayDates = [];
-
+  let totalWorkedMinutes = 0, totalCheckins = 0, sundayWorked = 0;
+  let weekdayCheckins = 0;
+  let lateCount = 0, halfDayCount = 0, ignoredLateCount = 0;
+  let hdLeaveWithAttendance = 0;
+  const lateDates = [], halfDayDates = [];
   const today = new Date();
   const todayDate = today.getDate();
   const isCurrentMonth = (month === today.getMonth() + 1 && year === today.getFullYear());
@@ -814,146 +704,120 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   for (const dateStr of allDates) {
     const [d] = dateStr.split('/').map(Number);
     const dayName = getDayName(dateStr);
-
     if (isCurrentMonth && d > todayDate) continue;
 
-    const attendance = attendanceRecords.find(a => a.date === dateStr);
-
-    if (attendance && attendance.in_time) {
-      presentDays++;
-      if (dayName === 'Sunday') sundayWorked++;
+    const att = attendanceRecords.find(a => a.date === dateStr);
+    if (att && att.in_time) {
+      totalCheckins++;
+      const isSunday = weeklyOffSetting.includes(dayName);
       
-      if (attendance.out_time) {
-        totalWorkedMinutes += calculateWorkingMinutes(attendance.in_time, attendance.out_time);
+      if (isSunday) {
+        sundayWorked++;
+      } else {
+        weekdayCheckins++;
       }
+      
+      if (att.out_time) totalWorkedMinutes += calculateWorkingMinutes(att.in_time, att.out_time);
 
-      // LOCATION-BASED RULE
-      const wasOnSiteAtIN = attendance.in_location_status === 'on-site';
-      const statusInfo = getAttendanceStatus(attendance.in_time, attendance.out_time);
+      const wasOnSite = att.in_location_status === 'on-site';
+      const status = getAttendanceStatus(att.in_time, att.out_time);
+      
+      const normalizedDate = normalizeDate(dateStr);
+      const isHalfDayLeaveDay = halfDayLeaveDates.has(normalizedDate);
+      const isFullLeaveDay = fullLeaveDates.has(normalizedDate);
+      
+      if (isHalfDayLeaveDay) hdLeaveWithAttendance++;
       
       if (d >= lateStartDay) {
-        if (wasOnSiteAtIN) {
-          // Office worker - Rules apply
-          if (statusInfo.is_late) {
-            lateCount++;
-            lateDates.push(dateStr);
-          }
-          
-          if (statusInfo.is_half_day) {
-            halfDayCount++;
-            halfDayDates.push(dateStr);
+        if (wasOnSite) {
+          if (isHalfDayLeaveDay || isFullLeaveDay) {
+            // Skip - leave day
+          } else if (!isSunday) {
+            if (status.is_late) { lateCount++; lateDates.push(dateStr); }
+            if (status.is_half_day) { halfDayCount++; halfDayDates.push(dateStr); }
           }
         }
-        // Site worker - Skip rules
       } else {
-        if (statusInfo.is_late || statusInfo.is_half_day) {
-          ignoredLateCount++;
-        }
+        if (status.is_late || status.is_half_day) ignoredLateCount++;
       }
     }
   }
 
-  // 🆕 Expected work days - based on standard weekly off
-  let expectedWorkDays = 0;
-  for (const dateStr of allDates) {
-    const [d] = dateStr.split('/').map(Number);
-    const dayName = getDayName(dateStr);
-    
-    if (isCurrentMonth && d > todayDate) continue;
-    if (weeklyOffSetting.includes(dayName)) continue;  // Skip Sundays
-    if (holidaySet.has(dateStr)) continue;
-    if (leaveDateSet.has(dateStr)) continue;
-
-    if (d >= lateStartDay) {
-      expectedWorkDays++;
-    } else {
-      const attendance = attendanceRecords.find(a => a.date === dateStr);
-      const isPresent = attendance && attendance.in_time;
-      if (isPresent) {
-        expectedWorkDays++;
-      } else {
-        ignoredAbsentCount++;
-      }
-    }
-  }
-
-  // 🆕 Absent = Expected - Present (excluding Sunday work)
-  const nonSundayPresent = presentDays - sundayWorked;
-  const absentDays = Math.max(0, expectedWorkDays - nonSundayPresent);
-
+  // ════════════════════════════════════════
+  // 🎯 PRESENT CALCULATION (Weekdays only)
+  // ════════════════════════════════════════
+  const presentDays = Math.max(0, weekdayCheckins - halfDayCount - hdLeaveWithAttendance + (hdLeaveWithAttendance * 0.5));
+  const halfDayValue = halfDayCount * 0.5;
   const lateLeaveDeduction = calculateLateLeaveDeduction(lateCount);
-  const halfDayLeaves = halfDayCount * 0.5;
-  const totalLateHalfDayDeduction = lateLeaveDeduction + halfDayLeaves;
 
+  // Leave balance
   const leaveBalance = await LeaveBalance.findOne({ emp_id: employee._id });
-
-  let openingBalance = 0;
-  let creditedThisMonth = FREE_LEAVES_PER_MONTH;
-
+  let openingBalance = 0, creditedThisMonth = FREE_LEAVES_PER_MONTH;
   if (leaveBalance) {
-    const monthEntry = leaveBalance.history?.find(h => h.month === month && h.year === year);
-    if (monthEntry) {
-      openingBalance = monthEntry.opening_balance || 0;
-      creditedThisMonth = monthEntry.credited || FREE_LEAVES_PER_MONTH;
+    const entry = leaveBalance.history?.find(h => Number(h.month) === Number(month) && Number(h.year) === Number(year));
+    if (entry) {
+      openingBalance = entry.opening_balance || 0;
+      creditedThisMonth = entry.credited || FREE_LEAVES_PER_MONTH;
     } else {
       openingBalance = leaveBalance.current_balance || 0;
     }
   }
+  const totalAvailable = openingBalance + creditedThisMonth;
 
-  const compensatoryOffs = sundayWorked;
-  const totalLeavesNeeded = totalLeavesTaken + totalLateHalfDayDeduction;
-  const effectiveLeaves = Math.max(0, totalLeavesNeeded - compensatoryOffs);
-  const totalAvailableLeaves = openingBalance + creditedThisMonth;
-  
-  const paidLeaves = Math.min(effectiveLeaves, totalAvailableLeaves);
-  const unpaidLeaves = Math.max(0, effectiveLeaves - totalAvailableLeaves);
-  const carryForward = Math.max(0, totalAvailableLeaves - effectiveLeaves);
+  // HD + Late + Leave balance se paid
+  const halfDayDeduction = halfDayCount * 0.5;
+  const totalLeavesDays = fullDayLeaves + (halfDayLeaves * 0.5);
+  const totalNeeded = totalLeavesDays + lateLeaveDeduction + halfDayDeduction;
+  const paidLeaves = Math.min(totalNeeded, totalAvailable);
+  const unpaidLeaves = Math.max(0, totalNeeded - totalAvailable);
+  const carryForward = Math.max(0, totalAvailable - paidLeaves);
 
-  const perDayRate = totalWorkingDays > 0 ? (monthlySalary / totalWorkingDays) : 0;
-  const perHourRate = requiredHours > 0 ? (monthlySalary / requiredHours) : 0;
+  // 🆕 Weekly Off = Full sundayCount (always paid)
+  const weeklyOffPaid = sundayCount;
+  const holidaysPaid = holidayCount;
 
-  // HOURS BASED
-  const paidLeaveMinutes = paidLeaves * dailyMinutes;
-  const totalWorkingHourMinutes = totalWorkedMinutes + paidLeaveMinutes;
-  let hoursProgressPercent = 0;
-  if (requiredMinutes > 0) {
-    hoursProgressPercent = (totalWorkingHourMinutes / requiredMinutes) * 100;
+  // ════════════════════════════════════════
+  // 🎯 FINAL DAYS
+  // = Present + Sunday Worked + Weekly Off + Holidays + HD + Paid Leaves - Late
+  // (Absent/Unpaid automatically excluded - they're not in present count)
+  // ════════════════════════════════════════
+  const finalPayableDaysRaw = presentDays + sundayWorked + weeklyOffPaid + holidaysPaid + halfDayValue + paidLeaves - lateLeaveDeduction;
+  const finalPayableDays = Math.min(Math.max(0, finalPayableDaysRaw), totalDaysInMonth);
+
+  // Salary
+  const perDayRate = totalDaysInMonth > 0 ? (monthlySalary / totalDaysInMonth) : 0;
+  let progressPercent = totalDaysInMonth > 0 ? (finalPayableDays / totalDaysInMonth) * 100 : 0;
+  progressPercent = Math.min(progressPercent, 100);
+  const earned = Math.min(Math.round(perDayRate * finalPayableDays), monthlySalary);
+  const cut = Math.max(0, monthlySalary - earned);
+
+  // Absent (weekday, no attendance, no leave)
+  let absentDays = 0;
+  for (const dateStr of allDates) {
+    const [d] = dateStr.split('/').map(Number);
+    const dayName = getDayName(dateStr);
+    if (isCurrentMonth && d > todayDate) continue;
+    if (holidaySet.has(dateStr)) continue;
+    if (weeklyOffSetting.includes(dayName)) continue;
+    
+    const normalizedDate = normalizeDate(dateStr);
+    const att = attendanceRecords.find(a => a.date === dateStr);
+    const hasAttendance = att && att.in_time;
+    const isLeave = fullLeaveDates.has(normalizedDate) || halfDayLeaveDates.has(normalizedDate);
+    
+    if (!hasAttendance && !isLeave) absentDays++;
   }
-  const cappedHoursProgress = Math.min(hoursProgressPercent, 100);
-  const hoursBasedEarned = Math.round((monthlySalary * cappedHoursProgress) / 100);
-  const hoursBasedDeduction = monthlySalary - hoursBasedEarned;
-
-  // 🆕 DAYS BASED - Payable Days include Sunday work as extra
-  const payableDays = nonSundayPresent + paidLeaves + sundayWorked - totalLateHalfDayDeduction;
-  let daysProgressPercent = 0;
-  if (totalWorkingDays > 0) {
-    daysProgressPercent = (payableDays / totalWorkingDays) * 100;
-  }
-  const cappedDaysProgress = Math.min(daysProgressPercent, 100);
-  const daysBasedEarned = Math.round(perDayRate * Math.max(0, payableDays));
-  const daysBasedDeduction = Math.max(0, monthlySalary - daysBasedEarned);
-  
-  const absentDeduction = Math.round(perDayRate * absentDays);
-  const unpaidLeaveDeduction = Math.round(perDayRate * unpaidLeaves);
-  const lateHalfDayDeductionAmount = Math.round(perDayRate * totalLateHalfDayDeduction);
-
-  const earnedSalary = hoursBasedEarned;
-  const totalDeduction = hoursBasedDeduction;
-  const netPayable = earnedSalary;
-  const progressPercent = hoursProgressPercent;
-  const deductionPercent = Math.max(0, 100 - progressPercent);
 
   console.log(`\n📊 ${employee.name} (${employee.emp_code}):`);
-  console.log(`   👷 Worker Type: ${isSiteWorker ? '🚧 SITE' : '🏢 OFFICE'}`);
-  console.log(`   📅 Working Days: ${totalWorkingDays} | Off: ${offDayCount} | Holiday: ${holidayCount}`);
-  console.log(`   👤 Present: ${presentDays} (Non-Sun: ${nonSundayPresent}) | Absent: ${absentDays}`);
-  console.log(`   ☀️  Sunday Worked: ${sundayWorked}`);
-  console.log(`   ⏰ Late (counted): ${lateCount} | Ignored: ${ignoredLateCount}`);
-  console.log(`   🕐 Half Days: ${halfDayCount}`);
-  console.log(`   📋 Leaves: ${totalLeavesTaken} | Paid: ${paidLeaves} | Unpaid: ${unpaidLeaves}`);
-  console.log(`   💰 [HOURS]: ${hoursProgressPercent.toFixed(2)}% → ₹${hoursBasedEarned}`);
-  console.log(`   💰 [DAYS]:  ${daysProgressPercent.toFixed(2)}% → ₹${daysBasedEarned}`);
-  console.log('   ═══════════════════════════════════');
+  console.log(`   📅 Total: ${totalDaysInMonth} | Working: ${workingDaysCount} | Sundays: ${sundayCount} | Holidays: ${holidayCount}`);
+  console.log(`   👤 Weekday Present: ${presentDays} | Sunday Worked: ${sundayWorked} (bonus) | Absent: ${absentDays}`);
+  console.log(`   ☀️  Weekly Off: ${weeklyOffPaid} | Holiday Paid: ${holidaysPaid}`);
+  console.log(`   ⏰ Late: ${lateCount}(-${lateLeaveDeduction}d) | HD: ${halfDayCount}(-${halfDayDeduction}d)`);
+  console.log(`   📋 Leaves: ${fullDayLeaves}F + ${halfDayLeaves}HD = ${totalLeavesDays}d | Paid: ${paidLeaves} | Unpaid: ${unpaidLeaves}`);
+  console.log(`   💰 Balance: ${totalAvailable} | Carry: ${carryForward}`);
+  console.log(`   💵 Per Day: ₹${perDayRate.toFixed(2)}`);
+  console.log(`   🎯 Final: ${presentDays}+${sundayWorked}+${weeklyOffPaid}+${holidaysPaid}+${halfDayValue}+${paidLeaves}-${lateLeaveDeduction} = ${finalPayableDays}/${totalDaysInMonth}`);
+  console.log(`   💵 Earned: ₹${earned} | Cut: ₹${cut}`);
 
   return {
     emp_id: employee._id,
@@ -961,91 +825,54 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
     name: employee.name,
     department: employee.department,
     designation: employee.designation,
-
     monthly_salary: monthlySalary,
-    targeted_hours: requiredHours,
-    targeted_hours_formatted: `${requiredHours}h`,
-
-    total_working_days: totalWorkingDays,
+    total_working_days: totalDaysInMonth,
+    actual_working_days: workingDaysCount,
     total_present: presentDays,
+    total_checkins: totalCheckins,
+    weekday_checkins: weekdayCheckins,
     total_absent: absentDays,
-    present_days: presentDays,
     absent_days: absentDays,
-    ignored_absent_count: ignoredAbsentCount,
-    sunday_count: offDayCount,
-    holiday_count: holidayCount,
-    sunday_worked: sundayWorked,
-    is_site_worker: isSiteWorker,
-
     late_count: lateCount,
     ignored_late_count: ignoredLateCount,
-    late_start_day: lateStartDay,
-    half_day_count: halfDayCount,
-    late_dates: lateDates,
-    half_day_dates: halfDayDates,
     late_leave_deduction: lateLeaveDeduction,
-    half_day_leaves: halfDayLeaves,
-    total_late_half_day_deduction: totalLateHalfDayDeduction,
-    late_half_day_amount: lateHalfDayDeductionAmount,
-
+    late_dates: lateDates,
+    half_day_count: halfDayCount,
+    half_day_value: halfDayValue,
+    half_day_deduction: halfDayDeduction,
+    half_day_dates: halfDayDates,
+    half_day_leave_count: halfDayLeaves,
+    full_day_leaves: fullDayLeaves,
+    total_leave_approved: totalLeavesDays,
     leave_opening_balance: openingBalance,
     leave_credited: creditedThisMonth,
-    leave_used: totalLeavesTaken,
-    leave_closing_balance: carryForward,
-    leave_available: totalAvailableLeaves,
-
-    payble_leave: paidLeaves,
+    leave_available: totalAvailable,
     paid_leave_days: paidLeaves,
     unpaid_leave_days: unpaidLeaves,
-    total_leave_approved: totalLeavesTaken,
-    free_paid_leaves_allowed: FREE_LEAVES_PER_MONTH,
-    compensatory_offs: compensatoryOffs,
-    effective_leaves: effectiveLeaves,
-
+    leave_closing_balance: carryForward,
+    final_payable_days: finalPayableDays,
+    sunday_worked: sundayWorked,
+    sunday_count: sundayCount,
+    weekly_off_paid: weeklyOffPaid,
+    holiday_count: holidayCount,
+    holiday_paid: holidaysPaid,
+    total_days_in_month: totalDaysInMonth,
+    per_day_rate: parseFloat(perDayRate.toFixed(2)),
+    progress_percent: parseFloat(progressPercent.toFixed(2)),
+    earned_salary: earned,
+    total_deduction: cut,
+    net_payable: earned,
     worked_hours: formatHours(totalWorkedMinutes),
     worked_minutes: totalWorkedMinutes,
-    total_working_hour: formatHours(totalWorkingHourMinutes),
-    total_paid_hours: formatHours(totalWorkingHourMinutes),
-    total_paid_minutes: totalWorkingHourMinutes,
-
-    hours_based: {
-      progress_percent: parseFloat(hoursProgressPercent.toFixed(2)),
-      capped_percent: parseFloat(cappedHoursProgress.toFixed(2)),
-      earned: hoursBasedEarned,
-      deduction: hoursBasedDeduction,
-      net_payable: hoursBasedEarned,
-      total_hours_worked: formatHours(totalWorkedMinutes),
-      paid_leave_hours: formatHours(paidLeaveMinutes),
-      total_effective_hours: formatHours(totalWorkingHourMinutes),
-    },
-
-    days_based: {
-      progress_percent: parseFloat(daysProgressPercent.toFixed(2)),
-      capped_percent: parseFloat(cappedDaysProgress.toFixed(2)),
-      earned: daysBasedEarned,
-      deduction: daysBasedDeduction,
-      net_payable: daysBasedEarned,
-      payable_days: payableDays,
-      absent_deduction: absentDeduction,
-      unpaid_leave_deduction: unpaidLeaveDeduction,
-      late_half_day_deduction: lateHalfDayDeductionAmount,
-      per_day_rate: parseFloat(perDayRate.toFixed(2)),
-    },
-
-    total_progress_percent: parseFloat(progressPercent.toFixed(2)),
-    fix_salary_percent: 100,
-    deduction_percent: parseFloat(deductionPercent.toFixed(2)),
-    progress_according_percent: parseFloat(progressPercent.toFixed(2)),
-
-    hours_amount: Math.round((totalWorkedMinutes / 60) * perHourRate),
-    earned_salary: earnedSalary,
-    total_deduction: totalDeduction,
-    net_payable: netPayable,
-    unpaid_deduction: unpaidLeaveDeduction,
-    absent_deduction: absentDeduction,
-
-    per_hour_rate: parseFloat(perHourRate.toFixed(2)),
-    per_day_rate: parseFloat(perDayRate.toFixed(2)),
+    is_site_worker: false,
+    late_start_day: lateStartDay,
+    ignored_absent_count: 0,
+    compensatory_offs: 0,
+    present_days: presentDays,
+    days_based: { progress_percent: parseFloat(progressPercent.toFixed(2)), earned, deduction: cut, net_payable: earned, payable_days: finalPayableDays, per_day_rate: parseFloat(perDayRate.toFixed(2)) },
+    hours_based: { progress_percent: parseFloat(progressPercent.toFixed(2)), earned, deduction: cut, net_payable: earned },
+    total_earned_days: earned,
+    total_deduction_days: cut,
   };
 };
 
@@ -1055,47 +882,19 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
 const getCompanyPayroll = async (req, res) => {
   try {
     const { company_id, department, month, year } = req.query;
-
-    if (!company_id) {
-      return res.status(400).json({ success: false, message: 'company_id required' });
-    }
+    if (!company_id) return res.status(400).json({ success: false, message: 'company_id required' });
 
     const currentMonth = parseInt(month) || new Date().getMonth() + 1;
     const currentYear = parseInt(year) || new Date().getFullYear();
-
     const company = await Company.findById(company_id);
-    if (!company) {
-      return res.status(404).json({ success: false, message: 'Company not found' });
-    }
+    if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
 
-    const settings = await MonthlySettings.findOne({
-      company_id,
-      month: currentMonth,
-      year: currentYear,
-    });
+    const settings = await MonthlySettings.findOne({ company_id, month: currentMonth, year: currentYear });
 
-    const lateStartDay = getLateStartDay(currentMonth, currentYear);
+    console.log(`\n📊 PAYROLL: ${company.name} - ${currentMonth}/${currentYear}\n`);
 
-    console.log('\n═══════════════════════════════════════');
-    console.log(`📊 PAYROLL WITH STANDARD WORKING DAYS`);
-    console.log(`   Company: ${company.name}`);
-    console.log(`   Month: ${currentMonth}/${currentYear}`);
-    console.log(`   ⏰ Rule Start: Day ${lateStartDay} of month`);
-    console.log(`   📅 Standard Weekly Off: Sunday`);
-    console.log(`   ☀️  Sunday Work: Extra Payment`);
-    console.log(`   🚧 Site Workers: Late/Half-Day SKIPPED`);
-    console.log(`   🏢 Office Workers: Rules APPLY`);
-    console.log('═══════════════════════════════════════\n');
-
-    const filter = {
-      company_id,
-      status: 'approved',
-      role: { $ne: 'super_admin' },
-    };
-    if (department && department !== 'all') {
-      filter.department = department;
-    }
-
+    const filter = { company_id, status: 'approved', role: { $ne: 'super_admin' } };
+    if (department && department !== 'all') filter.department = department;
     const employees = await Employee.find(filter).sort({ name: 1 });
 
     if (employees.length === 0) {
@@ -1103,99 +902,63 @@ const getCompanyPayroll = async (req, res) => {
         success: true,
         data: {
           company: { name: company.name, code: company.code, address: company.address },
-          month: currentMonth,
-          year: currentYear,
+          month: currentMonth, year: currentYear,
           month_name: new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long' }),
-          employees: [],
-          summary: {
-            total_employees: 0,
-            total_monthly_salary: 0,
-            total_earned: 0,
-            total_earned_hours: 0,
-            total_earned_days: 0,
-            total_deduction: 0,
-            total_deduction_hours: 0,
-            total_deduction_days: 0,
-            total_net_payable: 0,
-          },
-        },
+          employees: [], summary: { total_employees: 0 }
+        }
       });
     }
 
     const payrollData = [];
     for (const emp of employees) {
-      const payroll = await calculateEmployeePayroll(emp, currentMonth, currentYear, settings);
-      payrollData.push(payroll);
+      payrollData.push(await calculateEmployeePayroll(emp, currentMonth, currentYear, settings));
     }
+
+    const anyBalance = await LeaveBalance.findOne({ 
+      emp_id: { $in: employees.map(e => e._id) },
+      'history.payroll_finalized': true,
+      'history.month': currentMonth,
+      'history.year': currentYear
+    });
+    const isFinalized = !!anyBalance;
 
     const summary = {
       total_employees: payrollData.length,
       total_monthly_salary: payrollData.reduce((s, p) => s + p.monthly_salary, 0),
-      total_site_workers: payrollData.filter(p => p.is_site_worker).length,
-      total_office_workers: payrollData.filter(p => !p.is_site_worker).length,
-
-      total_earned_hours: payrollData.reduce((s, p) => s + p.hours_based.earned, 0),
-      total_deduction_hours: payrollData.reduce((s, p) => s + p.hours_based.deduction, 0),
-      total_net_payable_hours: payrollData.reduce((s, p) => s + p.hours_based.net_payable, 0),
-
-      total_earned_days: payrollData.reduce((s, p) => s + p.days_based.earned, 0),
-      total_deduction_days: payrollData.reduce((s, p) => s + p.days_based.deduction, 0),
-      total_net_payable_days: payrollData.reduce((s, p) => s + p.days_based.net_payable, 0),
-      total_absent_deduction: payrollData.reduce((s, p) => s + (p.days_based.absent_deduction || 0), 0),
-      total_unpaid_leave_deduction: payrollData.reduce((s, p) => s + (p.days_based.unpaid_leave_deduction || 0), 0),
-
+      total_present: payrollData.reduce((s, p) => s + p.total_present, 0),
+      total_absent: payrollData.reduce((s, p) => s + (p.total_absent || 0), 0),
+      total_late: payrollData.reduce((s, p) => s + (p.late_count || 0), 0),
+      total_half_day: payrollData.reduce((s, p) => s + (p.half_day_count || 0), 0),
+      total_leaves: payrollData.reduce((s, p) => s + (p.full_day_leaves || 0), 0),
+      total_paid_leaves: payrollData.reduce((s, p) => s + (p.paid_leave_days || 0), 0),
+      total_unpaid_leaves: payrollData.reduce((s, p) => s + (p.unpaid_leave_days || 0), 0),
       total_earned: payrollData.reduce((s, p) => s + p.earned_salary, 0),
       total_deduction: payrollData.reduce((s, p) => s + p.total_deduction, 0),
       total_net_payable: payrollData.reduce((s, p) => s + p.net_payable, 0),
-      total_hours_amount: payrollData.reduce((s, p) => s + (p.hours_amount || 0), 0),
-
-      total_present: payrollData.reduce((s, p) => s + p.total_present, 0),
-      total_absent: payrollData.reduce((s, p) => s + p.total_absent, 0),
-      total_leaves: payrollData.reduce((s, p) => s + p.total_leave_approved, 0),
       total_carry_forward: payrollData.reduce((s, p) => s + (p.leave_closing_balance || 0), 0),
       total_sunday_worked: payrollData.reduce((s, p) => s + (p.sunday_worked || 0), 0),
-      total_compensatory: payrollData.reduce((s, p) => s + (p.compensatory_offs || 0), 0),
-      
-      total_late: payrollData.reduce((s, p) => s + (p.late_count || 0), 0),
-      total_ignored_late: payrollData.reduce((s, p) => s + (p.ignored_late_count || 0), 0),
-      total_half_day: payrollData.reduce((s, p) => s + (p.half_day_count || 0), 0),
-      total_late_deduction_days: payrollData.reduce((s, p) => s + (p.total_late_half_day_deduction || 0), 0),
+      total_earned_days: payrollData.reduce((s, p) => s + p.earned_salary, 0),
+      total_deduction_days: payrollData.reduce((s, p) => s + p.total_deduction, 0),
+      total_earned_hours: payrollData.reduce((s, p) => s + p.earned_salary, 0),
+      total_deduction_hours: payrollData.reduce((s, p) => s + p.total_deduction, 0),
     };
 
-    console.log(`\n✅ TOTAL: ${summary.total_employees} employees`);
-    console.log(`🚧 Site Workers: ${summary.total_site_workers} | 🏢 Office: ${summary.total_office_workers}`);
-    console.log(`☀️  Total Sunday Work: ${summary.total_sunday_worked}`);
-    console.log(`💰 [HOURS] Earned: ₹${summary.total_earned_hours} | Cut: ₹${summary.total_deduction_hours}`);
-    console.log(`💰 [DAYS]  Earned: ₹${summary.total_earned_days} | Cut: ₹${summary.total_deduction_days}\n`);
+    console.log(`\n✅ ${summary.total_employees} emps | Earned: ₹${summary.total_earned} | Cut: ₹${summary.total_deduction}\n`);
 
     return res.json({
       success: true,
       data: {
-        company: {
-          _id: company._id,
-          name: company.name,
-          code: company.code,
-          address: company.address,
-        },
-        month: currentMonth,
-        year: currentYear,
+        company: { _id: company._id, name: company.name, code: company.code, address: company.address },
+        month: currentMonth, year: currentYear,
         month_name: new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long' }),
         department: department || 'all',
+        is_finalized: isFinalized,
         settings: {
-          required_hours: settings?.required_hours || (payrollData[0]?.targeted_hours || 0),
           daily_hours: settings?.daily_hours || 8,
           holidays_count: (settings?.holidays || []).length,
           weekly_off: settings?.weekly_off || ['Sunday'],
           free_paid_leaves: FREE_LEAVES_PER_MONTH,
-          office_in_time: '09:30 AM',
-          office_out_time: '06:30 PM',
-          late_in_limit: '09:45 AM',
-          half_day_in_limit: '11:00 AM',
-          half_day_out_limit: '04:00 PM',
-          late_start_day: lateStartDay,
-          grace_period_active: lateStartDay > 1,
-          location_based_rules: true,
-          standard_working_days: true,
+          late_start_day: getLateStartDay(currentMonth, currentYear),
         },
         employees: payrollData,
         summary,
@@ -1203,40 +966,166 @@ const getCompanyPayroll = async (req, res) => {
     });
   } catch (error) {
     console.error('getCompanyPayroll error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
 // ════════════════════════════════════════════
-// GET COMPANY DEPARTMENTS
+// FINALIZE PAYROLL
 // ════════════════════════════════════════════
-const getCompanyDepartments = async (req, res) => {
+const finalizePayroll = async (req, res) => {
   try {
-    const { company_id } = req.query;
-    if (!company_id) {
-      return res.status(400).json({ success: false, message: 'company_id required' });
+    const { company_id, month, year, department } = req.body;
+
+    if (!company_id || !month || !year) {
+      return res.status(400).json({ success: false, message: 'company_id, month, year required' });
     }
 
-    const departments = await Employee.distinct('department', {
-      company_id,
-      status: 'approved',
-    });
+    const currentMonth = parseInt(month);
+    const currentYear = parseInt(year);
+
+    const company = await Company.findById(company_id);
+    if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
+
+    const settings = await MonthlySettings.findOne({ company_id, month: currentMonth, year: currentYear });
+
+    const filter = { company_id, status: 'approved', role: { $ne: 'super_admin' } };
+    if (department && department !== 'all') filter.department = department;
+
+    const employees = await Employee.find(filter);
+    if (employees.length === 0) {
+      return res.status(404).json({ success: false, message: 'No employees found' });
+    }
+
+    const results = [];
+    let alreadyFinalizedCount = 0;
+    let processedCount = 0;
+
+    for (const emp of employees) {
+      const payroll = await calculateEmployeePayroll(emp, currentMonth, currentYear, settings);
+
+      let balance = await LeaveBalance.findOne({ emp_id: emp._id });
+      if (!balance) {
+        balance = await LeaveBalance.create({
+          emp_id: emp._id,
+          emp_code: emp.emp_code,
+          name: emp.name,
+          company_id: emp.company_id,
+          current_balance: 0,
+          total_credited: 0,
+          total_used: 0,
+          history: [],
+        });
+      }
+
+      let monthEntry = balance.history.find(
+        h => Number(h.month) === currentMonth && Number(h.year) === currentYear
+      );
+
+      if (!monthEntry) {
+        balance.history.push({
+          month: currentMonth,
+          year: currentYear,
+          opening_balance: balance.current_balance,
+          credited: FREE_LEAVES_PER_MONTH,
+          used: 0,
+          closing_balance: balance.current_balance + FREE_LEAVES_PER_MONTH,
+          leaves_log: [],
+        });
+        balance.current_balance += FREE_LEAVES_PER_MONTH;
+        balance.total_credited += FREE_LEAVES_PER_MONTH;
+        monthEntry = balance.history[balance.history.length - 1];
+      }
+
+      if (monthEntry.payroll_finalized) {
+        alreadyFinalizedCount++;
+        results.push({
+          name: emp.name,
+          emp_code: emp.emp_code,
+          status: 'already_finalized',
+          balance: balance.current_balance,
+        });
+        continue;
+      }
+
+      const totalDeductFromBalance = payroll.paid_leave_days || 0;
+
+      if (totalDeductFromBalance > 0) {
+        const beforeBalance = balance.current_balance;
+        balance.current_balance = Math.max(0, balance.current_balance - totalDeductFromBalance);
+        balance.total_used += totalDeductFromBalance;
+
+        monthEntry.used += totalDeductFromBalance;
+        monthEntry.closing_balance = balance.current_balance;
+
+        monthEntry.leaves_log.push({
+          leave_id: null,
+          from_date: 'PAYROLL',
+          to_date: 'PAYROLL',
+          applied_days: 0,
+          approved_days: totalDeductFromBalance,
+          paid_days: totalDeductFromBalance,
+          unpaid_days: 0,
+          approved_on: new Date(),
+          is_payroll_deduction: true,
+          payroll_month: currentMonth,
+          payroll_year: currentYear,
+          hd_deducted: payroll.half_day_deduction || 0,
+          late_deducted: payroll.late_leave_deduction || 0,
+          full_leave_deducted: payroll.full_day_leaves || 0,
+        });
+
+        console.log(`✅ ${emp.name}: Cut ${totalDeductFromBalance} | ${beforeBalance} → ${balance.current_balance}`);
+      }
+
+      monthEntry.payroll_finalized = true;
+      monthEntry.finalized_on = new Date();
+      monthEntry.finalized_by = req.employee?.name || 'System';
+
+      await balance.save();
+      processedCount++;
+
+      results.push({
+        name: emp.name,
+        emp_code: emp.emp_code,
+        status: 'finalized',
+        deducted: totalDeductFromBalance,
+        balance_after: balance.current_balance,
+      });
+    }
 
     return res.json({
       success: true,
-      data: departments.filter(d => d && d.trim() !== ''),
+      message: `Payroll finalized! ${processedCount} processed, ${alreadyFinalizedCount} already finalized`,
+      data: {
+        month: currentMonth,
+        year: currentYear,
+        total_employees: employees.length,
+        processed: processedCount,
+        already_finalized: alreadyFinalizedCount,
+        results,
+      },
     });
+  } catch (error) {
+    console.error('finalizePayroll error:', error);
+    return res.status(500).json({ success: false, message: 'Finalize failed', error: error.message });
+  }
+};
+
+const getCompanyDepartments = async (req, res) => {
+  try {
+    const { company_id } = req.query;
+    if (!company_id) return res.status(400).json({ success: false, message: 'company_id required' });
+    const departments = await Employee.distinct('department', { company_id, status: 'approved' });
+    return res.json({ success: true, data: departments.filter(d => d && d.trim() !== '') });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
-module.exports = {
-  getCompanyPayroll,
-  getCompanyDepartments,
+module.exports = { 
+  getCompanyPayroll, 
+  getCompanyDepartments, 
   calculateEmployeePayroll,
+  finalizePayroll,
 };
