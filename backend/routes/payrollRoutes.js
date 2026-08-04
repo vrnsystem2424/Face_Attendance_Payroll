@@ -6,24 +6,22 @@ const {
   getCompanyPayroll,
   getCompanyDepartments,
   finalizePayroll,
-  getMySalary,  // 🆕
+  getMySalary,
 } = require('../controllers/payrollController');
 
 const {
   downloadPayrollPDF,
+  downloadPayrollCSV,  // 🆕
 } = require('../controllers/reportController');
 
-// ═══════════════════════════════════════════
-// SUPER ADMIN ROUTES
-// ═══════════════════════════════════════════
+// Super Admin Routes
 router.get('/company', protect, superAdminOnly, getCompanyPayroll);
 router.get('/departments', protect, superAdminOnly, getCompanyDepartments);
 router.get('/download/pdf', protect, superAdminOnly, downloadPayrollPDF);
+router.get('/download/csv', protect, superAdminOnly, downloadPayrollCSV);  // 🆕
 router.post('/finalize', protect, superAdminOnly, finalizePayroll);
 
-// ═══════════════════════════════════════════
-// 🆕 EMPLOYEE ROUTES - Sirf apni salary dekhega
-// ═══════════════════════════════════════════
+// Employee Routes
 router.get('/my-salary', protect, getMySalary);
 
 module.exports = router;

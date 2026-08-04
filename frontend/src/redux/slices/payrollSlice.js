@@ -74,6 +74,40 @@ export const downloadPayrollPDF = createAsyncThunk(
 );
 
 // ════════════════════════════════════════════
+// 🆕 DOWNLOAD CSV (for Google Sheets / Excel)
+// ════════════════════════════════════════════
+export const downloadPayrollCSV = createAsyncThunk(
+  'payroll/downloadPayrollCSV',
+  async ({ company_id, department, month, year, company_name, month_name }, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      if (company_id) params.append('company_id', company_id);
+      if (department) params.append('department', department);
+      if (month) params.append('month', month);
+      if (year) params.append('year', year);
+
+      const response = await API.get(`/payroll/download/csv?${params.toString()}`, {
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Payroll_${company_name || 'Report'}_${month_name || ''}_${year || ''}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+
+      return { success: true };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'CSV download failed');
+    }
+  }
+);
+
+// ════════════════════════════════════════════
 // FINALIZE PAYROLL
 // ════════════════════════════════════════════
 export const finalizePayroll = createAsyncThunk(
@@ -91,7 +125,7 @@ export const finalizePayroll = createAsyncThunk(
 );
 
 // ════════════════════════════════════════════
-// 🆕 FETCH MY SALARY (Employee/Manager)
+// FETCH MY SALARY (Employee/Manager)
 // ════════════════════════════════════════════
 export const fetchMySalary = createAsyncThunk(
   'payroll/fetchMySalary',
@@ -116,17 +150,18 @@ const payrollSlice = createSlice({
   name: 'payroll',
   initialState: {
     payrollData: null,
-    mySalary: null,           // 🆕
+    mySalary: null,
     departments: [],
     loading: false,
     downloading: false,
+    downloadingCSV: false,  // 🆕
     finalizing: false,
     error: null,
   },
   reducers: {
     clearPayrollData: (state) => {
       state.payrollData = null;
-      state.mySalary = null;  // 🆕
+      state.mySalary = null;
       state.error = null;
     },
     clearPayrollError: (state) => {
@@ -163,6 +198,15 @@ const payrollSlice = createSlice({
         state.error = action.payload;
       });
 
+    // 🆕 Download CSV
+    builder
+      .addCase(downloadPayrollCSV.pending, (state) => { state.downloadingCSV = true; })
+      .addCase(downloadPayrollCSV.fulfilled, (state) => { state.downloadingCSV = false; })
+      .addCase(downloadPayrollCSV.rejected, (state, action) => {
+        state.downloadingCSV = false;
+        state.error = action.payload;
+      });
+
     // Finalize
     builder
       .addCase(finalizePayroll.pending, (state) => { state.finalizing = true; })
@@ -175,7 +219,7 @@ const payrollSlice = createSlice({
         state.error = action.payload;
       });
 
-    // 🆕 My Salary
+    // My Salary
     builder
       .addCase(fetchMySalary.pending, (state) => {
         state.loading = true;
