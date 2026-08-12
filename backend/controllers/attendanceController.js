@@ -1946,12 +1946,38 @@ const verifyFaceMatch = (inputEncoding, storedEncoding, allEncodings = []) => {
   return { distance: bestDistance, matched, confidence, matchedEncodings: matchCount, totalEncodings, reason };
 };
 
+// const findNearestSite = async (lat, lng, companyId) => {
+//   const filter = {};
+//   if (companyId) filter.company_id = companyId;
+
+//   const sites = await Site.find(filter);
+
+//   if (sites.length === 0) {
+//     return { site: null, distance: Infinity };
+//   }
+
+//   let nearest = null;
+//   let minDistance = Infinity;
+
+//   for (const site of sites) {
+//     if (!site.latitude || !site.longitude) continue;
+//     const dist = calculateDistance(lat, lng, site.latitude, site.longitude);
+//     if (dist < minDistance) {
+//       minDistance = dist;
+//       nearest = site;
+//     }
+//   }
+
+//   return { site: nearest, distance: minDistance };
+// };
+
+
 const findNearestSite = async (lat, lng, companyId) => {
-  const filter = {};
+  const filter = { is_active: true };   // ✅ add this
   if (companyId) filter.company_id = companyId;
-
+  
   const sites = await Site.find(filter);
-
+  
   if (sites.length === 0) {
     return { site: null, distance: Infinity };
   }
@@ -1967,7 +1993,7 @@ const findNearestSite = async (lat, lng, companyId) => {
       nearest = site;
     }
   }
-
+  
   return { site: nearest, distance: minDistance };
 };
 
