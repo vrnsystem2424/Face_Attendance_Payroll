@@ -1,3 +1,7 @@
+
+
+
+
 // import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 // import API from '../../api/axios';
 
@@ -41,7 +45,7 @@
 //   }
 // );
 
-// // 🆕 Get Delete Preview
+// // Get Delete Preview
 // export const getDeletePreview = createAsyncThunk(
 //   'employees/getDeletePreview',
 //   async (id, { rejectWithValue }) => {
@@ -80,11 +84,44 @@
 //   }
 // );
 
+// // ════════════════════════════════════════════
+// // 🆕 Update Designation
+// // ════════════════════════════════════════════
+// export const updateEmployeeDesignation = createAsyncThunk(
+//   'employees/updateEmployeeDesignation',
+//   async ({ id, designation }, { rejectWithValue }) => {
+//     try {
+//       const response = await API.put(`/employees/designation/${id}`, { designation });
+//       return response.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data?.message || 'Designation update nahi hui');
+//     }
+//   }
+// );
+
+// // ════════════════════════════════════════════
+// // 🆕 Update Manager
+// // ════════════════════════════════════════════
+// export const updateEmployeeManager = createAsyncThunk(
+//   'employees/updateEmployeeManager',
+//   async ({ id, leave_approval_manager }, { rejectWithValue }) => {
+//     try {
+//       const response = await API.put(`/employees/manager/${id}`, { leave_approval_manager });
+//       return response.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data?.message || 'Manager update nahi hua');
+//     }
+//   }
+// );
+
+// // ════════════════════════════════════════════
+// // SLICE
+// // ════════════════════════════════════════════
 // const employeeSlice = createSlice({
 //   name: 'employees',
 //   initialState: {
 //     employees: [],
-//     deletePreview: null,  // 🆕
+//     deletePreview: null,
 //     loading: false,
 //     error: null,
 //     message: null,
@@ -95,6 +132,8 @@
 //     clearDeletePreview: (state) => { state.deletePreview = null; },
 //   },
 //   extraReducers: (builder) => {
+
+//     // ── Fetch ──
 //     builder
 //       .addCase(fetchEmployees.pending, (state) => { state.loading = true; })
 //       .addCase(fetchEmployees.fulfilled, (state, action) => {
@@ -106,39 +145,88 @@
 //         state.error = action.payload;
 //       });
 
+//     // ── Approve ──
 //     builder.addCase(approveEmployee.fulfilled, (state, action) => {
 //       const index = state.employees.findIndex(e => e._id === action.payload._id);
 //       if (index !== -1) state.employees[index] = action.payload;
 //     });
 
+//     // ── Reject ──
 //     builder.addCase(rejectEmployee.fulfilled, (state, action) => {
 //       const index = state.employees.findIndex(e => e._id === action.payload._id);
 //       if (index !== -1) state.employees[index] = action.payload;
 //     });
 
-//     // 🆕 Delete Preview
+//     // ── Delete Preview ──
 //     builder.addCase(getDeletePreview.fulfilled, (state, action) => {
 //       state.deletePreview = action.payload;
 //     });
 
-//     builder.addCase(deleteEmployee.fulfilled, (state, action) => {
-//       state.employees = state.employees.filter(e => e._id !== action.payload.id);
-//       state.message = action.payload.message;
-//       state.deletePreview = null;
-//     });
-//     builder.addCase(deleteEmployee.rejected, (state, action) => {
-//       state.error = action.payload;
-//     });
+//     // ── Delete ──
+//     builder
+//       .addCase(deleteEmployee.fulfilled, (state, action) => {
+//         state.employees = state.employees.filter(e => e._id !== action.payload.id);
+//         state.message = action.payload.message;
+//         state.deletePreview = null;
+//       })
+//       .addCase(deleteEmployee.rejected, (state, action) => {
+//         state.error = action.payload;
+//       });
 
+//     // ── Update Salary ──
 //     builder.addCase(updateEmployeeSalary.fulfilled, (state, action) => {
 //       const index = state.employees.findIndex(e => e._id === action.payload._id);
 //       if (index !== -1) state.employees[index] = action.payload;
 //     });
+
+//     // ── 🆕 Update Designation ──
+//     builder
+//       .addCase(updateEmployeeDesignation.pending, (state) => {
+//         state.loading = true;
+//       })
+//       .addCase(updateEmployeeDesignation.fulfilled, (state, action) => {
+//         state.loading = false;
+//         const index = state.employees.findIndex(e => e._id === action.payload._id);
+//         if (index !== -1) state.employees[index] = action.payload;
+//       })
+//       .addCase(updateEmployeeDesignation.rejected, (state, action) => {
+//         state.loading = false;
+//         state.error = action.payload;
+//       });
+
+//     // ── 🆕 Update Manager ──
+//     builder
+//       .addCase(updateEmployeeManager.pending, (state) => {
+//         state.loading = true;
+//       })
+//       .addCase(updateEmployeeManager.fulfilled, (state, action) => {
+//         state.loading = false;
+//         const index = state.employees.findIndex(e => e._id === action.payload._id);
+//         if (index !== -1) state.employees[index] = action.payload;
+//       })
+//       .addCase(updateEmployeeManager.rejected, (state, action) => {
+//         state.loading = false;
+//         state.error = action.payload;
+//       });
 //   },
 // });
 
-// export const { clearEmployeeError, clearEmployeeMessage, clearDeletePreview } = employeeSlice.actions;
+// export const {
+//   clearEmployeeError,
+//   clearEmployeeMessage,
+//   clearDeletePreview,
+// } = employeeSlice.actions;
+
 // export default employeeSlice.reducer;
+
+
+
+
+
+
+
+
+//////////////////////////////////
 
 
 
@@ -226,9 +314,7 @@ export const updateEmployeeSalary = createAsyncThunk(
   }
 );
 
-// ════════════════════════════════════════════
-// 🆕 Update Designation
-// ════════════════════════════════════════════
+// Update Designation
 export const updateEmployeeDesignation = createAsyncThunk(
   'employees/updateEmployeeDesignation',
   async ({ id, designation }, { rejectWithValue }) => {
@@ -241,9 +327,7 @@ export const updateEmployeeDesignation = createAsyncThunk(
   }
 );
 
-// ════════════════════════════════════════════
-// 🆕 Update Manager
-// ════════════════════════════════════════════
+// Update Manager
 export const updateEmployeeManager = createAsyncThunk(
   'employees/updateEmployeeManager',
   async ({ id, leave_approval_manager }, { rejectWithValue }) => {
@@ -252,6 +336,19 @@ export const updateEmployeeManager = createAsyncThunk(
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Manager update nahi hua');
+    }
+  }
+);
+
+// ✅ NEW - Update Worker Type
+export const updateWorkerType = createAsyncThunk(
+  'employees/updateWorkerType',
+  async ({ id, worker_type }, { rejectWithValue }) => {
+    try {
+      const response = await API.put(`/employees/worker-type/${id}`, { worker_type });
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Worker type update nahi hua');
     }
   }
 );
@@ -321,11 +418,9 @@ const employeeSlice = createSlice({
       if (index !== -1) state.employees[index] = action.payload;
     });
 
-    // ── 🆕 Update Designation ──
+    // ── Update Designation ──
     builder
-      .addCase(updateEmployeeDesignation.pending, (state) => {
-        state.loading = true;
-      })
+      .addCase(updateEmployeeDesignation.pending, (state) => { state.loading = true; })
       .addCase(updateEmployeeDesignation.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.employees.findIndex(e => e._id === action.payload._id);
@@ -336,17 +431,28 @@ const employeeSlice = createSlice({
         state.error = action.payload;
       });
 
-    // ── 🆕 Update Manager ──
+    // ── Update Manager ──
     builder
-      .addCase(updateEmployeeManager.pending, (state) => {
-        state.loading = true;
-      })
+      .addCase(updateEmployeeManager.pending, (state) => { state.loading = true; })
       .addCase(updateEmployeeManager.fulfilled, (state, action) => {
         state.loading = false;
         const index = state.employees.findIndex(e => e._id === action.payload._id);
         if (index !== -1) state.employees[index] = action.payload;
       })
       .addCase(updateEmployeeManager.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // ✅ NEW - Update Worker Type
+    builder
+      .addCase(updateWorkerType.pending, (state) => { state.loading = true; })
+      .addCase(updateWorkerType.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.employees.findIndex(e => e._id === action.payload._id);
+        if (index !== -1) state.employees[index] = action.payload;
+      })
+      .addCase(updateWorkerType.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
