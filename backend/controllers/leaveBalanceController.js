@@ -104,11 +104,40 @@ const creditMonthlyLeaves = async (empId, currentMonth, currentYear) => {
 // 🆕 IMPROVED HELPER: Backfill missed months
 // From system start (July 2026) to current month
 // ════════════════════════════════════════
+// const backfillBalance = async (empId) => {
+//   const employee = await Employee.findById(empId);
+//   if (!employee) return;
+
+//   // 🎯 SYSTEM START
+//   const SYSTEM_START_MONTH = 7;
+//   const SYSTEM_START_YEAR = 2026;
+
+//   const today = new Date();
+//   const currentM = today.getMonth() + 1;
+//   const currentY = today.getFullYear();
+
+//   // Start from system launch
+//   let m = SYSTEM_START_MONTH;
+//   let y = SYSTEM_START_YEAR;
+
+//   // Loop until current month
+//   while (y < currentY || (y === currentY && m <= currentM)) {
+//     await creditMonthlyLeaves(empId, m, y);
+//     m++;
+//     if (m > 12) { m = 1; y++; }
+//   }
+// };
+
+
+
+// ════════════════════════════════════════
+// ✅ FIXED - BACKFILL - Joining date se start
+// ════════════════════════════════════════
 const backfillBalance = async (empId) => {
   const employee = await Employee.findById(empId);
   if (!employee) return;
 
-  // 🎯 SYSTEM START
+  // System start date
   const SYSTEM_START_MONTH = 7;
   const SYSTEM_START_YEAR = 2026;
 
@@ -116,11 +145,40 @@ const backfillBalance = async (empId) => {
   const currentM = today.getMonth() + 1;
   const currentY = today.getFullYear();
 
-  // Start from system launch
-  let m = SYSTEM_START_MONTH;
-  let y = SYSTEM_START_YEAR;
+  // ✅ Default = system start
+  let startMonth = SYSTEM_START_MONTH;
+  let startYear = SYSTEM_START_YEAR;
 
-  // Loop until current month
+  // ✅ Agar joining_date set hai
+  if (employee.joining_date && employee.joining_date.trim() !== '') {
+    const parts = employee.joining_date.trim().split('/').map(Number);
+    if (parts.length === 3 && !parts.some(isNaN)) {
+      const [joinDay, joinMonth, joinYear] = parts;
+
+      // Joining system start se baad hai?
+      const joiningIsAfterSystemStart =
+        joinYear > SYSTEM_START_YEAR ||
+        (joinYear === SYSTEM_START_YEAR && joinMonth > SYSTEM_START_MONTH);
+
+      if (joiningIsAfterSystemStart) {
+        // Joining month se start karo
+        startMonth = joinMonth;
+        startYear = joinYear;
+        console.log(`📅 ${employee.name}: Leave credit from joining month ${joinMonth}/${joinYear}`);
+      } else {
+        // Joining system start se pehle = system start se
+        console.log(`📅 ${employee.name}: Joining before system start, using system start ${SYSTEM_START_MONTH}/${SYSTEM_START_YEAR}`);
+      }
+    }
+  } else {
+    // joining_date set nahi = purane employee = system start se (existing behavior)
+    console.log(`📅 ${employee.name}: No joining date, using system start`);
+  }
+
+  // Loop from startMonth to current month
+  let m = startMonth;
+  let y = startYear;
+
   while (y < currentY || (y === currentY && m <= currentM)) {
     await creditMonthlyLeaves(empId, m, y);
     m++;

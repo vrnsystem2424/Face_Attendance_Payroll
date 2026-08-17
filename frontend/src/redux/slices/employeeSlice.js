@@ -2,6 +2,13 @@
 
 
 
+
+// //////////////////////////////////
+
+
+
+
+
 // import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 // import API from '../../api/axios';
 
@@ -84,9 +91,7 @@
 //   }
 // );
 
-// // ════════════════════════════════════════════
-// // 🆕 Update Designation
-// // ════════════════════════════════════════════
+// // Update Designation
 // export const updateEmployeeDesignation = createAsyncThunk(
 //   'employees/updateEmployeeDesignation',
 //   async ({ id, designation }, { rejectWithValue }) => {
@@ -99,9 +104,7 @@
 //   }
 // );
 
-// // ════════════════════════════════════════════
-// // 🆕 Update Manager
-// // ════════════════════════════════════════════
+// // Update Manager
 // export const updateEmployeeManager = createAsyncThunk(
 //   'employees/updateEmployeeManager',
 //   async ({ id, leave_approval_manager }, { rejectWithValue }) => {
@@ -110,6 +113,19 @@
 //       return response.data.data;
 //     } catch (error) {
 //       return rejectWithValue(error.response?.data?.message || 'Manager update nahi hua');
+//     }
+//   }
+// );
+
+// // ✅ NEW - Update Worker Type
+// export const updateWorkerType = createAsyncThunk(
+//   'employees/updateWorkerType',
+//   async ({ id, worker_type }, { rejectWithValue }) => {
+//     try {
+//       const response = await API.put(`/employees/worker-type/${id}`, { worker_type });
+//       return response.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data?.message || 'Worker type update nahi hua');
 //     }
 //   }
 // );
@@ -179,11 +195,9 @@
 //       if (index !== -1) state.employees[index] = action.payload;
 //     });
 
-//     // ── 🆕 Update Designation ──
+//     // ── Update Designation ──
 //     builder
-//       .addCase(updateEmployeeDesignation.pending, (state) => {
-//         state.loading = true;
-//       })
+//       .addCase(updateEmployeeDesignation.pending, (state) => { state.loading = true; })
 //       .addCase(updateEmployeeDesignation.fulfilled, (state, action) => {
 //         state.loading = false;
 //         const index = state.employees.findIndex(e => e._id === action.payload._id);
@@ -194,17 +208,28 @@
 //         state.error = action.payload;
 //       });
 
-//     // ── 🆕 Update Manager ──
+//     // ── Update Manager ──
 //     builder
-//       .addCase(updateEmployeeManager.pending, (state) => {
-//         state.loading = true;
-//       })
+//       .addCase(updateEmployeeManager.pending, (state) => { state.loading = true; })
 //       .addCase(updateEmployeeManager.fulfilled, (state, action) => {
 //         state.loading = false;
 //         const index = state.employees.findIndex(e => e._id === action.payload._id);
 //         if (index !== -1) state.employees[index] = action.payload;
 //       })
 //       .addCase(updateEmployeeManager.rejected, (state, action) => {
+//         state.loading = false;
+//         state.error = action.payload;
+//       });
+
+//     // ✅ NEW - Update Worker Type
+//     builder
+//       .addCase(updateWorkerType.pending, (state) => { state.loading = true; })
+//       .addCase(updateWorkerType.fulfilled, (state, action) => {
+//         state.loading = false;
+//         const index = state.employees.findIndex(e => e._id === action.payload._id);
+//         if (index !== -1) state.employees[index] = action.payload;
+//       })
+//       .addCase(updateWorkerType.rejected, (state, action) => {
 //         state.loading = false;
 //         state.error = action.payload;
 //       });
@@ -218,15 +243,6 @@
 // } = employeeSlice.actions;
 
 // export default employeeSlice.reducer;
-
-
-
-
-
-
-
-
-//////////////////////////////////
 
 
 
@@ -340,7 +356,7 @@ export const updateEmployeeManager = createAsyncThunk(
   }
 );
 
-// ✅ NEW - Update Worker Type
+// Update Worker Type
 export const updateWorkerType = createAsyncThunk(
   'employees/updateWorkerType',
   async ({ id, worker_type }, { rejectWithValue }) => {
@@ -349,6 +365,19 @@ export const updateWorkerType = createAsyncThunk(
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Worker type update nahi hua');
+    }
+  }
+);
+
+// ✅ NEW - Update Joining Date
+export const updateJoiningDate = createAsyncThunk(
+  'employees/updateJoiningDate',
+  async ({ id, joining_date }, { rejectWithValue }) => {
+    try {
+      const response = await API.put(`/employees/joining-date/${id}`, { joining_date });
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Joining date update nahi hui');
     }
   }
 );
@@ -444,7 +473,7 @@ const employeeSlice = createSlice({
         state.error = action.payload;
       });
 
-    // ✅ NEW - Update Worker Type
+    // ── Update Worker Type ──
     builder
       .addCase(updateWorkerType.pending, (state) => { state.loading = true; })
       .addCase(updateWorkerType.fulfilled, (state, action) => {
@@ -453,6 +482,19 @@ const employeeSlice = createSlice({
         if (index !== -1) state.employees[index] = action.payload;
       })
       .addCase(updateWorkerType.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // ✅ NEW - Update Joining Date ──
+    builder
+      .addCase(updateJoiningDate.pending, (state) => { state.loading = true; })
+      .addCase(updateJoiningDate.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.employees.findIndex(e => e._id === action.payload._id);
+        if (index !== -1) state.employees[index] = action.payload;
+      })
+      .addCase(updateJoiningDate.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

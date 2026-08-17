@@ -1,5 +1,3 @@
-
-
 const mongoose = require('mongoose');
 
 const employeeSchema = new mongoose.Schema({
@@ -11,11 +9,7 @@ const employeeSchema = new mongoose.Schema({
   department: { type: String, required: true },
   designation: { type: String, required: true },
 
-  // 🆕 PASSWORD VERSION - Increments on password change
-  // Auto-logout old sessions
   passwordVersion: { type: Number, default: 1 },
-
-  // 🆕 Track last password change time
   passwordChangedAt: { type: Date, default: Date.now },
 
   company_id: {
@@ -38,6 +32,12 @@ const employeeSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0,
+  },
+
+  // ✅ Joining Date
+  joining_date: {
+    type: String,
+    default: '',
   },
 
   face_encoding: { type: [Number], default: [] },
@@ -66,7 +66,9 @@ const employeeSchema = new mongoose.Schema({
     enum: ['employee', 'manager', 'admin', 'super_admin'],
     default: 'employee'
   },
- worker_type: {
+
+  // ✅ Worker Type
+  worker_type: {
     type: String,
     enum: ['office', 'site'],
     default: 'office',

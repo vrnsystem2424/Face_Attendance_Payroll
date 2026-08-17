@@ -1,5 +1,4 @@
 
-
 // import { useEffect, useState } from 'react';
 // import { useDispatch, useSelector } from 'react-redux';
 // import {
@@ -8,37 +7,20 @@
 //   rejectEmployee,
 //   deleteEmployee,
 //   updateEmployeeSalary,
-//   updateEmployeeDesignation,  // 🆕
-//   updateEmployeeManager,      // 🆕
+//   updateEmployeeDesignation,
+//   updateEmployeeManager,
+//   updateWorkerType,          // ✅ NEW
 //   getDeletePreview,
 //   clearDeletePreview,
 // } from '../../redux/slices/employeeSlice';
 // import { fetchAllMasterData } from '../../redux/slices/masterSlice';
 
-// // ════════════════════════════════════════════
-// // 🆕 Designation Options
-// // ════════════════════════════════════════════
 // const DESIGNATION_OPTIONS = [
-//   'Site Engineer',
-//   'Project Manager',
-//   'Supervisor',
-//   'Labour',
-//   'Accountant',
-//   'HR Manager',
-//   'Civil Engineer',
-//   'Electrical Engineer',
-//   'Safety Officer',
-//   'Store Keeper',
-//   'Driver',
-//   'Security Guard',
-//   'Helper',
-//   'Operator',
-//   'Foreman',
-//   'Technician',
-//   'Surveyor',
-//   'Architect',
-//   'Quality Inspector',
-//   'Admin Executive',
+//   'Site Engineer', 'Project Manager', 'Supervisor', 'Labour',
+//   'Accountant', 'HR Manager', 'Civil Engineer', 'Electrical Engineer',
+//   'Safety Officer', 'Store Keeper', 'Driver', 'Security Guard',
+//   'Helper', 'Operator', 'Foreman', 'Technician', 'Surveyor',
+//   'Architect', 'Quality Inspector', 'Admin Executive',
 // ];
 
 // const Employees = () => {
@@ -48,24 +30,28 @@
 
 //   const [filter, setFilter] = useState('');
 
-//   // ── Approve Modal ──
+//   // Approve Modal
 //   const [approveModal, setApproveModal] = useState(null);
 //   const [selectedManager, setSelectedManager] = useState('');
 //   const [monthlySalary, setMonthlySalary] = useState('');
 
-//   // ── Salary Edit Modal ──
+//   // Salary Modal
 //   const [salaryEditModal, setSalaryEditModal] = useState(null);
 //   const [editSalaryValue, setEditSalaryValue] = useState('');
 
-//   // ── 🆕 Designation Edit Modal ──
+//   // Designation Modal
 //   const [designationModal, setDesignationModal] = useState(null);
 //   const [editDesignationValue, setEditDesignationValue] = useState('');
 
-//   // ── 🆕 Manager Edit Modal ──
+//   // Manager Modal
 //   const [managerModal, setManagerModal] = useState(null);
 //   const [editManagerValue, setEditManagerValue] = useState('');
 
-//   // ── Delete Modal ──
+//   // ✅ NEW - Worker Type Modal
+//   const [workerTypeModal, setWorkerTypeModal] = useState(null);
+//   const [editWorkerType, setEditWorkerType] = useState('office');
+
+//   // Delete Modal
 //   const [deleteModal, setDeleteModal] = useState(null);
 //   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 //   const [deletingId, setDeletingId] = useState(null);
@@ -75,168 +61,81 @@
 //     dispatch(fetchAllMasterData());
 //   }, [dispatch, filter]);
 
-//   // ════════════════════════════════════════════
-//   // APPROVE
-//   // ════════════════════════════════════════════
+//   // ── APPROVE ──
 //   const handleApproveSubmit = async () => {
 //     if (!selectedManager) { alert('Manager select karo!'); return; }
 //     if (!monthlySalary || Number(monthlySalary) <= 0) { alert('Valid monthly salary daalo!'); return; }
-
-//     const result = await dispatch(
-//       approveEmployee({
-//         id: approveModal._id,
-//         data: {
-//           leave_approval_manager: selectedManager,
-//           monthly_salary: Number(monthlySalary),
-//         },
-//       })
-//     );
-
+//     const result = await dispatch(approveEmployee({
+//       id: approveModal._id,
+//       data: { leave_approval_manager: selectedManager, monthly_salary: Number(monthlySalary) },
+//     }));
 //     if (result.meta.requestStatus === 'fulfilled') {
-//       setApproveModal(null);
-//       setSelectedManager('');
-//       setMonthlySalary('');
+//       setApproveModal(null); setSelectedManager(''); setMonthlySalary('');
 //       dispatch(fetchEmployees(filter));
 //     }
 //   };
 
-//   // ════════════════════════════════════════════
-//   // SALARY
-//   // ════════════════════════════════════════════
-//   const openSalaryEdit = (emp) => {
-//     setSalaryEditModal(emp);
-//     setEditSalaryValue(emp.monthly_salary || '');
-//   };
-
+//   // ── SALARY ──
+//   const openSalaryEdit = (emp) => { setSalaryEditModal(emp); setEditSalaryValue(emp.monthly_salary || ''); };
 //   const handleSalaryUpdate = async () => {
-//     if (editSalaryValue === '' || Number(editSalaryValue) < 0) {
-//       alert('Valid salary daalo!');
-//       return;
-//     }
-
-//     const result = await dispatch(
-//       updateEmployeeSalary({
-//         id: salaryEditModal._id,
-//         monthly_salary: Number(editSalaryValue),
-//       })
-//     );
-
-//     if (result.meta.requestStatus === 'fulfilled') {
-//       setSalaryEditModal(null);
-//       setEditSalaryValue('');
-//     }
+//     if (editSalaryValue === '' || Number(editSalaryValue) < 0) { alert('Valid salary daalo!'); return; }
+//     const result = await dispatch(updateEmployeeSalary({ id: salaryEditModal._id, monthly_salary: Number(editSalaryValue) }));
+//     if (result.meta.requestStatus === 'fulfilled') { setSalaryEditModal(null); setEditSalaryValue(''); }
 //   };
 
-//   // ════════════════════════════════════════════
-//   // 🆕 DESIGNATION
-//   // ════════════════════════════════════════════
-//   const openDesignationEdit = (emp) => {
-//     setDesignationModal(emp);
-//     setEditDesignationValue(emp.designation || '');
-//   };
-
+//   // ── DESIGNATION ──
+//   const openDesignationEdit = (emp) => { setDesignationModal(emp); setEditDesignationValue(emp.designation || ''); };
 //   const handleDesignationUpdate = async () => {
-//     if (!editDesignationValue || editDesignationValue.trim() === '') {
-//       alert('Designation select karo!');
-//       return;
-//     }
-
-//     const result = await dispatch(
-//       updateEmployeeDesignation({
-//         id: designationModal._id,
-//         designation: editDesignationValue,
-//       })
-//     );
-
-//     if (result.meta.requestStatus === 'fulfilled') {
-//       setDesignationModal(null);
-//       setEditDesignationValue('');
-//     }
+//     if (!editDesignationValue || editDesignationValue.trim() === '') { alert('Designation select karo!'); return; }
+//     const result = await dispatch(updateEmployeeDesignation({ id: designationModal._id, designation: editDesignationValue }));
+//     if (result.meta.requestStatus === 'fulfilled') { setDesignationModal(null); setEditDesignationValue(''); }
 //   };
 
-//   // ════════════════════════════════════════════
-//   // 🆕 MANAGER
-//   // ════════════════════════════════════════════
-//   const openManagerEdit = (emp) => {
-//     setManagerModal(emp);
-//     setEditManagerValue(emp.leave_approval_manager || '');
-//   };
-
+//   // ── MANAGER ──
+//   const openManagerEdit = (emp) => { setManagerModal(emp); setEditManagerValue(emp.leave_approval_manager || ''); };
 //   const handleManagerUpdate = async () => {
-//     const result = await dispatch(
-//       updateEmployeeManager({
-//         id: managerModal._id,
-//         leave_approval_manager: editManagerValue,
-//       })
-//     );
-
-//     if (result.meta.requestStatus === 'fulfilled') {
-//       setManagerModal(null);
-//       setEditManagerValue('');
-//     }
+//     const result = await dispatch(updateEmployeeManager({ id: managerModal._id, leave_approval_manager: editManagerValue }));
+//     if (result.meta.requestStatus === 'fulfilled') { setManagerModal(null); setEditManagerValue(''); }
 //   };
 
-//   // ════════════════════════════════════════════
-//   // DELETE
-//   // ════════════════════════════════════════════
+//   // ✅ NEW - WORKER TYPE
+//   const openWorkerTypeModal = (emp) => {
+//     setWorkerTypeModal(emp);
+//     setEditWorkerType(emp.worker_type || 'office');
+//   };
+//   const handleWorkerTypeUpdate = async () => {
+//     const result = await dispatch(updateWorkerType({ id: workerTypeModal._id, worker_type: editWorkerType }));
+//     if (result.meta.requestStatus === 'fulfilled') { setWorkerTypeModal(null); }
+//   };
+
+//   // ── DELETE ──
 //   const openDeleteModal = async (emp) => {
-//     setDeleteModal(emp);
-//     setDeleteConfirmText('');
+//     setDeleteModal(emp); setDeleteConfirmText('');
 //     dispatch(getDeletePreview(emp._id));
 //   };
-
 //   const handleDeleteConfirm = async () => {
-//     if (deleteConfirmText !== 'DELETE') {
-//       alert('Type "DELETE" to confirm');
-//       return;
-//     }
-
+//     if (deleteConfirmText !== 'DELETE') { alert('Type "DELETE" to confirm'); return; }
 //     setDeletingId(deleteModal._id);
 //     const result = await dispatch(deleteEmployee(deleteModal._id));
 //     setDeletingId(null);
-
 //     if (result.meta.requestStatus === 'fulfilled') {
-//       setDeleteModal(null);
-//       setDeleteConfirmText('');
-//       dispatch(clearDeletePreview());
-//     } else {
-//       alert(result.payload || 'Delete failed');
-//     }
+//       setDeleteModal(null); setDeleteConfirmText(''); dispatch(clearDeletePreview());
+//     } else { alert(result.payload || 'Delete failed'); }
 //   };
+//   const closeDeleteModal = () => { setDeleteModal(null); setDeleteConfirmText(''); dispatch(clearDeletePreview()); };
 
-//   const closeDeleteModal = () => {
-//     setDeleteModal(null);
-//     setDeleteConfirmText('');
-//     dispatch(clearDeletePreview());
-//   };
+//   // ── HELPERS ──
+//   const statusStyle = (s) => s === 'approved' ? 'bg-emerald-50 text-emerald-700' : s === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600';
+//   const statusDot = (s) => s === 'approved' ? 'bg-emerald-500' : s === 'pending' ? 'bg-amber-500' : 'bg-red-500';
 
-//   // ════════════════════════════════════════════
-//   // HELPERS
-//   // ════════════════════════════════════════════
-//   const statusStyle = (status) => {
-//     if (status === 'approved') return 'bg-emerald-50 text-emerald-700';
-//     if (status === 'pending') return 'bg-amber-50 text-amber-700';
-//     return 'bg-red-50 text-red-600';
-//   };
-
-//   const statusDot = (status) => {
-//     if (status === 'approved') return 'bg-emerald-500';
-//     if (status === 'pending') return 'bg-amber-500';
-//     return 'bg-red-500';
-//   };
-
-//   // ════════════════════════════════════════════
-//   // RENDER
-//   // ════════════════════════════════════════════
 //   return (
 //     <div className="min-h-screen bg-[#faf8f5]">
-//       {/* BG blobs */}
 //       <div className="pointer-events-none fixed -top-32 -right-32 h-[420px] w-[420px] rounded-full bg-[#E8590C]/[0.04] blur-[100px]" />
 //       <div className="pointer-events-none fixed bottom-0 left-0 h-[360px] w-[360px] rounded-full bg-[#F4A261]/[0.06] blur-[90px]" />
 
 //       <div className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6">
 
-//         {/* ── Header ── */}
+//         {/* Header */}
 //         <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
 //           <div className="h-1 w-full bg-gradient-to-r from-[#E8590C] via-[#F4A261] to-[#E8590C]" />
 //           <div className="flex flex-wrap items-center justify-between gap-4 p-6">
@@ -251,12 +150,11 @@
 //                 <p className="text-xs text-[#9CA3AF]">{employees.length} total records</p>
 //               </div>
 //             </div>
-
 //             <div className="relative">
 //               <select
 //                 value={filter}
 //                 onChange={(e) => setFilter(e.target.value)}
-//                 className="appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 pl-4 pr-10 text-sm font-semibold text-[#1A1A2E] outline-none transition-all focus:border-[#E8590C] focus:shadow-[0_0_0_3px_rgba(232,89,12,0.07)]"
+//                 className="appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 pl-4 pr-10 text-sm font-semibold text-[#1A1A2E] outline-none transition-all focus:border-[#E8590C]"
 //               >
 //                 <option value="">All Employees</option>
 //                 <option value="pending">Pending</option>
@@ -272,7 +170,7 @@
 //           </div>
 //         </div>
 
-//         {/* ── Table ── */}
+//         {/* Table */}
 //         <div className="overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
 //           {loading ? (
 //             <div className="flex flex-col items-center justify-center py-20">
@@ -291,7 +189,7 @@
 //                     {[
 //                       'Name', 'Code', 'Email', 'Phone', 'Dept',
 //                       'Designation', 'Company', 'Manager',
-//                       'Salary', 'Face', 'Status', 'Actions'
+//                       'Salary', 'Worker Type', 'Face', 'Status', 'Actions'
 //                     ].map((h) => (
 //                       <th key={h} className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-[#9CA3AF]">
 //                         {h}
@@ -318,22 +216,17 @@
 //                       {/* Dept */}
 //                       <td className="px-5 py-3.5 text-[#4B5563]">{emp.department || '—'}</td>
 
-//                       {/* ══ 🆕 DESIGNATION with Edit ══ */}
+//                       {/* Designation */}
 //                       <td className="px-5 py-3.5">
 //                         <div className="flex items-center gap-1.5">
 //                           <span className="text-[#4B5563]">
-//                             {emp.designation || (
-//                               <span className="italic text-gray-400">Not set</span>
-//                             )}
+//                             {emp.designation || <span className="italic text-gray-400">Not set</span>}
 //                           </span>
 //                           {emp.status === 'approved' && (
-//                             <button
-//                               onClick={() => openDesignationEdit(emp)}
-//                               className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]"
-//                               title="Edit Designation"
-//                             >
+//                             <button onClick={() => openDesignationEdit(emp)}
+//                               className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]">
 //                               <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-//                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+//                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
 //                               </svg>
 //                             </button>
 //                           )}
@@ -347,22 +240,17 @@
 //                         </span>
 //                       </td>
 
-//                       {/* ══ 🆕 MANAGER with Edit ══ */}
+//                       {/* Manager */}
 //                       <td className="px-5 py-3.5">
 //                         <div className="flex items-center gap-1.5">
 //                           <span className="text-[#4B5563]">
-//                             {emp.leave_approval_manager || (
-//                               <span className="italic text-gray-400">Not set</span>
-//                             )}
+//                             {emp.leave_approval_manager || <span className="italic text-gray-400">Not set</span>}
 //                           </span>
 //                           {emp.status === 'approved' && (
-//                             <button
-//                               onClick={() => openManagerEdit(emp)}
-//                               className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]"
-//                               title="Edit Manager"
-//                             >
+//                             <button onClick={() => openManagerEdit(emp)}
+//                               className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]">
 //                               <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-//                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+//                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
 //                               </svg>
 //                             </button>
 //                           )}
@@ -377,18 +265,36 @@
 //                               ₹{emp.monthly_salary.toLocaleString('en-IN')}
 //                             </span>
 //                           ) : (
-//                             <span className="rounded-md bg-gray-100 px-2 py-1 text-[11px] italic text-gray-400">
-//                               Not set
-//                             </span>
+//                             <span className="rounded-md bg-gray-100 px-2 py-1 text-[11px] italic text-gray-400">Not set</span>
 //                           )}
 //                           {emp.status === 'approved' && (
-//                             <button
-//                               onClick={() => openSalaryEdit(emp)}
-//                               className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]"
-//                               title="Edit Salary"
-//                             >
+//                             <button onClick={() => openSalaryEdit(emp)}
+//                               className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]">
 //                               <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-//                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+//                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+//                               </svg>
+//                             </button>
+//                           )}
+//                         </div>
+//                       </td>
+
+//                       {/* ✅ NEW - Worker Type */}
+//                       <td className="px-5 py-3.5">
+//                         <div className="flex items-center gap-1.5">
+//                           <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+//                             emp.worker_type === 'site'
+//                               ? 'bg-blue-50 text-blue-700'
+//                               : 'bg-purple-50 text-purple-700'
+//                           }`}>
+//                             <span className={`h-1.5 w-1.5 rounded-full ${emp.worker_type === 'site' ? 'bg-blue-500' : 'bg-purple-500'}`} />
+//                             {emp.worker_type === 'site' ? '🚧 Site' : '🏢 Office'}
+//                           </span>
+//                           {emp.status === 'approved' && (
+//                             <button onClick={() => openWorkerTypeModal(emp)}
+//                               className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]"
+//                               title="Change Worker Type">
+//                               <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+//                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
 //                               </svg>
 //                             </button>
 //                           )}
@@ -416,26 +322,18 @@
 //                         <div className="flex items-center gap-2">
 //                           {emp.status === 'pending' && (
 //                             <>
-//                               <button
-//                                 onClick={() => setApproveModal(emp)}
-//                                 className="rounded-lg bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white transition-all hover:bg-emerald-600"
-//                               >
+//                               <button onClick={() => setApproveModal(emp)}
+//                                 className="rounded-lg bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-600">
 //                                 Approve
 //                               </button>
-//                               <button
-//                                 onClick={() => dispatch(rejectEmployee(emp._id))}
-//                                 className="rounded-lg bg-red-500 px-2.5 py-1 text-[11px] font-bold text-white transition-all hover:bg-red-600"
-//                               >
+//                               <button onClick={() => dispatch(rejectEmployee(emp._id))}
+//                                 className="rounded-lg bg-red-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-red-600">
 //                                 Reject
 //                               </button>
 //                             </>
 //                           )}
-//                           <button
-//                             onClick={() => openDeleteModal(emp)}
-//                             disabled={deletingId === emp._id}
-//                             className="rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition-all hover:bg-red-500 hover:text-white disabled:opacity-50"
-//                             title="Delete Employee"
-//                           >
+//                           <button onClick={() => openDeleteModal(emp)} disabled={deletingId === emp._id}
+//                             className="rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition-all hover:bg-red-500 hover:text-white disabled:opacity-50">
 //                             {deletingId === emp._id ? (
 //                               <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
 //                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -458,9 +356,7 @@
 //         </div>
 //       </div>
 
-//       {/* ══════════════════════════════════════════ */}
-//       {/* APPROVE MODAL                             */}
-//       {/* ══════════════════════════════════════════ */}
+//       {/* ══ APPROVE MODAL ══ */}
 //       {approveModal && (
 //         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
 //           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
@@ -479,79 +375,48 @@
 //               </div>
 
 //               <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3 space-y-1">
-//                 <p className="text-xs text-[#9CA3AF]">
-//                   Department: <span className="font-semibold text-[#1A1A2E]">{approveModal.department}</span>
-//                 </p>
-//                 <p className="text-xs text-[#9CA3AF]">
-//                   Company: <span className="font-semibold text-[#1A1A2E]">{approveModal.company_id?.name || '—'}</span>
-//                 </p>
+//                 <p className="text-xs text-[#9CA3AF]">Department: <span className="font-semibold text-[#1A1A2E]">{approveModal.department}</span></p>
+//                 <p className="text-xs text-[#9CA3AF]">Company: <span className="font-semibold text-[#1A1A2E]">{approveModal.company_id?.name || '—'}</span></p>
 //               </div>
 
-//               <div className="mb-5">
-//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-//                   Leave Approval Manager <span className="text-[#E8590C]">*</span>
-//                 </label>
+//               <div className="mb-4">
+//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Leave Approval Manager <span className="text-[#E8590C]">*</span></label>
 //                 <div className="relative">
-//                   <select
-//                     value={selectedManager}
-//                     onChange={(e) => setSelectedManager(e.target.value)}
-//                     className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none transition-all focus:border-[#E8590C] focus:shadow-[0_0_0_3px_rgba(232,89,12,0.07)]"
-//                   >
+//                   <select value={selectedManager} onChange={(e) => setSelectedManager(e.target.value)}
+//                     className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]">
 //                     <option value="">— Select Manager —</option>
-//                     {managers.map((m) => (
-//                       <option key={m._id} value={m.value}>{m.value}</option>
-//                     ))}
+//                     {managers.map((m) => <option key={m._id} value={m.value}>{m.value}</option>)}
 //                   </select>
 //                   <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#9CA3AF]">
-//                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-//                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-//                     </svg>
+//                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
 //                   </span>
 //                 </div>
 //               </div>
 
 //               <div className="mb-6">
-//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-//                   Monthly Salary <span className="text-[#E8590C]">*</span>
-//                 </label>
+//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Monthly Salary <span className="text-[#E8590C]">*</span></label>
 //                 <div className="relative">
-//                   <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#E8590C]">
-//                     <span className="text-lg font-bold">₹</span>
-//                   </span>
-//                   <input
-//                     type="number"
-//                     min="0"
-//                     step="1000"
-//                     value={monthlySalary}
-//                     onChange={(e) => setMonthlySalary(e.target.value)}
+//                   <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#E8590C] text-lg font-bold">₹</span>
+//                   <input type="number" min="0" step="1000" value={monthlySalary} onChange={(e) => setMonthlySalary(e.target.value)}
 //                     placeholder="e.g. 25000"
-//                     className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-10 pr-4 text-sm font-semibold text-[#1A1A2E] placeholder:font-normal placeholder:text-[#C0C0C0] outline-none transition-all focus:border-[#E8590C] focus:shadow-[0_0_0_3px_rgba(232,89,12,0.07)]"
-//                   />
+//                     className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-10 pr-4 text-sm font-semibold text-[#1A1A2E] outline-none focus:border-[#E8590C]" />
 //                 </div>
 //                 {monthlySalary && Number(monthlySalary) > 0 && (
 //                   <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-orange-50 px-3 py-2">
-//                     <span className="text-[11px] text-[#9CA3AF]">
-//                       Per day: <span className="font-bold text-[#E8590C]">₹{Math.round(Number(monthlySalary) / 30).toLocaleString('en-IN')}</span>
-//                     </span>
+//                     <span className="text-[11px] text-[#9CA3AF]">Per day: <span className="font-bold text-[#E8590C]">₹{Math.round(Number(monthlySalary) / 30).toLocaleString('en-IN')}</span></span>
 //                     <span className="text-[11px] text-gray-300">•</span>
-//                     <span className="text-[11px] text-[#9CA3AF]">
-//                       Per hour (8h): <span className="font-bold text-[#E8590C]">₹{Math.round(Number(monthlySalary) / 30 / 8).toLocaleString('en-IN')}</span>
-//                     </span>
+//                     <span className="text-[11px] text-[#9CA3AF]">Per hour: <span className="font-bold text-[#E8590C]">₹{Math.round(Number(monthlySalary) / 30 / 8).toLocaleString('en-IN')}</span></span>
 //                   </div>
 //                 )}
 //               </div>
 
 //               <div className="flex gap-3">
-//                 <button
-//                   onClick={handleApproveSubmit}
-//                   className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-sm font-bold text-white shadow-md shadow-emerald-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-//                 >
+//                 <button onClick={handleApproveSubmit}
+//                   className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">
 //                   Confirm Approval
 //                 </button>
-//                 <button
-//                   onClick={() => { setApproveModal(null); setSelectedManager(''); setMonthlySalary(''); }}
-//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] transition-all hover:bg-gray-50"
-//                 >
+//                 <button onClick={() => { setApproveModal(null); setSelectedManager(''); setMonthlySalary(''); }}
+//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
 //                   Cancel
 //                 </button>
 //               </div>
@@ -560,9 +425,7 @@
 //         </div>
 //       )}
 
-//       {/* ══════════════════════════════════════════ */}
-//       {/* SALARY EDIT MODAL                         */}
-//       {/* ══════════════════════════════════════════ */}
+//       {/* ══ SALARY MODAL ══ */}
 //       {salaryEditModal && (
 //         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
 //           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
@@ -571,7 +434,7 @@
 //               <div className="mb-5 flex items-center gap-3">
 //                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
 //                   <svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-//                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4" />
+//                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.768 0-1.536-.219-2.121-.659" />
 //                   </svg>
 //                 </div>
 //                 <div>
@@ -579,61 +442,32 @@
 //                   <p className="text-xs text-[#9CA3AF]">{salaryEditModal.name} — {salaryEditModal.emp_code}</p>
 //                 </div>
 //               </div>
-
 //               <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3">
-//                 <p className="text-xs text-[#9CA3AF]">
-//                   Current Salary:{' '}
-//                   <span className="font-bold text-[#1A1A2E]">
-//                     {salaryEditModal.monthly_salary > 0
-//                       ? `₹${salaryEditModal.monthly_salary.toLocaleString('en-IN')}`
-//                       : 'Not set'}
-//                   </span>
-//                 </p>
+//                 <p className="text-xs text-[#9CA3AF]">Current: <span className="font-bold text-[#1A1A2E]">{salaryEditModal.monthly_salary > 0 ? `₹${salaryEditModal.monthly_salary.toLocaleString('en-IN')}` : 'Not set'}</span></p>
 //               </div>
-
 //               <div className="mb-6">
-//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-//                   New Monthly Salary <span className="text-[#E8590C]">*</span>
-//                 </label>
+//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">New Monthly Salary <span className="text-[#E8590C]">*</span></label>
 //                 <div className="relative">
-//                   <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#E8590C]">
-//                     <span className="text-lg font-bold">₹</span>
-//                   </span>
-//                   <input
-//                     type="number"
-//                     min="0"
-//                     step="1000"
-//                     value={editSalaryValue}
-//                     onChange={(e) => setEditSalaryValue(e.target.value)}
-//                     placeholder="e.g. 30000"
-//                     autoFocus
-//                     className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-10 pr-4 text-sm font-semibold text-[#1A1A2E] outline-none transition-all focus:border-[#E8590C] focus:shadow-[0_0_0_3px_rgba(232,89,12,0.07)]"
-//                   />
+//                   <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#E8590C] text-lg font-bold">₹</span>
+//                   <input type="number" min="0" step="1000" value={editSalaryValue} onChange={(e) => setEditSalaryValue(e.target.value)}
+//                     placeholder="e.g. 30000" autoFocus
+//                     className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-10 pr-4 text-sm font-semibold text-[#1A1A2E] outline-none focus:border-[#E8590C]" />
 //                 </div>
 //                 {editSalaryValue && Number(editSalaryValue) > 0 && (
 //                   <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-orange-50 px-3 py-2">
-//                     <span className="text-[11px] text-[#9CA3AF]">
-//                       Per day: <span className="font-bold text-[#E8590C]">₹{Math.round(Number(editSalaryValue) / 30).toLocaleString('en-IN')}</span>
-//                     </span>
+//                     <span className="text-[11px] text-[#9CA3AF]">Per day: <span className="font-bold text-[#E8590C]">₹{Math.round(Number(editSalaryValue) / 30).toLocaleString('en-IN')}</span></span>
 //                     <span className="text-[11px] text-gray-300">•</span>
-//                     <span className="text-[11px] text-[#9CA3AF]">
-//                       Per hour: <span className="font-bold text-[#E8590C]">₹{Math.round(Number(editSalaryValue) / 30 / 8).toLocaleString('en-IN')}</span>
-//                     </span>
+//                     <span className="text-[11px] text-[#9CA3AF]">Per hour: <span className="font-bold text-[#E8590C]">₹{Math.round(Number(editSalaryValue) / 30 / 8).toLocaleString('en-IN')}</span></span>
 //                   </div>
 //                 )}
 //               </div>
-
 //               <div className="flex gap-3">
-//                 <button
-//                   onClick={handleSalaryUpdate}
-//                   className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-//                 >
+//                 <button onClick={handleSalaryUpdate}
+//                   className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">
 //                   Update Salary
 //                 </button>
-//                 <button
-//                   onClick={() => { setSalaryEditModal(null); setEditSalaryValue(''); }}
-//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] transition-all hover:bg-gray-50"
-//                 >
+//                 <button onClick={() => { setSalaryEditModal(null); setEditSalaryValue(''); }}
+//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
 //                   Cancel
 //                 </button>
 //               </div>
@@ -642,20 +476,16 @@
 //         </div>
 //       )}
 
-//       {/* ══════════════════════════════════════════ */}
-//       {/* 🆕 DESIGNATION EDIT MODAL                 */}
-//       {/* ══════════════════════════════════════════ */}
+//       {/* ══ DESIGNATION MODAL ══ */}
 //       {designationModal && (
 //         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
 //           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
 //             <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
 //             <div className="p-7">
-
-//               {/* Header */}
 //               <div className="mb-5 flex items-center gap-3">
 //                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
 //                   <svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-//                     <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
+//                     <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
 //                   </svg>
 //                 </div>
 //                 <div>
@@ -663,65 +493,35 @@
 //                   <p className="text-xs text-[#9CA3AF]">{designationModal.name} — {designationModal.emp_code}</p>
 //                 </div>
 //               </div>
-
-//               {/* Current Value */}
 //               <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3">
-//                 <p className="text-xs text-[#9CA3AF]">
-//                   Current Designation:{' '}
-//                   <span className="font-bold text-[#1A1A2E]">
-//                     {designationModal.designation || 'Not set'}
-//                   </span>
-//                 </p>
+//                 <p className="text-xs text-[#9CA3AF]">Current: <span className="font-bold text-[#1A1A2E]">{designationModal.designation || 'Not set'}</span></p>
 //               </div>
-
-//               {/* Dropdown */}
 //               <div className="mb-6">
-//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-//                   Select New Designation <span className="text-[#E8590C]">*</span>
-//                 </label>
+//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Select New Designation <span className="text-[#E8590C]">*</span></label>
 //                 <div className="relative">
-//                   <select
-//                     value={editDesignationValue}
-//                     onChange={(e) => setEditDesignationValue(e.target.value)}
-//                     autoFocus
-//                     className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none transition-all focus:border-[#E8590C] focus:shadow-[0_0_0_3px_rgba(232,89,12,0.07)]"
-//                   >
+//                   <select value={editDesignationValue} onChange={(e) => setEditDesignationValue(e.target.value)} autoFocus
+//                     className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]">
 //                     <option value="">— Select Designation —</option>
-//                     {DESIGNATION_OPTIONS.map((d) => (
-//                       <option key={d} value={d}>{d}</option>
-//                     ))}
+//                     {DESIGNATION_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
 //                   </select>
 //                   <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#9CA3AF]">
-//                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-//                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-//                     </svg>
+//                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
 //                   </span>
 //                 </div>
-
-//                 {/* Preview badge */}
 //                 {editDesignationValue && (
 //                   <div className="mt-3 flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2">
 //                     <span className="text-[11px] text-[#9CA3AF]">New designation:</span>
-//                     <span className="rounded-md bg-[#E8590C] px-2 py-0.5 text-[11px] font-bold text-white">
-//                       {editDesignationValue}
-//                     </span>
+//                     <span className="rounded-md bg-[#E8590C] px-2 py-0.5 text-[11px] font-bold text-white">{editDesignationValue}</span>
 //                   </div>
 //                 )}
 //               </div>
-
-//               {/* Buttons */}
 //               <div className="flex gap-3">
-//                 <button
-//                   onClick={handleDesignationUpdate}
-//                   disabled={!editDesignationValue}
-//                   className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-//                 >
+//                 <button onClick={handleDesignationUpdate} disabled={!editDesignationValue}
+//                   className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
 //                   Update Designation
 //                 </button>
-//                 <button
-//                   onClick={() => { setDesignationModal(null); setEditDesignationValue(''); }}
-//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] transition-all hover:bg-gray-50"
-//                 >
+//                 <button onClick={() => { setDesignationModal(null); setEditDesignationValue(''); }}
+//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
 //                   Cancel
 //                 </button>
 //               </div>
@@ -730,16 +530,12 @@
 //         </div>
 //       )}
 
-//       {/* ══════════════════════════════════════════ */}
-//       {/* 🆕 MANAGER EDIT MODAL                     */}
-//       {/* ══════════════════════════════════════════ */}
+//       {/* ══ MANAGER MODAL ══ */}
 //       {managerModal && (
 //         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
 //           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
 //             <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
 //             <div className="p-7">
-
-//               {/* Header */}
 //               <div className="mb-5 flex items-center gap-3">
 //                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
 //                   <svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -751,64 +547,35 @@
 //                   <p className="text-xs text-[#9CA3AF]">{managerModal.name} — {managerModal.emp_code}</p>
 //                 </div>
 //               </div>
-
-//               {/* Current Value */}
 //               <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3">
-//                 <p className="text-xs text-[#9CA3AF]">
-//                   Current Manager:{' '}
-//                   <span className="font-bold text-[#1A1A2E]">
-//                     {managerModal.leave_approval_manager || 'Not set'}
-//                   </span>
-//                 </p>
+//                 <p className="text-xs text-[#9CA3AF]">Current: <span className="font-bold text-[#1A1A2E]">{managerModal.leave_approval_manager || 'Not set'}</span></p>
 //               </div>
-
-//               {/* Dropdown */}
 //               <div className="mb-6">
-//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-//                   Select New Manager <span className="text-[#E8590C]">*</span>
-//                 </label>
+//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Select New Manager</label>
 //                 <div className="relative">
-//                   <select
-//                     value={editManagerValue}
-//                     onChange={(e) => setEditManagerValue(e.target.value)}
-//                     autoFocus
-//                     className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none transition-all focus:border-[#E8590C] focus:shadow-[0_0_0_3px_rgba(232,89,12,0.07)]"
-//                   >
+//                   <select value={editManagerValue} onChange={(e) => setEditManagerValue(e.target.value)} autoFocus
+//                     className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]">
 //                     <option value="">— No Manager —</option>
-//                     {managers.map((m) => (
-//                       <option key={m._id} value={m.value}>{m.value}</option>
-//                     ))}
+//                     {managers.map((m) => <option key={m._id} value={m.value}>{m.value}</option>)}
 //                   </select>
 //                   <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#9CA3AF]">
-//                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-//                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-//                     </svg>
+//                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
 //                   </span>
 //                 </div>
-
-//                 {/* Preview */}
 //                 {editManagerValue && (
 //                   <div className="mt-3 flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2">
 //                     <span className="text-[11px] text-[#9CA3AF]">New manager:</span>
-//                     <span className="rounded-md bg-[#E8590C] px-2 py-0.5 text-[11px] font-bold text-white">
-//                       {editManagerValue}
-//                     </span>
+//                     <span className="rounded-md bg-[#E8590C] px-2 py-0.5 text-[11px] font-bold text-white">{editManagerValue}</span>
 //                   </div>
 //                 )}
 //               </div>
-
-//               {/* Buttons */}
 //               <div className="flex gap-3">
-//                 <button
-//                   onClick={handleManagerUpdate}
-//                   className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-//                 >
+//                 <button onClick={handleManagerUpdate}
+//                   className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">
 //                   Update Manager
 //                 </button>
-//                 <button
-//                   onClick={() => { setManagerModal(null); setEditManagerValue(''); }}
-//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] transition-all hover:bg-gray-50"
-//                 >
+//                 <button onClick={() => { setManagerModal(null); setEditManagerValue(''); }}
+//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
 //                   Cancel
 //                 </button>
 //               </div>
@@ -817,9 +584,116 @@
 //         </div>
 //       )}
 
-//       {/* ══════════════════════════════════════════ */}
-//       {/* DELETE MODAL                              */}
-//       {/* ══════════════════════════════════════════ */}
+//       {/* ══ ✅ NEW - WORKER TYPE MODAL ══ */}
+//       {workerTypeModal && (
+//         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
+//           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
+//             <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
+//             <div className="p-7">
+
+//               {/* Header */}
+//               <div className="mb-5 flex items-center gap-3">
+//                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
+//                   <svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+//                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+//                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+//                   </svg>
+//                 </div>
+//                 <div>
+//                   <h3 className="text-lg font-extrabold text-[#1A1A2E]">Worker Type</h3>
+//                   <p className="text-xs text-[#9CA3AF]">{workerTypeModal.name} — {workerTypeModal.emp_code}</p>
+//                 </div>
+//               </div>
+
+//               {/* Current */}
+//               <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3">
+//                 <p className="text-xs text-[#9CA3AF]">
+//                   Current Type:{' '}
+//                   <span className="font-bold text-[#1A1A2E]">
+//                     {workerTypeModal.worker_type === 'site' ? '🚧 Site Worker' : '🏢 Office Worker'}
+//                   </span>
+//                 </p>
+//               </div>
+
+//               {/* Toggle Cards */}
+//               <div className="mb-6">
+//                 <label className="mb-3 block text-sm font-semibold text-[#1A1A2E]">
+//                   Select Worker Type <span className="text-[#E8590C]">*</span>
+//                 </label>
+//                 <div className="grid grid-cols-2 gap-3">
+
+//                   {/* Office */}
+//                   <button onClick={() => setEditWorkerType('office')}
+//                     className={`relative overflow-hidden rounded-2xl border-2 p-4 text-left transition-all ${
+//                       editWorkerType === 'office'
+//                         ? 'border-purple-500 bg-purple-50'
+//                         : 'border-gray-200 bg-white hover:border-gray-300'
+//                     }`}>
+//                     {editWorkerType === 'office' && (
+//                       <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500">
+//                         <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+//                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+//                         </svg>
+//                       </div>
+//                     )}
+//                     <div className="mb-2 text-2xl">🏢</div>
+//                     <p className="text-sm font-bold text-[#1A1A2E]">Office Worker</p>
+//                     <p className="mt-1 text-[10px] text-[#9CA3AF] leading-tight">
+//                       9:45 AM ke baad aane par Late mark hoga
+//                     </p>
+//                   </button>
+
+//                   {/* Site */}
+//                   <button onClick={() => setEditWorkerType('site')}
+//                     className={`relative overflow-hidden rounded-2xl border-2 p-4 text-left transition-all ${
+//                       editWorkerType === 'site'
+//                         ? 'border-blue-500 bg-blue-50'
+//                         : 'border-gray-200 bg-white hover:border-gray-300'
+//                     }`}>
+//                     {editWorkerType === 'site' && (
+//                       <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500">
+//                         <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+//                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+//                         </svg>
+//                       </div>
+//                     )}
+//                     <div className="mb-2 text-2xl">🚧</div>
+//                     <p className="text-sm font-bold text-[#1A1A2E]">Site Worker</p>
+//                     <p className="mt-1 text-[10px] text-[#9CA3AF] leading-tight">
+//                       Kabhi bhi aaye — Late nahi lagegi
+//                     </p>
+//                   </button>
+//                 </div>
+
+//                 {/* Info */}
+//                 <div className={`mt-3 rounded-xl p-3 text-[11px] ${
+//                   editWorkerType === 'site'
+//                     ? 'bg-blue-50 text-blue-700'
+//                     : 'bg-purple-50 text-purple-700'
+//                 }`}>
+//                   {editWorkerType === 'site'
+//                     ? '✅ Site worker ko late nahi lagegi — GPS location se koi fark nahi'
+//                     : '⏰ Office worker ko 9:45 AM ke baad aane par late mark hoga'}
+//                 </div>
+//               </div>
+
+//               {/* Buttons */}
+//               <div className="flex gap-3">
+//                 <button onClick={handleWorkerTypeUpdate}
+//                   className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">
+//                   Update Worker Type
+//                 </button>
+//                 <button onClick={() => { setWorkerTypeModal(null); setEditWorkerType('office'); }}
+//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
+//                   Cancel
+//                 </button>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* ══ DELETE MODAL ══ */}
 //       {deleteModal && (
 //         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
 //           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
@@ -838,48 +712,27 @@
 //               </div>
 
 //               <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3 space-y-1">
-//                 <p className="text-sm">
-//                   <span className="text-[#9CA3AF]">Name:</span>{' '}
-//                   <span className="font-bold text-[#1A1A2E]">{deleteModal.name}</span>
-//                 </p>
-//                 <p className="text-sm">
-//                   <span className="text-[#9CA3AF]">Code:</span>{' '}
-//                   <span className="font-bold text-[#1A1A2E]">{deleteModal.emp_code}</span>
-//                 </p>
-//                 <p className="text-sm">
-//                   <span className="text-[#9CA3AF]">Email:</span>{' '}
-//                   <span className="font-bold text-[#1A1A2E]">{deleteModal.email}</span>
-//                 </p>
+//                 <p className="text-sm"><span className="text-[#9CA3AF]">Name:</span> <span className="font-bold text-[#1A1A2E]">{deleteModal.name}</span></p>
+//                 <p className="text-sm"><span className="text-[#9CA3AF]">Code:</span> <span className="font-bold text-[#1A1A2E]">{deleteModal.emp_code}</span></p>
+//                 <p className="text-sm"><span className="text-[#9CA3AF]">Email:</span> <span className="font-bold text-[#1A1A2E]">{deleteModal.email}</span></p>
 //               </div>
 
 //               {deletePreview ? (
 //                 <div className="mb-5 rounded-xl border-2 border-red-200 bg-red-50 p-4">
-//                   <p className="text-sm font-bold text-red-700 mb-3">
-//                     🗑️ Following data will be permanently deleted:
-//                   </p>
+//                   <p className="text-sm font-bold text-red-700 mb-3">🗑️ Following data will be permanently deleted:</p>
 //                   <div className="grid grid-cols-3 gap-2">
-//                     <div className="rounded-lg bg-white p-3 text-center">
-//                       <p className="text-2xl font-extrabold text-red-600">
-//                         {deletePreview.counts.attendance_records}
-//                       </p>
-//                       <p className="text-[10px] text-gray-500 uppercase font-bold">Attendance</p>
-//                     </div>
-//                     <div className="rounded-lg bg-white p-3 text-center">
-//                       <p className="text-2xl font-extrabold text-red-600">
-//                         {deletePreview.counts.leave_records}
-//                       </p>
-//                       <p className="text-[10px] text-gray-500 uppercase font-bold">Leaves</p>
-//                     </div>
-//                     <div className="rounded-lg bg-white p-3 text-center">
-//                       <p className="text-2xl font-extrabold text-red-600">
-//                         {deletePreview.counts.photos}
-//                       </p>
-//                       <p className="text-[10px] text-gray-500 uppercase font-bold">Photos</p>
-//                     </div>
+//                     {[
+//                       { count: deletePreview.counts.attendance_records, label: 'Attendance' },
+//                       { count: deletePreview.counts.leave_records, label: 'Leaves' },
+//                       { count: deletePreview.counts.photos, label: 'Photos' },
+//                     ].map((item) => (
+//                       <div key={item.label} className="rounded-lg bg-white p-3 text-center">
+//                         <p className="text-2xl font-extrabold text-red-600">{item.count}</p>
+//                         <p className="text-[10px] text-gray-500 uppercase font-bold">{item.label}</p>
+//                       </div>
+//                     ))}
 //                   </div>
-//                   <p className="mt-3 text-[11px] text-red-700">
-//                     + Employee profile, leave balance, all login data
-//                   </p>
+//                   <p className="mt-3 text-[11px] text-red-700">+ Employee profile, leave balance, all login data</p>
 //                 </div>
 //               ) : (
 //                 <div className="mb-5 flex justify-center py-4">
@@ -889,33 +742,21 @@
 
 //               <div className="mb-5">
 //                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-//                   Type{' '}
-//                   <span className="font-mono bg-red-100 px-1.5 py-0.5 rounded text-red-700">DELETE</span>
-//                   {' '}to confirm:
+//                   Type <span className="font-mono bg-red-100 px-1.5 py-0.5 rounded text-red-700">DELETE</span> to confirm:
 //                 </label>
-//                 <input
-//                   type="text"
-//                   value={deleteConfirmText}
-//                   onChange={(e) => setDeleteConfirmText(e.target.value)}
-//                   placeholder="Type DELETE here"
-//                   autoFocus
-//                   className="w-full rounded-xl border-2 border-gray-200 bg-white py-3 px-4 text-sm font-mono font-bold text-red-600 placeholder:text-gray-300 placeholder:font-normal outline-none transition-all focus:border-red-500"
-//                 />
+//                 <input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)}
+//                   placeholder="Type DELETE here" autoFocus
+//                   className="w-full rounded-xl border-2 border-gray-200 bg-white py-3 px-4 text-sm font-mono font-bold text-red-600 placeholder:text-gray-300 placeholder:font-normal outline-none focus:border-red-500" />
 //               </div>
 
 //               <div className="flex gap-3">
-//                 <button
-//                   onClick={handleDeleteConfirm}
+//                 <button onClick={handleDeleteConfirm}
 //                   disabled={deleteConfirmText !== 'DELETE' || deletingId === deleteModal._id}
-//                   className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-md shadow-red-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-//                 >
+//                   className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
 //                   {deletingId === deleteModal._id ? 'Deleting...' : '🗑️ Delete Forever'}
 //                 </button>
-//                 <button
-//                   onClick={closeDeleteModal}
-//                   disabled={deletingId === deleteModal._id}
-//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] transition-all hover:bg-gray-50"
-//                 >
+//                 <button onClick={closeDeleteModal} disabled={deletingId === deleteModal._id}
+//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
 //                   Cancel
 //                 </button>
 //               </div>
@@ -941,7 +782,6 @@
 
 
 
-
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -952,7 +792,8 @@ import {
   updateEmployeeSalary,
   updateEmployeeDesignation,
   updateEmployeeManager,
-  updateWorkerType,          // ✅ NEW
+  updateWorkerType,
+  updateJoiningDate,          // ✅ NEW
   getDeletePreview,
   clearDeletePreview,
 } from '../../redux/slices/employeeSlice';
@@ -977,6 +818,7 @@ const Employees = () => {
   const [approveModal, setApproveModal] = useState(null);
   const [selectedManager, setSelectedManager] = useState('');
   const [monthlySalary, setMonthlySalary] = useState('');
+  const [approveJoiningDate, setApproveJoiningDate] = useState(''); // ✅ NEW
 
   // Salary Modal
   const [salaryEditModal, setSalaryEditModal] = useState(null);
@@ -990,9 +832,13 @@ const Employees = () => {
   const [managerModal, setManagerModal] = useState(null);
   const [editManagerValue, setEditManagerValue] = useState('');
 
-  // ✅ NEW - Worker Type Modal
+  // Worker Type Modal
   const [workerTypeModal, setWorkerTypeModal] = useState(null);
   const [editWorkerType, setEditWorkerType] = useState('office');
+
+  // ✅ NEW - Joining Date Modal
+  const [joiningDateModal, setJoiningDateModal] = useState(null);
+  const [editJoiningDate, setEditJoiningDate] = useState('');
 
   // Delete Modal
   const [deleteModal, setDeleteModal] = useState(null);
@@ -1008,12 +854,24 @@ const Employees = () => {
   const handleApproveSubmit = async () => {
     if (!selectedManager) { alert('Manager select karo!'); return; }
     if (!monthlySalary || Number(monthlySalary) <= 0) { alert('Valid monthly salary daalo!'); return; }
+    if (!approveJoiningDate || approveJoiningDate.trim() === '') { alert('Joining date daalo!'); return; }
+
+    const parts = approveJoiningDate.trim().split('/').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN) || parts[0] < 1 || parts[0] > 31 || parts[1] < 1 || parts[1] > 12) {
+      alert('Joining date format galat! Use: d/m/yyyy (e.g. 14/8/2026)');
+      return;
+    }
+
     const result = await dispatch(approveEmployee({
       id: approveModal._id,
-      data: { leave_approval_manager: selectedManager, monthly_salary: Number(monthlySalary) },
+      data: {
+        leave_approval_manager: selectedManager,
+        monthly_salary: Number(monthlySalary),
+        joining_date: approveJoiningDate.trim(),
+      },
     }));
     if (result.meta.requestStatus === 'fulfilled') {
-      setApproveModal(null); setSelectedManager(''); setMonthlySalary('');
+      setApproveModal(null); setSelectedManager(''); setMonthlySalary(''); setApproveJoiningDate('');
       dispatch(fetchEmployees(filter));
     }
   };
@@ -1041,35 +899,47 @@ const Employees = () => {
     if (result.meta.requestStatus === 'fulfilled') { setManagerModal(null); setEditManagerValue(''); }
   };
 
-  // ✅ NEW - WORKER TYPE
-  const openWorkerTypeModal = (emp) => {
-    setWorkerTypeModal(emp);
-    setEditWorkerType(emp.worker_type || 'office');
-  };
+  // ── WORKER TYPE ──
+  const openWorkerTypeModal = (emp) => { setWorkerTypeModal(emp); setEditWorkerType(emp.worker_type || 'office'); };
   const handleWorkerTypeUpdate = async () => {
     const result = await dispatch(updateWorkerType({ id: workerTypeModal._id, worker_type: editWorkerType }));
     if (result.meta.requestStatus === 'fulfilled') { setWorkerTypeModal(null); }
   };
 
-  // ── DELETE ──
-  const openDeleteModal = async (emp) => {
-    setDeleteModal(emp); setDeleteConfirmText('');
-    dispatch(getDeletePreview(emp._id));
+  // ✅ NEW - JOINING DATE
+  const openJoiningDateModal = (emp) => { setJoiningDateModal(emp); setEditJoiningDate(emp.joining_date || ''); };
+  const handleJoiningDateUpdate = async () => {
+    if (!editJoiningDate) { alert('Joining date daalo!'); return; }
+    const result = await dispatch(updateJoiningDate({ id: joiningDateModal._id, joining_date: editJoiningDate }));
+    if (result.meta.requestStatus === 'fulfilled') { setJoiningDateModal(null); setEditJoiningDate(''); }
   };
+
+  // ── DELETE ──
+  const openDeleteModal = async (emp) => { setDeleteModal(emp); setDeleteConfirmText(''); dispatch(getDeletePreview(emp._id)); };
   const handleDeleteConfirm = async () => {
     if (deleteConfirmText !== 'DELETE') { alert('Type "DELETE" to confirm'); return; }
     setDeletingId(deleteModal._id);
     const result = await dispatch(deleteEmployee(deleteModal._id));
     setDeletingId(null);
-    if (result.meta.requestStatus === 'fulfilled') {
-      setDeleteModal(null); setDeleteConfirmText(''); dispatch(clearDeletePreview());
-    } else { alert(result.payload || 'Delete failed'); }
+    if (result.meta.requestStatus === 'fulfilled') { setDeleteModal(null); setDeleteConfirmText(''); dispatch(clearDeletePreview()); }
+    else { alert(result.payload || 'Delete failed'); }
   };
   const closeDeleteModal = () => { setDeleteModal(null); setDeleteConfirmText(''); dispatch(clearDeletePreview()); };
 
   // ── HELPERS ──
   const statusStyle = (s) => s === 'approved' ? 'bg-emerald-50 text-emerald-700' : s === 'pending' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600';
   const statusDot = (s) => s === 'approved' ? 'bg-emerald-500' : s === 'pending' ? 'bg-amber-500' : 'bg-red-500';
+
+  const getJoiningMonthPreview = (dateStr) => {
+    if (!dateStr || !dateStr.includes('/')) return null;
+    const parts = dateStr.split('/').map(Number);
+    if (parts.length !== 3 || parts.some(isNaN)) return null;
+    const [d, m, y] = parts;
+    const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    if (m < 1 || m > 12) return null;
+    return `${monthNames[m]} ${y}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#faf8f5]">
@@ -1094,20 +964,15 @@ const Employees = () => {
               </div>
             </div>
             <div className="relative">
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                className="appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 pl-4 pr-10 text-sm font-semibold text-[#1A1A2E] outline-none transition-all focus:border-[#E8590C]"
-              >
+              <select value={filter} onChange={(e) => setFilter(e.target.value)}
+                className="appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 pl-4 pr-10 text-sm font-semibold text-[#1A1A2E] outline-none focus:border-[#E8590C]">
                 <option value="">All Employees</option>
                 <option value="pending">Pending</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
               </select>
               <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#9CA3AF]">
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                </svg>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
               </span>
             </div>
           </div>
@@ -1129,48 +994,29 @@ const Employees = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-[#faf8f5]">
-                    {[
-                      'Name', 'Code', 'Email', 'Phone', 'Dept',
-                      'Designation', 'Company', 'Manager',
-                      'Salary', 'Worker Type', 'Face', 'Status', 'Actions'
+                    {['Name', 'Code', 'Email', 'Phone', 'Dept', 'Designation', 'Company', 'Manager',
+                      'Salary', 'Joining', 'Worker Type', 'Face', 'Status', 'Actions'
                     ].map((h) => (
-                      <th key={h} className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-[#9CA3AF]">
-                        {h}
-                      </th>
+                      <th key={h} className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-[#9CA3AF]">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {employees.map((emp) => (
                     <tr key={emp._id} className="group transition-colors hover:bg-[#faf8f5]">
-
-                      {/* Name */}
                       <td className="px-5 py-3.5 font-semibold text-[#1A1A2E]">{emp.name}</td>
-
-                      {/* Code */}
                       <td className="px-5 py-3.5 text-[#4B5563]">{emp.emp_code}</td>
-
-                      {/* Email */}
                       <td className="px-5 py-3.5 text-[#4B5563]">{emp.email || '—'}</td>
-
-                      {/* Phone */}
                       <td className="px-5 py-3.5 text-[#4B5563]">{emp.phone}</td>
-
-                      {/* Dept */}
                       <td className="px-5 py-3.5 text-[#4B5563]">{emp.department || '—'}</td>
 
                       {/* Designation */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[#4B5563]">
-                            {emp.designation || <span className="italic text-gray-400">Not set</span>}
-                          </span>
+                          <span className="text-[#4B5563]">{emp.designation || <span className="italic text-gray-400">Not set</span>}</span>
                           {emp.status === 'approved' && (
-                            <button onClick={() => openDesignationEdit(emp)}
-                              className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]">
-                              <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                              </svg>
+                            <button onClick={() => openDesignationEdit(emp)} className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]">
+                              <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
                             </button>
                           )}
                         </div>
@@ -1178,23 +1024,16 @@ const Employees = () => {
 
                       {/* Company */}
                       <td className="px-5 py-3.5">
-                        <span className="rounded-lg bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
-                          {emp.company_id?.name || '—'}
-                        </span>
+                        <span className="rounded-lg bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">{emp.company_id?.name || '—'}</span>
                       </td>
 
                       {/* Manager */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[#4B5563]">
-                            {emp.leave_approval_manager || <span className="italic text-gray-400">Not set</span>}
-                          </span>
+                          <span className="text-[#4B5563]">{emp.leave_approval_manager || <span className="italic text-gray-400">Not set</span>}</span>
                           {emp.status === 'approved' && (
-                            <button onClick={() => openManagerEdit(emp)}
-                              className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]">
-                              <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                              </svg>
+                            <button onClick={() => openManagerEdit(emp)} className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]">
+                              <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
                             </button>
                           )}
                         </div>
@@ -1204,41 +1043,42 @@ const Employees = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1.5">
                           {emp.monthly_salary > 0 ? (
-                            <span className="rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700">
-                              ₹{emp.monthly_salary.toLocaleString('en-IN')}
-                            </span>
+                            <span className="rounded-md bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700">₹{emp.monthly_salary.toLocaleString('en-IN')}</span>
                           ) : (
                             <span className="rounded-md bg-gray-100 px-2 py-1 text-[11px] italic text-gray-400">Not set</span>
                           )}
                           {emp.status === 'approved' && (
-                            <button onClick={() => openSalaryEdit(emp)}
-                              className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]">
-                              <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                              </svg>
+                            <button onClick={() => openSalaryEdit(emp)} className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]">
+                              <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
                             </button>
                           )}
                         </div>
                       </td>
 
-                      {/* ✅ NEW - Worker Type */}
+                      {/* ✅ NEW - Joining Date */}
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1.5">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                            emp.worker_type === 'site'
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'bg-purple-50 text-purple-700'
-                          }`}>
+                          <span className={`text-[11px] ${emp.joining_date ? 'font-semibold text-[#1A1A2E]' : 'italic text-gray-400'}`}>
+                            {emp.joining_date || 'Not set'}
+                          </span>
+                          {emp.status === 'approved' && (
+                            <button onClick={() => openJoiningDateModal(emp)} className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]" title="Set Joining Date">
+                              <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" /></svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Worker Type */}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${emp.worker_type === 'site' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${emp.worker_type === 'site' ? 'bg-blue-500' : 'bg-purple-500'}`} />
                             {emp.worker_type === 'site' ? '🚧 Site' : '🏢 Office'}
                           </span>
                           {emp.status === 'approved' && (
-                            <button onClick={() => openWorkerTypeModal(emp)}
-                              className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]"
-                              title="Change Worker Type">
-                              <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                              </svg>
+                            <button onClick={() => openWorkerTypeModal(emp)} className="rounded-md border border-gray-200 bg-white p-1 text-[#9CA3AF] transition-all hover:border-[#E8590C] hover:bg-[#FFF8F3] hover:text-[#E8590C]" title="Change Worker Type">
+                              <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" /></svg>
                             </button>
                           )}
                         </div>
@@ -1265,27 +1105,16 @@ const Employees = () => {
                         <div className="flex items-center gap-2">
                           {emp.status === 'pending' && (
                             <>
-                              <button onClick={() => setApproveModal(emp)}
-                                className="rounded-lg bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-600">
-                                Approve
-                              </button>
-                              <button onClick={() => dispatch(rejectEmployee(emp._id))}
-                                className="rounded-lg bg-red-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-red-600">
-                                Reject
-                              </button>
+                              <button onClick={() => setApproveModal(emp)} className="rounded-lg bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-emerald-600">Approve</button>
+                              <button onClick={() => dispatch(rejectEmployee(emp._id))} className="rounded-lg bg-red-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-red-600">Reject</button>
                             </>
                           )}
                           <button onClick={() => openDeleteModal(emp)} disabled={deletingId === emp._id}
                             className="rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-500 transition-all hover:bg-red-500 hover:text-white disabled:opacity-50">
                             {deletingId === emp._id ? (
-                              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                              </svg>
+                              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                             ) : (
-                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                              </svg>
+                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
                             )}
                           </button>
                         </div>
@@ -1299,7 +1128,7 @@ const Employees = () => {
         </div>
       </div>
 
-      {/* ══ APPROVE MODAL ══ */}
+      {/* ══ APPROVE MODAL (with Joining Date) ══ */}
       {approveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
@@ -1307,9 +1136,7 @@ const Employees = () => {
             <div className="p-7">
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50">
-                  <svg className="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <svg className="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
                 <div>
                   <h3 className="text-lg font-extrabold text-[#1A1A2E]">Approve Employee</h3>
@@ -1322,26 +1149,24 @@ const Employees = () => {
                 <p className="text-xs text-[#9CA3AF]">Company: <span className="font-semibold text-[#1A1A2E]">{approveModal.company_id?.name || '—'}</span></p>
               </div>
 
+              {/* Manager */}
               <div className="mb-4">
                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Leave Approval Manager <span className="text-[#E8590C]">*</span></label>
                 <div className="relative">
-                  <select value={selectedManager} onChange={(e) => setSelectedManager(e.target.value)}
-                    className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]">
+                  <select value={selectedManager} onChange={(e) => setSelectedManager(e.target.value)} className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]">
                     <option value="">— Select Manager —</option>
                     {managers.map((m) => <option key={m._id} value={m.value}>{m.value}</option>)}
                   </select>
-                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#9CA3AF]">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                  </span>
+                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#9CA3AF]"><svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg></span>
                 </div>
               </div>
 
-              <div className="mb-6">
+              {/* Salary */}
+              <div className="mb-4">
                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Monthly Salary <span className="text-[#E8590C]">*</span></label>
                 <div className="relative">
                   <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#E8590C] text-lg font-bold">₹</span>
-                  <input type="number" min="0" step="1000" value={monthlySalary} onChange={(e) => setMonthlySalary(e.target.value)}
-                    placeholder="e.g. 25000"
+                  <input type="number" min="0" step="1000" value={monthlySalary} onChange={(e) => setMonthlySalary(e.target.value)} placeholder="e.g. 25000"
                     className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-10 pr-4 text-sm font-semibold text-[#1A1A2E] outline-none focus:border-[#E8590C]" />
                 </div>
                 {monthlySalary && Number(monthlySalary) > 0 && (
@@ -1353,15 +1178,28 @@ const Employees = () => {
                 )}
               </div>
 
+              {/* ✅ NEW - Joining Date */}
+              <div className="mb-6">
+                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Joining Date <span className="text-[#E8590C]">*</span></label>
+                <input type="text" value={approveJoiningDate} onChange={(e) => setApproveJoiningDate(e.target.value)} placeholder="e.g. 14/8/2026"
+                  className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 text-sm font-semibold text-[#1A1A2E] placeholder:font-normal placeholder:text-gray-400 outline-none focus:border-[#E8590C]" />
+                <p className="mt-1 text-[10px] text-[#9CA3AF]">Format: day/month/year — Is month se paid leave milegi</p>
+
+                {(() => {
+                  const preview = getJoiningMonthPreview(approveJoiningDate);
+                  if (!preview) return null;
+                  return (
+                    <div className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                      <p className="text-[11px] text-emerald-700">✅ Paid leave shuru hogi: <strong>{preview}</strong></p>
+                      <p className="mt-0.5 text-[10px] text-emerald-600">Is month se 1 paid leave per month credit hogi</p>
+                    </div>
+                  );
+                })()}
+              </div>
+
               <div className="flex gap-3">
-                <button onClick={handleApproveSubmit}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">
-                  Confirm Approval
-                </button>
-                <button onClick={() => { setApproveModal(null); setSelectedManager(''); setMonthlySalary(''); }}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
-                  Cancel
-                </button>
+                <button onClick={handleApproveSubmit} className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">Confirm Approval</button>
+                <button onClick={() => { setApproveModal(null); setSelectedManager(''); setMonthlySalary(''); setApproveJoiningDate(''); }} className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">Cancel</button>
               </div>
             </div>
           </div>
@@ -1375,44 +1213,17 @@ const Employees = () => {
             <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
             <div className="p-7">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
-                  <svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.768 0-1.536-.219-2.121-.659" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-extrabold text-[#1A1A2E]">Update Salary</h3>
-                  <p className="text-xs text-[#9CA3AF]">{salaryEditModal.name} — {salaryEditModal.emp_code}</p>
-                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50"><svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.768 0-1.536-.219-2.121-.659" /></svg></div>
+                <div><h3 className="text-lg font-extrabold text-[#1A1A2E]">Update Salary</h3><p className="text-xs text-[#9CA3AF]">{salaryEditModal.name} — {salaryEditModal.emp_code}</p></div>
               </div>
-              <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3">
-                <p className="text-xs text-[#9CA3AF]">Current: <span className="font-bold text-[#1A1A2E]">{salaryEditModal.monthly_salary > 0 ? `₹${salaryEditModal.monthly_salary.toLocaleString('en-IN')}` : 'Not set'}</span></p>
-              </div>
+              <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3"><p className="text-xs text-[#9CA3AF]">Current: <span className="font-bold text-[#1A1A2E]">{salaryEditModal.monthly_salary > 0 ? `₹${salaryEditModal.monthly_salary.toLocaleString('en-IN')}` : 'Not set'}</span></p></div>
               <div className="mb-6">
                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">New Monthly Salary <span className="text-[#E8590C]">*</span></label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#E8590C] text-lg font-bold">₹</span>
-                  <input type="number" min="0" step="1000" value={editSalaryValue} onChange={(e) => setEditSalaryValue(e.target.value)}
-                    placeholder="e.g. 30000" autoFocus
-                    className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-10 pr-4 text-sm font-semibold text-[#1A1A2E] outline-none focus:border-[#E8590C]" />
-                </div>
-                {editSalaryValue && Number(editSalaryValue) > 0 && (
-                  <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-orange-50 px-3 py-2">
-                    <span className="text-[11px] text-[#9CA3AF]">Per day: <span className="font-bold text-[#E8590C]">₹{Math.round(Number(editSalaryValue) / 30).toLocaleString('en-IN')}</span></span>
-                    <span className="text-[11px] text-gray-300">•</span>
-                    <span className="text-[11px] text-[#9CA3AF]">Per hour: <span className="font-bold text-[#E8590C]">₹{Math.round(Number(editSalaryValue) / 30 / 8).toLocaleString('en-IN')}</span></span>
-                  </div>
-                )}
+                <div className="relative"><span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#E8590C] text-lg font-bold">₹</span><input type="number" min="0" step="1000" value={editSalaryValue} onChange={(e) => setEditSalaryValue(e.target.value)} placeholder="e.g. 30000" autoFocus className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-10 pr-4 text-sm font-semibold text-[#1A1A2E] outline-none focus:border-[#E8590C]" /></div>
               </div>
               <div className="flex gap-3">
-                <button onClick={handleSalaryUpdate}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">
-                  Update Salary
-                </button>
-                <button onClick={() => { setSalaryEditModal(null); setEditSalaryValue(''); }}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
-                  Cancel
-                </button>
+                <button onClick={handleSalaryUpdate} className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">Update Salary</button>
+                <button onClick={() => { setSalaryEditModal(null); setEditSalaryValue(''); }} className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">Cancel</button>
               </div>
             </div>
           </div>
@@ -1426,47 +1237,23 @@ const Employees = () => {
             <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
             <div className="p-7">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
-                  <svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-extrabold text-[#1A1A2E]">Update Designation</h3>
-                  <p className="text-xs text-[#9CA3AF]">{designationModal.name} — {designationModal.emp_code}</p>
-                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50"><svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0" /></svg></div>
+                <div><h3 className="text-lg font-extrabold text-[#1A1A2E]">Update Designation</h3><p className="text-xs text-[#9CA3AF]">{designationModal.name} — {designationModal.emp_code}</p></div>
               </div>
-              <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3">
-                <p className="text-xs text-[#9CA3AF]">Current: <span className="font-bold text-[#1A1A2E]">{designationModal.designation || 'Not set'}</span></p>
-              </div>
+              <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3"><p className="text-xs text-[#9CA3AF]">Current: <span className="font-bold text-[#1A1A2E]">{designationModal.designation || 'Not set'}</span></p></div>
               <div className="mb-6">
                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Select New Designation <span className="text-[#E8590C]">*</span></label>
                 <div className="relative">
-                  <select value={editDesignationValue} onChange={(e) => setEditDesignationValue(e.target.value)} autoFocus
-                    className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]">
+                  <select value={editDesignationValue} onChange={(e) => setEditDesignationValue(e.target.value)} autoFocus className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]">
                     <option value="">— Select Designation —</option>
                     {DESIGNATION_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
                   </select>
-                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#9CA3AF]">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                  </span>
+                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#9CA3AF]"><svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg></span>
                 </div>
-                {editDesignationValue && (
-                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2">
-                    <span className="text-[11px] text-[#9CA3AF]">New designation:</span>
-                    <span className="rounded-md bg-[#E8590C] px-2 py-0.5 text-[11px] font-bold text-white">{editDesignationValue}</span>
-                  </div>
-                )}
               </div>
               <div className="flex gap-3">
-                <button onClick={handleDesignationUpdate} disabled={!editDesignationValue}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                  Update Designation
-                </button>
-                <button onClick={() => { setDesignationModal(null); setEditDesignationValue(''); }}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
-                  Cancel
-                </button>
+                <button onClick={handleDesignationUpdate} disabled={!editDesignationValue} className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Update Designation</button>
+                <button onClick={() => { setDesignationModal(null); setEditDesignationValue(''); }} className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">Cancel</button>
               </div>
             </div>
           </div>
@@ -1480,156 +1267,102 @@ const Employees = () => {
             <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
             <div className="p-7">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
-                  <svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-extrabold text-[#1A1A2E]">Update Manager</h3>
-                  <p className="text-xs text-[#9CA3AF]">{managerModal.name} — {managerModal.emp_code}</p>
-                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50"><svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg></div>
+                <div><h3 className="text-lg font-extrabold text-[#1A1A2E]">Update Manager</h3><p className="text-xs text-[#9CA3AF]">{managerModal.name} — {managerModal.emp_code}</p></div>
               </div>
-              <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3">
-                <p className="text-xs text-[#9CA3AF]">Current: <span className="font-bold text-[#1A1A2E]">{managerModal.leave_approval_manager || 'Not set'}</span></p>
-              </div>
+              <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3"><p className="text-xs text-[#9CA3AF]">Current: <span className="font-bold text-[#1A1A2E]">{managerModal.leave_approval_manager || 'Not set'}</span></p></div>
               <div className="mb-6">
                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Select New Manager</label>
                 <div className="relative">
-                  <select value={editManagerValue} onChange={(e) => setEditManagerValue(e.target.value)} autoFocus
-                    className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]">
+                  <select value={editManagerValue} onChange={(e) => setEditManagerValue(e.target.value)} autoFocus className="w-full appearance-none rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-10 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]">
                     <option value="">— No Manager —</option>
                     {managers.map((m) => <option key={m._id} value={m.value}>{m.value}</option>)}
                   </select>
-                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#9CA3AF]">
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-                  </span>
+                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-[#9CA3AF]"><svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg></span>
                 </div>
-                {editManagerValue && (
-                  <div className="mt-3 flex items-center gap-2 rounded-lg bg-orange-50 px-3 py-2">
-                    <span className="text-[11px] text-[#9CA3AF]">New manager:</span>
-                    <span className="rounded-md bg-[#E8590C] px-2 py-0.5 text-[11px] font-bold text-white">{editManagerValue}</span>
-                  </div>
-                )}
               </div>
               <div className="flex gap-3">
-                <button onClick={handleManagerUpdate}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">
-                  Update Manager
-                </button>
-                <button onClick={() => { setManagerModal(null); setEditManagerValue(''); }}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
-                  Cancel
-                </button>
+                <button onClick={handleManagerUpdate} className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">Update Manager</button>
+                <button onClick={() => { setManagerModal(null); setEditManagerValue(''); }} className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">Cancel</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ══ ✅ NEW - WORKER TYPE MODAL ══ */}
+      {/* ══ WORKER TYPE MODAL ══ */}
       {workerTypeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
             <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
             <div className="p-7">
-
-              {/* Header */}
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
-                  <svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-extrabold text-[#1A1A2E]">Worker Type</h3>
-                  <p className="text-xs text-[#9CA3AF]">{workerTypeModal.name} — {workerTypeModal.emp_code}</p>
-                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50"><svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" /></svg></div>
+                <div><h3 className="text-lg font-extrabold text-[#1A1A2E]">Worker Type</h3><p className="text-xs text-[#9CA3AF]">{workerTypeModal.name} — {workerTypeModal.emp_code}</p></div>
               </div>
-
-              {/* Current */}
-              <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3">
-                <p className="text-xs text-[#9CA3AF]">
-                  Current Type:{' '}
-                  <span className="font-bold text-[#1A1A2E]">
-                    {workerTypeModal.worker_type === 'site' ? '🚧 Site Worker' : '🏢 Office Worker'}
-                  </span>
-                </p>
-              </div>
-
-              {/* Toggle Cards */}
+              <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3"><p className="text-xs text-[#9CA3AF]">Current Type: <span className="font-bold text-[#1A1A2E]">{workerTypeModal.worker_type === 'site' ? '🚧 Site Worker' : '🏢 Office Worker'}</span></p></div>
               <div className="mb-6">
-                <label className="mb-3 block text-sm font-semibold text-[#1A1A2E]">
-                  Select Worker Type <span className="text-[#E8590C]">*</span>
-                </label>
+                <label className="mb-3 block text-sm font-semibold text-[#1A1A2E]">Select Worker Type <span className="text-[#E8590C]">*</span></label>
                 <div className="grid grid-cols-2 gap-3">
-
-                  {/* Office */}
-                  <button onClick={() => setEditWorkerType('office')}
-                    className={`relative overflow-hidden rounded-2xl border-2 p-4 text-left transition-all ${
-                      editWorkerType === 'office'
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}>
-                    {editWorkerType === 'office' && (
-                      <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500">
-                        <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                      </div>
-                    )}
-                    <div className="mb-2 text-2xl">🏢</div>
-                    <p className="text-sm font-bold text-[#1A1A2E]">Office Worker</p>
-                    <p className="mt-1 text-[10px] text-[#9CA3AF] leading-tight">
-                      9:45 AM ke baad aane par Late mark hoga
-                    </p>
+                  <button onClick={() => setEditWorkerType('office')} className={`relative overflow-hidden rounded-2xl border-2 p-4 text-left transition-all ${editWorkerType === 'office' ? 'border-purple-500 bg-purple-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+                    {editWorkerType === 'office' && <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-purple-500"><svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg></div>}
+                    <div className="mb-2 text-2xl">🏢</div><p className="text-sm font-bold text-[#1A1A2E]">Office Worker</p><p className="mt-1 text-[10px] text-[#9CA3AF] leading-tight">9:45 AM ke baad = Late</p>
                   </button>
-
-                  {/* Site */}
-                  <button onClick={() => setEditWorkerType('site')}
-                    className={`relative overflow-hidden rounded-2xl border-2 p-4 text-left transition-all ${
-                      editWorkerType === 'site'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}>
-                    {editWorkerType === 'site' && (
-                      <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500">
-                        <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                      </div>
-                    )}
-                    <div className="mb-2 text-2xl">🚧</div>
-                    <p className="text-sm font-bold text-[#1A1A2E]">Site Worker</p>
-                    <p className="mt-1 text-[10px] text-[#9CA3AF] leading-tight">
-                      Kabhi bhi aaye — Late nahi lagegi
-                    </p>
+                  <button onClick={() => setEditWorkerType('site')} className={`relative overflow-hidden rounded-2xl border-2 p-4 text-left transition-all ${editWorkerType === 'site' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+                    {editWorkerType === 'site' && <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500"><svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg></div>}
+                    <div className="mb-2 text-2xl">🚧</div><p className="text-sm font-bold text-[#1A1A2E]">Site Worker</p><p className="mt-1 text-[10px] text-[#9CA3AF] leading-tight">Late nahi lagegi</p>
                   </button>
                 </div>
-
-                {/* Info */}
-                <div className={`mt-3 rounded-xl p-3 text-[11px] ${
-                  editWorkerType === 'site'
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'bg-purple-50 text-purple-700'
-                }`}>
-                  {editWorkerType === 'site'
-                    ? '✅ Site worker ko late nahi lagegi — GPS location se koi fark nahi'
-                    : '⏰ Office worker ko 9:45 AM ke baad aane par late mark hoga'}
+                <div className={`mt-3 rounded-xl p-3 text-[11px] ${editWorkerType === 'site' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                  {editWorkerType === 'site' ? '✅ Site worker ko late nahi lagegi' : '⏰ Office worker ko 9:45 AM ke baad late mark hoga'}
                 </div>
               </div>
-
-              {/* Buttons */}
               <div className="flex gap-3">
-                <button onClick={handleWorkerTypeUpdate}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">
-                  Update Worker Type
-                </button>
-                <button onClick={() => { setWorkerTypeModal(null); setEditWorkerType('office'); }}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
-                  Cancel
-                </button>
+                <button onClick={handleWorkerTypeUpdate} className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all">Update Worker Type</button>
+                <button onClick={() => { setWorkerTypeModal(null); setEditWorkerType('office'); }} className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ ✅ NEW - JOINING DATE MODAL ══ */}
+      {joiningDateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
+          <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
+            <div className="p-7">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50"><svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" /></svg></div>
+                <div><h3 className="text-lg font-extrabold text-[#1A1A2E]">Joining Date</h3><p className="text-xs text-[#9CA3AF]">{joiningDateModal.name} — {joiningDateModal.emp_code}</p></div>
+              </div>
+              <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3"><p className="text-xs text-[#9CA3AF]">Current: <span className="font-bold text-[#1A1A2E]">{joiningDateModal.joining_date || 'Not set'}</span></p></div>
+
+              <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-[11px] font-bold text-amber-700">⚠️ Important:</p>
+                <p className="mt-1 text-[11px] text-amber-600">Joining date set karne ke baad employee ko <strong>sirf us month se paid leave</strong> milegi. Purani leave balance me <strong>koi change nahi hoga</strong>.</p>
+              </div>
+
+              <div className="mb-6">
+                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Joining Date <span className="text-[#E8590C]">*</span></label>
+                <input type="text" value={editJoiningDate} onChange={(e) => setEditJoiningDate(e.target.value)} placeholder="e.g. 14/8/2026" autoFocus
+                  className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 text-sm font-semibold text-[#1A1A2E] placeholder:font-normal placeholder:text-gray-400 outline-none focus:border-[#E8590C]" />
+                <p className="mt-1 text-[10px] text-[#9CA3AF]">Format: day/month/year (e.g. 1/8/2026)</p>
+
+                {(() => {
+                  const preview = getJoiningMonthPreview(editJoiningDate);
+                  if (!preview) return null;
+                  return (
+                    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                      <p className="text-[11px] font-bold text-emerald-700">✅ Leave credit shuru hogi: <span className="text-emerald-800">{preview}</span></p>
+                      <p className="mt-0.5 text-[10px] text-emerald-600">Is month se 1 paid leave per month credit hogi</p>
+                    </div>
+                  );
+                })()}
+              </div>
+              <div className="flex gap-3">
+                <button onClick={handleJoiningDateUpdate} disabled={!editJoiningDate} className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Save Joining Date</button>
+                <button onClick={() => { setJoiningDateModal(null); setEditJoiningDate(''); }} className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">Cancel</button>
               </div>
             </div>
           </div>
@@ -1643,65 +1376,33 @@ const Employees = () => {
             <div className="h-1.5 w-full bg-gradient-to-r from-red-500 to-red-600" />
             <div className="p-7">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50">
-                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-extrabold text-red-600">⚠️ Delete Employee?</h3>
-                  <p className="text-xs text-[#9CA3AF]">This action cannot be undone</p>
-                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50"><svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg></div>
+                <div><h3 className="text-lg font-extrabold text-red-600">⚠️ Delete Employee?</h3><p className="text-xs text-[#9CA3AF]">This action cannot be undone</p></div>
               </div>
-
               <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3 space-y-1">
                 <p className="text-sm"><span className="text-[#9CA3AF]">Name:</span> <span className="font-bold text-[#1A1A2E]">{deleteModal.name}</span></p>
                 <p className="text-sm"><span className="text-[#9CA3AF]">Code:</span> <span className="font-bold text-[#1A1A2E]">{deleteModal.emp_code}</span></p>
                 <p className="text-sm"><span className="text-[#9CA3AF]">Email:</span> <span className="font-bold text-[#1A1A2E]">{deleteModal.email}</span></p>
               </div>
-
               {deletePreview ? (
                 <div className="mb-5 rounded-xl border-2 border-red-200 bg-red-50 p-4">
                   <p className="text-sm font-bold text-red-700 mb-3">🗑️ Following data will be permanently deleted:</p>
                   <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { count: deletePreview.counts.attendance_records, label: 'Attendance' },
-                      { count: deletePreview.counts.leave_records, label: 'Leaves' },
-                      { count: deletePreview.counts.photos, label: 'Photos' },
-                    ].map((item) => (
-                      <div key={item.label} className="rounded-lg bg-white p-3 text-center">
-                        <p className="text-2xl font-extrabold text-red-600">{item.count}</p>
-                        <p className="text-[10px] text-gray-500 uppercase font-bold">{item.label}</p>
-                      </div>
+                    {[{ count: deletePreview.counts.attendance_records, label: 'Attendance' }, { count: deletePreview.counts.leave_records, label: 'Leaves' }, { count: deletePreview.counts.photos, label: 'Photos' }].map((item) => (
+                      <div key={item.label} className="rounded-lg bg-white p-3 text-center"><p className="text-2xl font-extrabold text-red-600">{item.count}</p><p className="text-[10px] text-gray-500 uppercase font-bold">{item.label}</p></div>
                     ))}
                   </div>
-                  <p className="mt-3 text-[11px] text-red-700">+ Employee profile, leave balance, all login data</p>
                 </div>
               ) : (
-                <div className="mb-5 flex justify-center py-4">
-                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-red-200 border-t-red-500" />
-                </div>
+                <div className="mb-5 flex justify-center py-4"><div className="h-6 w-6 animate-spin rounded-full border-2 border-red-200 border-t-red-500" /></div>
               )}
-
               <div className="mb-5">
-                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-                  Type <span className="font-mono bg-red-100 px-1.5 py-0.5 rounded text-red-700">DELETE</span> to confirm:
-                </label>
-                <input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="Type DELETE here" autoFocus
-                  className="w-full rounded-xl border-2 border-gray-200 bg-white py-3 px-4 text-sm font-mono font-bold text-red-600 placeholder:text-gray-300 placeholder:font-normal outline-none focus:border-red-500" />
+                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Type <span className="font-mono bg-red-100 px-1.5 py-0.5 rounded text-red-700">DELETE</span> to confirm:</label>
+                <input type="text" value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="Type DELETE here" autoFocus className="w-full rounded-xl border-2 border-gray-200 bg-white py-3 px-4 text-sm font-mono font-bold text-red-600 placeholder:text-gray-300 placeholder:font-normal outline-none focus:border-red-500" />
               </div>
-
               <div className="flex gap-3">
-                <button onClick={handleDeleteConfirm}
-                  disabled={deleteConfirmText !== 'DELETE' || deletingId === deleteModal._id}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">
-                  {deletingId === deleteModal._id ? 'Deleting...' : '🗑️ Delete Forever'}
-                </button>
-                <button onClick={closeDeleteModal} disabled={deletingId === deleteModal._id}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">
-                  Cancel
-                </button>
+                <button onClick={handleDeleteConfirm} disabled={deleteConfirmText !== 'DELETE' || deletingId === deleteModal._id} className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0">{deletingId === deleteModal._id ? 'Deleting...' : '🗑️ Delete Forever'}</button>
+                <button onClick={closeDeleteModal} disabled={deletingId === deleteModal._id} className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">Cancel</button>
               </div>
             </div>
           </div>
@@ -1709,10 +1410,7 @@ const Employees = () => {
       )}
 
       <style>{`
-        @keyframes modalIn {
-          from { opacity:0; transform:scale(.95) translateY(10px) }
-          to   { opacity:1; transform:scale(1) translateY(0) }
-        }
+        @keyframes modalIn { from { opacity:0; transform:scale(.95) translateY(10px) } to { opacity:1; transform:scale(1) translateY(0) } }
         .animate-modalIn { animation:modalIn .25s ease-out }
       `}</style>
     </div>
