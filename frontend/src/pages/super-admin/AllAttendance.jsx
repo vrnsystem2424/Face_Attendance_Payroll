@@ -1,12 +1,18 @@
-// import { useEffect, useState } from 'react';
+
+// import { useEffect, useState, useCallback } from 'react';
 // import { useDispatch, useSelector } from 'react-redux';
 // import { fetchAllAttendanceGlobal } from '../../redux/slices/superAdminSlice';
 // import { fetchCompanies } from '../../redux/slices/companySlice';
+// import { 
+//   searchEmployees,
+//   fetchEmployeeHistory,
+// } from '../../redux/slices/attendanceSlice';
 
 // const AllAttendance = () => {
 //   const dispatch = useDispatch();
 //   const { allAttendance, loading, error } = useSelector((s) => s.superAdmin);
 //   const { companies } = useSelector((s) => s.company);
+//   const { searchResults, employeeHistory } = useSelector((s) => s.attendance);
 
 //   const getTodayDateForInput = () => new Date().toISOString().split('T')[0];
 
@@ -17,18 +23,79 @@
 //     return `${Number(day)}/${Number(month)}/${year}`;
 //   };
 
+//   // Regular filters
 //   const [date, setDate] = useState(getTodayDateForInput());
 //   const [empCode, setEmpCode] = useState('');
 //   const [selectedCompany, setSelectedCompany] = useState('all');
 //   const [statusFilter, setStatusFilter] = useState('all');
 //   const [selectedPhoto, setSelectedPhoto] = useState(null);
 
+//   // 🆕 Employee Search Filters
+//   const [searchMode, setSearchMode] = useState(false);
+//   const [searchQuery, setSearchQuery] = useState('');
+//   const [selectedEmployee, setSelectedEmployee] = useState(null);
+//   const [fromDate, setFromDate] = useState('');
+//   const [toDate, setToDate] = useState('');
+//   const [showDropdown, setShowDropdown] = useState(false);
+
 //   useEffect(() => {
 //     dispatch(fetchCompanies());
-//     dispatch(fetchAllAttendanceGlobal({
-//       date: formatDateForBackend(getTodayDateForInput())
+//     if (!searchMode) {
+//       dispatch(fetchAllAttendanceGlobal({
+//         date: formatDateForBackend(getTodayDateForInput())
+//       }));
+//     }
+//   }, [dispatch, searchMode]);
+
+//   // 🆕 Debounced search
+//   const debounceSearch = useCallback(
+//     debounce((query) => {
+//       if (query.length >= 2) {
+//         dispatch(searchEmployees(query));
+//         setShowDropdown(true);
+//       } else {
+//         setShowDropdown(false);
+//       }
+//     }, 300),
+//     [dispatch]
+//   );
+
+//   const handleSearchChange = (e) => {
+//     const query = e.target.value;
+//     setSearchQuery(query);
+//     debounceSearch(query);
+//   };
+
+//   const handleSelectEmployee = (emp) => {
+//     setSelectedEmployee(emp);
+//     setSearchQuery(emp.name);
+//     setShowDropdown(false);
+//   };
+
+//   const handleFetchHistory = () => {
+//     if (!selectedEmployee) {
+//       alert('Please select an employee first');
+//       return;
+//     }
+//     dispatch(fetchEmployeeHistory({
+//       emp_id: selectedEmployee._id,
+//       from_date: fromDate ? formatDateForBackend(fromDate) : undefined,
+//       to_date: toDate ? formatDateForBackend(toDate) : undefined,
 //     }));
-//   }, [dispatch]);
+//   };
+
+//   const handleClearSearch = () => {
+//     setSearchQuery('');
+//     setSelectedEmployee(null);
+//     setFromDate('');
+//     setToDate('');
+//     setShowDropdown(false);
+//   };
+
+//   const handleToggleMode = () => {
+//     setSearchMode(!searchMode);
+//     handleClearSearch();
+//   };
 
 //   const handleSearch = () => {
 //     const filters = {};
@@ -57,19 +124,26 @@
 
 //   const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
 
-//   const filteredAttendance = (allAttendance || []).filter((r) => {
-//     if (statusFilter === 'all') return true;
-//     if (statusFilter === 'flagged') return r.flagged === true;
-//     if (statusFilter === 'on-site') return r.in_location_status === 'on-site';
-//     if (statusFilter === 'out-of-range') return r.in_location_status === 'out-of-range';
-//     if (statusFilter === 'no-gps') return !r.in_location_status || r.in_location_status === 'no-gps';
-//     return true;
-//   });
+//   // Display records - Either from search or regular
+//   const displayRecords = searchMode && employeeHistory 
+//     ? employeeHistory.records 
+//     : (allAttendance || []).filter((r) => {
+//         if (statusFilter === 'all') return true;
+//         if (statusFilter === 'flagged') return r.flagged === true;
+//         if (statusFilter === 'late') return r.is_late === true;
+//         if (statusFilter === 'half-day') return r.is_half_day === true;
+//         if (statusFilter === 'on-site') return r.in_location_status === 'on-site';
+//         if (statusFilter === 'out-of-range') return r.in_location_status === 'out-of-range';
+//         if (statusFilter === 'no-gps') return !r.in_location_status || r.in_location_status === 'no-gps';
+//         return true;
+//       });
 
 //   const total = (allAttendance || []).length;
 //   const onSite = (allAttendance || []).filter(r => r.in_location_status === 'on-site').length;
 //   const outOfRange = (allAttendance || []).filter(r => r.in_location_status === 'out-of-range').length;
 //   const flagged = (allAttendance || []).filter(r => r.flagged).length;
+//   const lateCount = (allAttendance || []).filter(r => r.is_late).length;
+//   const halfDayCount = (allAttendance || []).filter(r => r.is_half_day).length;
 
 //   const byCompany = {};
 //   (allAttendance || []).forEach(r => {
@@ -97,10 +171,13 @@
 //     );
 //   };
 
+//   // 🆕 UPDATED - 6 stat cards with Late and Half Day
 //   const statCards = [
 //     { label: 'Total Records', value: total, color: '#E8590C', bg: '#FFF3E8', border: '#E8590C', filter: 'all' },
 //     { label: 'On Site', value: onSite, color: '#16a34a', bg: '#f0fdf4', border: '#16a34a', filter: 'on-site' },
 //     { label: 'Out of Range', value: outOfRange, color: '#dc2626', bg: '#fef2f2', border: '#dc2626', filter: 'out-of-range' },
+//     { label: '⏰ Late', value: lateCount, color: '#f59e0b', bg: '#fffbeb', border: '#f59e0b', filter: 'late' },
+//     { label: '⚠️ Half Day', value: halfDayCount, color: '#ea580c', bg: '#fff7ed', border: '#ea580c', filter: 'half-day' },
 //     { label: '🚩 Flagged', value: flagged, color: '#d97706', bg: '#fffbeb', border: '#d97706', filter: 'flagged' },
 //   ];
 
@@ -125,67 +202,205 @@
 //                 <div>
 //                   <h2 className="text-lg font-extrabold text-[#1A1A2E]">All Attendance — Global View</h2>
 //                   <p className="text-xs text-[#9CA3AF]">
-//                     {filteredAttendance.length} records • {companies?.length || 0} companies
+//                     {displayRecords.length} records • {companies?.length || 0} companies
 //                   </p>
 //                 </div>
 //               </div>
-//               <button
-//                 onClick={handleReset}
-//                 className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#4B5563] hover:border-[#E8590C]/30 hover:bg-[#FFF8F3] hover:text-[#E8590C]"
-//               >
-//                 Reset
-//               </button>
+
+//               {/* 🆕 Mode Toggle */}
+//               <div className="flex gap-2">
+//                 <button
+//                   onClick={handleToggleMode}
+//                   className={`rounded-xl px-4 py-2 text-sm font-bold transition-all ${
+//                     searchMode 
+//                       ? 'bg-[#E8590C] text-white shadow-md' 
+//                       : 'bg-white text-[#4B5563] border border-gray-200 hover:bg-[#FFF3E8]'
+//                   }`}
+//                 >
+//                   {searchMode ? '🔍 Employee Search Mode' : '📅 Date Mode'}
+//                 </button>
+//                 <button
+//                   onClick={handleReset}
+//                   className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#4B5563] hover:border-[#E8590C]/30 hover:bg-[#FFF8F3] hover:text-[#E8590C]"
+//                 >
+//                   Reset
+//                 </button>
+//               </div>
 //             </div>
 
-//             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-//               <select
-//                 value={selectedCompany}
-//                 onChange={(e) => setSelectedCompany(e.target.value)}
-//                 className="rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 px-3 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]"
-//               >
-//                 <option value="all">🏢 All Companies</option>
-//                 {companies?.map((c) => (
-//                   <option key={c._id} value={c._id}>{c.name}</option>
-//                 ))}
-//               </select>
+//             {/* 🆕 EMPLOYEE SEARCH MODE */}
+//             {searchMode ? (
+//               <div className="space-y-4">
+//                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+//                   {/* Employee Search with Dropdown */}
+//                   <div className="relative md:col-span-2">
+//                     <label className="text-xs font-bold uppercase text-[#9CA3AF] mb-2 block">
+//                       Search Employee
+//                     </label>
+//                     <input
+//                       type="text"
+//                       value={searchQuery}
+//                       onChange={handleSearchChange}
+//                       placeholder="Type name or code..."
+//                       className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 px-4 text-sm outline-none focus:border-[#E8590C]"
+//                     />
+                    
+//                     {/* Dropdown */}
+//                     {showDropdown && searchResults?.length > 0 && (
+//                       <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-20 max-h-60 overflow-y-auto">
+//                         {searchResults.map((emp) => (
+//                           <button
+//                             key={emp._id}
+//                             onClick={() => handleSelectEmployee(emp)}
+//                             className="w-full text-left px-4 py-3 hover:bg-[#FFF3E8] border-b border-gray-100 last:border-0"
+//                           >
+//                             <p className="font-bold text-[#1A1A2E]">{emp.name}</p>
+//                             <div className="flex items-center gap-2 mt-0.5">
+//                               <span className="text-[10px] font-bold text-[#E8590C] bg-[#FFF3E8] px-2 py-0.5 rounded">
+//                                 {emp.emp_code}
+//                               </span>
+//                               {emp.department && (
+//                                 <span className="text-[10px] text-[#9CA3AF]">{emp.department}</span>
+//                               )}
+//                             </div>
+//                           </button>
+//                         ))}
+//                       </div>
+//                     )}
+//                   </div>
 
-//               <div className="relative">
-//                 <input
-//                   type="date"
-//                   value={date}
-//                   onChange={(e) => setDate(e.target.value)}
-//                   onKeyDown={handleKeyDown}
-//                   className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 px-3 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]"
-//                 />
-//                 {date && (
+//                   {/* From Date */}
+//                   <div>
+//                     <label className="text-xs font-bold uppercase text-[#9CA3AF] mb-2 block">From Date</label>
+//                     <input
+//                       type="date"
+//                       value={fromDate}
+//                       onChange={(e) => setFromDate(e.target.value)}
+//                       className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 px-4 text-sm outline-none focus:border-[#E8590C]"
+//                     />
+//                   </div>
+
+//                   {/* To Date */}
+//                   <div>
+//                     <label className="text-xs font-bold uppercase text-[#9CA3AF] mb-2 block">To Date</label>
+//                     <input
+//                       type="date"
+//                       value={toDate}
+//                       onChange={(e) => setToDate(e.target.value)}
+//                       className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 px-4 text-sm outline-none focus:border-[#E8590C]"
+//                     />
+//                   </div>
+//                 </div>
+
+//                 {/* Search Button */}
+//                 <div className="flex gap-3">
 //                   <button
-//                     onClick={handleClearDate}
-//                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+//                     onClick={handleFetchHistory}
+//                     disabled={!selectedEmployee || loading}
+//                     className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
 //                   >
-//                     <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-//                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-//                     </svg>
+//                     {loading ? 'Loading...' : '🔍 View Attendance History'}
 //                   </button>
+//                   <button
+//                     onClick={handleClearSearch}
+//                     className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-[#4B5563] hover:bg-gray-50"
+//                   >
+//                     Clear
+//                   </button>
+//                 </div>
+
+//                 {/* Selected Employee Info */}
+//                 {selectedEmployee && (
+//                   <div className="rounded-xl bg-[#FFF3E8] border border-[#E8590C]/20 p-3 flex items-center gap-3">
+//                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8590C] text-white font-bold">
+//                       {selectedEmployee.name?.charAt(0).toUpperCase()}
+//                     </div>
+//                     <div className="flex-1">
+//                       <p className="font-bold text-[#1A1A2E]">{selectedEmployee.name}</p>
+//                       <div className="flex items-center gap-2 mt-0.5">
+//                         <span className="text-[11px] font-bold text-[#E8590C]">{selectedEmployee.emp_code}</span>
+//                         {selectedEmployee.department && (
+//                           <span className="text-[11px] text-[#9CA3AF]">• {selectedEmployee.department}</span>
+//                         )}
+//                       </div>
+//                     </div>
+//                   </div>
+//                 )}
+
+//                 {/* Employee History Summary */}
+//                 {employeeHistory?.summary && (
+//                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+//                     <div className="rounded-xl bg-white border border-gray-100 p-3 text-center">
+//                       <p className="text-2xl font-extrabold text-[#E8590C]">{employeeHistory.summary.total_records}</p>
+//                       <p className="text-[10px] text-[#9CA3AF] uppercase font-bold">Total Days</p>
+//                     </div>
+//                     <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-center">
+//                       <p className="text-2xl font-extrabold text-emerald-600">{employeeHistory.summary.total_present}</p>
+//                       <p className="text-[10px] text-emerald-700 uppercase font-bold">Present</p>
+//                     </div>
+//                     <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 text-center">
+//                       <p className="text-2xl font-extrabold text-amber-600">{employeeHistory.summary.total_late}</p>
+//                       <p className="text-[10px] text-amber-700 uppercase font-bold">Late</p>
+//                     </div>
+//                     <div className="rounded-xl bg-orange-50 border border-orange-100 p-3 text-center">
+//                       <p className="text-2xl font-extrabold text-orange-600">{employeeHistory.summary.total_worked_hours}</p>
+//                       <p className="text-[10px] text-orange-700 uppercase font-bold">Total Hours</p>
+//                     </div>
+//                   </div>
 //                 )}
 //               </div>
+//             ) : (
+//               /* Regular Date Mode */
+//               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+//                 <select
+//                   value={selectedCompany}
+//                   onChange={(e) => setSelectedCompany(e.target.value)}
+//                   className="rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 px-3 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]"
+//                 >
+//                   <option value="all">🏢 All Companies</option>
+//                   {companies?.map((c) => (
+//                     <option key={c._id} value={c._id}>{c.name}</option>
+//                   ))}
+//                 </select>
 
-//               <input
-//                 type="text"
-//                 placeholder="Employee Code"
-//                 value={empCode}
-//                 onChange={(e) => setEmpCode(e.target.value)}
-//                 onKeyDown={handleKeyDown}
-//                 className="rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 px-3 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]"
-//               />
+//                 <div className="relative">
+//                   <input
+//                     type="date"
+//                     value={date}
+//                     onChange={(e) => setDate(e.target.value)}
+//                     onKeyDown={handleKeyDown}
+//                     className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 px-3 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]"
+//                   />
+//                   {date && (
+//                     <button
+//                       onClick={handleClearDate}
+//                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+//                     >
+//                       <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+//                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+//                       </svg>
+//                     </button>
+//                   )}
+//                 </div>
 
-//               <button
-//                 onClick={handleSearch}
-//                 disabled={loading}
-//                 className="rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-60"
-//               >
-//                 {loading ? 'Loading...' : '🔍 Search'}
-//               </button>
-//             </div>
+//                 <input
+//                   type="text"
+//                   placeholder="Employee Code"
+//                   value={empCode}
+//                   onChange={(e) => setEmpCode(e.target.value)}
+//                   onKeyDown={handleKeyDown}
+//                   className="rounded-xl border border-gray-200 bg-[#FAFAFA] py-2.5 px-3 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]"
+//                 />
+
+//                 <button
+//                   onClick={handleSearch}
+//                   disabled={loading}
+//                   className="rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-60"
+//                 >
+//                   {loading ? 'Loading...' : '🔍 Search'}
+//                 </button>
+//               </div>
+//             )}
 
 //             {error && (
 //               <div className="mt-4 rounded-xl border border-red-100 bg-red-50/80 px-4 py-3">
@@ -195,26 +410,28 @@
 //           </div>
 //         </div>
 
-//         {/* Stats Cards */}
-//         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-//           {statCards.map((card) => (
-//             <div
-//               key={card.label}
-//               onClick={() => setStatusFilter(card.filter === statusFilter ? 'all' : card.filter)}
-//               className="group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all"
-//               style={{ border: `2px solid ${statusFilter === card.filter ? card.border : 'transparent'}` }}
-//             >
-//               <div className="h-1 w-full" style={{ background: card.color, opacity: statusFilter === card.filter ? 1 : 0.3 }} />
-//               <div className="p-5">
-//                 <p className="text-3xl font-extrabold" style={{ color: card.color }}>{card.value}</p>
-//                 <p className="mt-1 text-xs font-medium text-[#9CA3AF]">{card.label}</p>
+//         {/* Stats Cards - Only in Date Mode - Now 6 cards */}
+//         {!searchMode && (
+//           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
+//             {statCards.map((card) => (
+//               <div
+//                 key={card.label}
+//                 onClick={() => setStatusFilter(card.filter === statusFilter ? 'all' : card.filter)}
+//                 className="group cursor-pointer overflow-hidden rounded-2xl bg-white shadow-sm hover:-translate-y-0.5 hover:shadow-md transition-all"
+//                 style={{ border: `2px solid ${statusFilter === card.filter ? card.border : 'transparent'}` }}
+//               >
+//                 <div className="h-1 w-full" style={{ background: card.color, opacity: statusFilter === card.filter ? 1 : 0.3 }} />
+//                 <div className="p-4">
+//                   <p className="text-2xl font-extrabold" style={{ color: card.color }}>{card.value}</p>
+//                   <p className="mt-1 text-[10px] font-medium text-[#9CA3AF]">{card.label}</p>
+//                 </div>
 //               </div>
-//             </div>
-//           ))}
-//         </div>
+//             ))}
+//           </div>
+//         )}
 
-//         {/* Company Breakdown */}
-//         {Object.keys(byCompany).length > 0 && (
+//         {/* Company Breakdown - Only in Date Mode */}
+//         {!searchMode && Object.keys(byCompany).length > 0 && (
 //           <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
 //             <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">📊 Company Breakdown</p>
 //             <div className="flex flex-wrap gap-2">
@@ -234,16 +451,22 @@
 //               <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#E8590C]/20 border-t-[#E8590C]" />
 //               <p className="mt-4 text-sm text-[#9CA3AF]">Loading...</p>
 //             </div>
-//           ) : filteredAttendance.length === 0 ? (
+//           ) : displayRecords.length === 0 ? (
 //             <div className="flex flex-col items-center py-20">
-//               <p className="text-sm font-medium text-[#9CA3AF]">No records found</p>
+//               <p className="text-sm font-medium text-[#9CA3AF]">
+//                 {searchMode 
+//                   ? selectedEmployee 
+//                     ? 'No records found for selected employee' 
+//                     : 'Please search and select an employee'
+//                   : 'No attendance records found'}
+//               </p>
 //             </div>
 //           ) : (
 //             <div className="overflow-x-auto">
 //               <table className="w-full text-sm">
 //                 <thead>
 //                   <tr className="bg-[#faf8f5]">
-//                     {['Photo', 'Name', 'Company', 'Code', 'Date', 'IN', 'IN Loc', 'OUT', 'OUT Loc', 'Status'].map((h) => (
+//                     {['Photo', 'Name', 'Company', 'Code', 'Date', 'IN', 'IN Location', 'OUT', 'OUT Location', 'Status'].map((h) => (
 //                       <th key={h} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-[#9CA3AF]">
 //                         {h}
 //                       </th>
@@ -251,7 +474,7 @@
 //                   </tr>
 //                 </thead>
 //                 <tbody className="divide-y divide-gray-50">
-//                   {filteredAttendance.map((record) => (
+//                   {displayRecords.map((record) => (
 //                     <tr key={record._id} className={`hover:bg-[#faf8f5] ${record.flagged ? 'bg-amber-50/30' : ''}`}>
 //                       <td className="px-4 py-3">
 //                         {record.in_selfie_url ? (
@@ -278,8 +501,20 @@
 //                       </td>
 //                       <td className="px-4 py-3 text-[#4B5563]">{record.emp_code}</td>
 //                       <td className="px-4 py-3 text-[#4B5563]">{record.date}</td>
-//                       <td className="px-4 py-3 font-semibold text-emerald-600">{record.in_time || '-'}</td>
-//                       <td className="px-4 py-3">{locationBadge(record.in_location_status, record.in_distance)}</td>
+//                       <td className="px-4 py-3 font-semibold text-emerald-600">
+//                         {record.in_time || '-'}
+//                         {record.is_late && (
+//                           <span className="ml-1 text-[9px] font-bold text-amber-600">⏰</span>
+//                         )}
+//                       </td>
+//                       <td className="px-4 py-3">
+//                         <div className="flex flex-col gap-1">
+//                           {locationBadge(record.in_location_status, record.in_distance)}
+//                           {record.in_site && (
+//                             <span className="text-[11px] text-[#9CA3AF]">📍 {record.in_site}</span>
+//                           )}
+//                         </div>
+//                       </td>
 //                       <td className="px-4 py-3 font-semibold text-red-500">{record.out_time || '-'}</td>
 //                       <td className="px-4 py-3">
 //                         {record.out_time ? (
@@ -292,19 +527,31 @@
 //                                 <img src={record.out_selfie_url} alt="OUT" className="h-8 w-8 object-cover" />
 //                               </button>
 //                             )}
-//                             {locationBadge(record.out_location_status, record.out_distance)}
+//                             <div className="flex flex-col gap-1">
+//                               {locationBadge(record.out_location_status, record.out_distance)}
+//                               {record.out_site && (
+//                                 <span className="text-[11px] text-[#9CA3AF]">📍 {record.out_site}</span>
+//                               )}
+//                             </div>
 //                           </div>
 //                         ) : (
 //                           <span className="text-[#D1D5DB]">—</span>
 //                         )}
 //                       </td>
 //                       <td className="px-4 py-3">
-//                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-bold ${
-//                           record.flagged ? 'bg-amber-50 text-amber-700' :
-//                           record.status === 'present' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-50 text-gray-700'
-//                         }`}>
-//                           {record.flagged ? '🚩 Flagged' : record.status}
-//                         </span>
+//                         <div className="flex flex-col gap-1">
+//                           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold w-fit ${
+//                             record.flagged ? 'bg-amber-50 text-amber-700' :
+//                             record.is_half_day ? 'bg-orange-50 text-orange-700' :
+//                             record.is_late ? 'bg-amber-50 text-amber-700' :
+//                             record.status === 'present' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+//                           }`}>
+//                             {record.flagged ? '🚩 Flagged' : 
+//                              record.is_half_day ? '⚠️ Half Day' :
+//                              record.is_late ? '⏰ Late' :
+//                              record.status}
+//                           </span>
+//                         </div>
 //                       </td>
 //                     </tr>
 //                   ))}
@@ -325,6 +572,19 @@
 //   );
 // };
 
+// // Debounce helper
+// function debounce(func, wait) {
+//   let timeout;
+//   return function executedFunction(...args) {
+//     const later = () => {
+//       clearTimeout(timeout);
+//       func(...args);
+//     };
+//     clearTimeout(timeout);
+//     timeout = setTimeout(later, wait);
+//   };
+// }
+
 // // PHOTO MODAL WITH ADDRESS
 // const PhotoModal = ({ data, onClose }) => {
 //   const { record, type } = data;
@@ -335,7 +595,7 @@
 //   const site = type === 'IN' ? record.in_site : record.out_site;
 //   const latitude = type === 'IN' ? record.in_latitude : record.out_latitude;
 //   const longitude = type === 'IN' ? record.in_longitude : record.out_longitude;
-//   const address = type === 'IN' ? record.in_address : record.out_address;  // 🆕
+//   const address = type === 'IN' ? record.in_address : record.out_address;
 
 //   return (
 //     <div
@@ -364,11 +624,12 @@
 //         </div>
 
 //         <div className="p-5 space-y-3">
-//           {/* Company badge */}
-//           <div className="rounded-xl bg-[#FFF3E8] border border-[#E8590C]/20 p-3">
-//             <p className="text-[10px] font-bold uppercase text-[#E8590C] mb-1">🏢 Company</p>
-//             <p className="text-sm font-bold text-[#D14800]">{record.company_id?.name || 'Unknown'}</p>
-//           </div>
+//           {record.company_id?.name && (
+//             <div className="rounded-xl bg-[#FFF3E8] border border-[#E8590C]/20 p-3">
+//               <p className="text-[10px] font-bold uppercase text-[#E8590C] mb-1">🏢 Company</p>
+//               <p className="text-sm font-bold text-[#D14800]">{record.company_id.name}</p>
+//             </div>
+//           )}
 
 //           <div className="grid grid-cols-2 gap-3 text-sm">
 //             <div>
@@ -389,6 +650,22 @@
 //             </div>
 //           </div>
 
+//           {/* 🆕 Late/Half Day Info */}
+//           {(record.is_late || record.is_half_day) && (
+//             <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
+//               <p className="text-xs font-bold text-amber-700 uppercase mb-2">
+//                 {record.is_half_day ? '⚠️ Half Day' : '⏰ Late'}
+//               </p>
+//               {record.late_reasons && record.late_reasons.length > 0 && (
+//                 <ul className="space-y-1">
+//                   {record.late_reasons.map((reason, i) => (
+//                     <li key={i} className="text-xs text-amber-700">• {reason}</li>
+//                   ))}
+//                 </ul>
+//               )}
+//             </div>
+//           )}
+
 //           <div className={`rounded-xl p-3 border ${
 //             location === 'on-site' ? 'bg-emerald-50 border-emerald-200' :
 //             location === 'out-of-range' ? 'bg-red-50 border-red-200' :
@@ -402,7 +679,6 @@
 //             {site && <p className="text-sm font-semibold">{site}</p>}
 //             {distance > 0 && <p className="text-xs">Distance: {distance}m</p>}
             
-//             {/* 🆕 Full Address Display */}
 //             {address && (
 //               <div className="mt-3 pt-3 border-t border-gray-300">
 //                 <p className="text-[10px] font-bold uppercase text-gray-600 mb-1">
@@ -499,7 +775,7 @@ const AllAttendance = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPhoto, setSelectedPhoto] = useState(null);
 
-  // 🆕 Employee Search Filters
+  // Employee Search Filters
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -516,7 +792,7 @@ const AllAttendance = () => {
     }
   }, [dispatch, searchMode]);
 
-  // 🆕 Debounced search
+  // Debounced search
   const debounceSearch = useCallback(
     debounce((query) => {
       if (query.length >= 2) {
@@ -593,7 +869,7 @@ const AllAttendance = () => {
 
   const handleKeyDown = (e) => { if (e.key === 'Enter') handleSearch(); };
 
-  // Display records - Either from search or regular
+  // Display records
   const displayRecords = searchMode && employeeHistory 
     ? employeeHistory.records 
     : (allAttendance || []).filter((r) => {
@@ -640,7 +916,6 @@ const AllAttendance = () => {
     );
   };
 
-  // 🆕 UPDATED - 6 stat cards with Late and Half Day
   const statCards = [
     { label: 'Total Records', value: total, color: '#E8590C', bg: '#FFF3E8', border: '#E8590C', filter: 'all' },
     { label: 'On Site', value: onSite, color: '#16a34a', bg: '#f0fdf4', border: '#16a34a', filter: 'on-site' },
@@ -649,6 +924,14 @@ const AllAttendance = () => {
     { label: '⚠️ Half Day', value: halfDayCount, color: '#ea580c', bg: '#fff7ed', border: '#ea580c', filter: 'half-day' },
     { label: '🚩 Flagged', value: flagged, color: '#d97706', bg: '#fffbeb', border: '#d97706', filter: 'flagged' },
   ];
+
+  // 🆕 CALCULATE OUT OF RANGE COUNT FOR SELECTED EMPLOYEE
+  let searchModeOutOfRangeCount = 0;
+  if (searchMode && employeeHistory?.records) {
+    searchModeOutOfRangeCount = employeeHistory.records.filter(
+      (r) => r.in_location_status === 'out-of-range' || r.out_location_status === 'out-of-range'
+    ).length;
+  }
 
   return (
     <div className="min-h-screen bg-[#faf8f5]">
@@ -676,7 +959,7 @@ const AllAttendance = () => {
                 </div>
               </div>
 
-              {/* 🆕 Mode Toggle */}
+              {/* Mode Toggle */}
               <div className="flex gap-2">
                 <button
                   onClick={handleToggleMode}
@@ -697,7 +980,7 @@ const AllAttendance = () => {
               </div>
             </div>
 
-            {/* 🆕 EMPLOYEE SEARCH MODE */}
+            {/* EMPLOYEE SEARCH MODE */}
             {searchMode ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -796,9 +1079,36 @@ const AllAttendance = () => {
                   </div>
                 )}
 
+                {/* 🆕 OUT OF RANGE ALERT CARD (Only shows if count > 0) */}
+                {employeeHistory?.summary && searchModeOutOfRangeCount > 0 && (
+                  <div className="animate-slideUp mt-4 rounded-xl border-2 border-red-500 bg-red-50 p-4 shadow-lg flex items-start gap-4 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-100 rounded-full blur-2xl -mr-10 -mt-10" />
+                    
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 border border-red-200 z-10">
+                      <span className="text-2xl">🚨</span>
+                    </div>
+                    
+                    <div className="z-10 flex-1">
+                      <h3 className="text-base font-extrabold text-red-700 uppercase tracking-wide">
+                        Suspicious Activity Detected!
+                      </h3>
+                      <p className="mt-1 text-sm text-red-900 font-medium">
+                        This employee has marked attendance 
+                        <strong className="text-xl mx-2 text-red-600 bg-red-100 px-2 py-0.5 rounded-lg border border-red-300">
+                          {searchModeOutOfRangeCount} TIMES
+                        </strong> 
+                        from an <strong className="font-bold">Out of Range</strong> location during the selected period.
+                      </p>
+                      <p className="mt-2 text-xs text-red-600 font-bold">
+                        📌 Please verify their location details below in the table!
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Employee History Summary */}
                 {employeeHistory?.summary && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                     <div className="rounded-xl bg-white border border-gray-100 p-3 text-center">
                       <p className="text-2xl font-extrabold text-[#E8590C]">{employeeHistory.summary.total_records}</p>
                       <p className="text-[10px] text-[#9CA3AF] uppercase font-bold">Total Days</p>
@@ -879,7 +1189,7 @@ const AllAttendance = () => {
           </div>
         </div>
 
-        {/* Stats Cards - Only in Date Mode - Now 6 cards */}
+        {/* Stats Cards - Only in Date Mode */}
         {!searchMode && (
           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-6">
             {statCards.map((card) => (
@@ -925,7 +1235,7 @@ const AllAttendance = () => {
               <p className="text-sm font-medium text-[#9CA3AF]">
                 {searchMode 
                   ? selectedEmployee 
-                    ? 'No records found for selected employee' 
+                    ? 'No records found for selected employee in this date range' 
                     : 'Please search and select an employee'
                   : 'No attendance records found'}
               </p>
@@ -1037,6 +1347,14 @@ const AllAttendance = () => {
           onClose={() => setSelectedPhoto(null)}
         />
       )}
+      
+      <style>{`
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slideUp { animation: slideUp 0.3s ease-out; }
+      `}</style>
     </div>
   );
 };
@@ -1119,7 +1437,6 @@ const PhotoModal = ({ data, onClose }) => {
             </div>
           </div>
 
-          {/* 🆕 Late/Half Day Info */}
           {(record.is_late || record.is_half_day) && (
             <div className="rounded-xl bg-amber-50 border border-amber-200 p-3">
               <p className="text-xs font-bold text-amber-700 uppercase mb-2">
@@ -1191,14 +1508,6 @@ const PhotoModal = ({ data, onClose }) => {
           )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-slideUp { animation: slideUp 0.3s ease-out; }
-      `}</style>
     </div>
   );
 };
