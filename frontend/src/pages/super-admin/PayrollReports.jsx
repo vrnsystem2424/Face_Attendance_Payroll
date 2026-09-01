@@ -1,9 +1,15 @@
+
+
+
+
+
 // import { useEffect, useState } from 'react';
 // import { useDispatch, useSelector } from 'react-redux';
 // import {
 //   fetchCompanyPayroll,
 //   fetchCompanyDepartments,
 //   downloadPayrollPDF,
+//   downloadPayrollCSV,
 //   finalizePayroll,
 //   clearPayrollData,
 // } from '../../redux/slices/payrollSlice';
@@ -11,7 +17,7 @@
 
 // const PayrollReports = () => {
 //   const dispatch = useDispatch();
-//   const { payrollData, departments, loading, downloading, finalizing } = useSelector((s) => s.payroll);
+//   const { payrollData, departments, loading, downloading, downloadingCSV, finalizing } = useSelector((s) => s.payroll);
 //   const { companies } = useSelector((s) => s.company);
 
 //   const today = new Date();
@@ -44,6 +50,16 @@
 //     dispatch(downloadPayrollPDF({ 
 //       ...filters, 
 //       calc_method: 'days',
+//       company_name: payrollData.company?.name,
+//       month_name: payrollData.month_name,
+//     }));
+//   };
+
+//   // 🆕 CSV Download Handler
+//   const handleDownloadCSV = () => {
+//     if (!payrollData) { alert('Generate report first'); return; }
+//     dispatch(downloadPayrollCSV({ 
+//       ...filters, 
 //       company_name: payrollData.company?.name,
 //       month_name: payrollData.month_name,
 //     }));
@@ -153,18 +169,29 @@
 //                 className="rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
 //                 {loading ? 'Generating...' : '🔍 Generate'}
 //               </button>
+
 //               {payrollData && (
 //                 <button onClick={handleDownloadPDF} disabled={downloading}
 //                   className="rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
-//                   {downloading ? 'Downloading...' : '📄 PDF'}
+//                   {downloading ? '⏳ Downloading...' : '📄 PDF'}
 //                 </button>
 //               )}
+
+//               {/* 🆕 CSV BUTTON */}
+//               {payrollData && (
+//                 <button onClick={handleDownloadCSV} disabled={downloadingCSV}
+//                   className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
+//                   {downloadingCSV ? '⏳ Downloading...' : '📊 CSV (Excel/Sheets)'}
+//                 </button>
+//               )}
+
 //               {payrollData && !payrollData.is_finalized && (
 //                 <button onClick={handleFinalize} disabled={finalizing}
 //                   className="rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
 //                   {finalizing ? '⏳ Finalizing...' : '🔒 Finalize Payroll'}
 //                 </button>
 //               )}
+
 //               {payrollData && payrollData.is_finalized && (
 //                 <div className="flex items-center gap-2 rounded-xl bg-emerald-100 border-2 border-emerald-300 px-6 py-3">
 //                   <span className="text-lg">✅</span>
@@ -172,6 +199,15 @@
 //                 </div>
 //               )}
 //             </div>
+
+//             {/* 🆕 CSV INFO TIP */}
+//             {payrollData && (
+//               <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2">
+//                 <p className="text-[11px] text-blue-800">
+//                   💡 
+//                 </p>
+//               </div>
+//             )}
 //           </div>
 //         </div>
 
@@ -281,30 +317,24 @@
 
 //                   <tbody className="divide-y divide-gray-50">
 //                     {payrollData.employees.map((emp, idx) => {
-//                       // Combined HD (attendance + half day leaves)
 //                       const totalHD = (emp.half_day_count || 0) + (emp.half_day_leave_count || 0);
-                      
-//                       // Total leaves in days (full + half day equivalents)
 //                       const totalLeavesDays = emp.total_leave_approved || 0;
 
 //                       return (
 //                         <tr key={emp.emp_id || idx} className="hover:bg-[#faf8f5]">
 //                           <td className="px-2 py-3 text-xs text-[#9CA3AF]">{idx + 1}</td>
 
-//                           {/* NAME */}
 //                           <td className="px-2 py-3">
 //                             <p className="font-semibold text-[#1A1A2E] text-[13px]">{emp.name}</p>
 //                             <p className="text-[10px] text-[#9CA3AF] font-mono">{emp.emp_code}</p>
 //                           </td>
 
-//                           {/* PRESENT */}
 //                           <td className="px-2 py-3 text-center">
 //                             <span className="inline-flex h-7 min-w-[32px] px-1 items-center justify-center rounded-lg bg-emerald-50 text-xs font-bold text-emerald-700">
 //                               {emp.total_present || 0}
 //                             </span>
 //                           </td>
 
-//                           {/* LATE */}
 //                           <td className="px-2 py-3 text-center">
 //                             <div className="inline-flex flex-col items-center">
 //                               <span className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
@@ -316,7 +346,6 @@
 //                             </div>
 //                           </td>
 
-//                           {/* HD - Attendance HD + Half Day Leaves */}
 //                           <td className="px-2 py-3 text-center">
 //                             <div className="inline-flex flex-col items-center">
 //                               <span className={`inline-flex h-7 min-w-[32px] px-1 items-center justify-center rounded-lg text-xs font-bold ${
@@ -334,7 +363,6 @@
 //                             </div>
 //                           </td>
 
-//                           {/* LEAVES - Full + Half combined */}
 //                           <td className="px-2 py-3 text-center">
 //                             <div className="inline-flex flex-col items-center">
 //                               <span className={`inline-flex h-7 min-w-[32px] px-1 items-center justify-center rounded-lg text-xs font-bold ${
@@ -355,7 +383,6 @@
 //                             </div>
 //                           </td>
 
-//                           {/* PAID LV */}
 //                           <td className="px-2 py-3 text-center">
 //                             <div className="inline-flex flex-col items-center">
 //                               <span className={`inline-flex h-7 min-w-[28px] items-center justify-center rounded-lg px-1 text-xs font-bold ${
@@ -367,7 +394,6 @@
 //                             </div>
 //                           </td>
 
-//                           {/* CARRY FORWARD */}
 //                           <td className="px-2 py-3 text-center bg-indigo-50/30">
 //                             <span className={`inline-flex h-7 min-w-[32px] items-center justify-center rounded-lg px-1 text-xs font-extrabold ${
 //                               (emp.leave_closing_balance || 0) > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-red-50 text-red-600'
@@ -376,14 +402,12 @@
 //                             </span>
 //                           </td>
 
-//                           {/* FINAL DAYS */}
 //                           <td className="px-2 py-3 text-center bg-purple-50/30">
 //                             <span className="inline-flex h-7 min-w-[40px] items-center justify-center rounded-lg bg-purple-100 px-2 text-xs font-extrabold text-purple-700">
 //                               {emp.final_payable_days || 0}
 //                             </span>
 //                           </td>
 
-//                           {/* % */}
 //                           <td className="px-2 py-3 text-center">
 //                             <span className={`inline-block rounded-md px-2 py-1 text-[10px] font-bold ${
 //                               (emp.progress_percent || 0) >= 100 ? 'bg-emerald-100 text-emerald-700' :
@@ -393,17 +417,14 @@
 //                             }`}>{emp.progress_percent || 0}%</span>
 //                           </td>
 
-//                           {/* SALARY */}
 //                           <td className="px-2 py-3 text-right text-xs font-semibold text-[#1A1A2E]">{fmt(emp.monthly_salary)}</td>
 
-//                           {/* CUT */}
 //                           <td className="px-2 py-3 text-right">
 //                             {(emp.total_deduction || 0) > 0 ? (
 //                               <span className="text-xs font-semibold text-red-600">{fmt(emp.total_deduction)}</span>
 //                             ) : <span className="text-xs font-bold text-emerald-600">—</span>}
 //                           </td>
 
-//                           {/* NET */}
 //                           <td className="px-2 py-3 text-right">
 //                             <span className="rounded-lg bg-[#FFF3E8] px-2 py-1 text-xs font-extrabold text-[#E8590C]">
 //                               {fmt(emp.net_payable)}
@@ -525,7 +546,6 @@ const PayrollReports = () => {
     }));
   };
 
-  // 🆕 CSV Download Handler
   const handleDownloadCSV = () => {
     if (!payrollData) { alert('Generate report first'); return; }
     dispatch(downloadPayrollCSV({ 
@@ -647,7 +667,6 @@ const PayrollReports = () => {
                 </button>
               )}
 
-              {/* 🆕 CSV BUTTON */}
               {payrollData && (
                 <button onClick={handleDownloadCSV} disabled={downloadingCSV}
                   className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
@@ -670,7 +689,6 @@ const PayrollReports = () => {
               )}
             </div>
 
-            {/* 🆕 CSV INFO TIP */}
             {payrollData && (
               <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2">
                 <p className="text-[11px] text-blue-800">
@@ -753,7 +771,8 @@ const PayrollReports = () => {
 
             {/* TABLE */}
             <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-              <div className="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+              {/* 🔒 STICKY: Table Title Header */}
+              <div className="sticky top-0 z-30 border-b border-gray-100 bg-white px-6 py-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold text-[#1A1A2E]">Employee Salary Details</h3>
                   <p className="text-xs text-[#9CA3AF]">{payrollData.employees.length} employees • Days Based</p>
@@ -765,23 +784,25 @@ const PayrollReports = () => {
                 )}
               </div>
 
-              <div className="overflow-x-auto">
+              {/* 🔒 Scrollable Table Wrapper with max height */}
+              <div className="overflow-auto max-h-[calc(100vh-180px)]">
                 <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#faf8f5]">
-                      <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">Sr</th>
-                      <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-[#1A1A2E]">Name</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-emerald-700">Present</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-amber-700">Late</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-orange-700">HD</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-blue-700">Leaves</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-cyan-700">Paid Lv</th>
+                  {/* 🔒 STICKY: Column Headers */}
+                  <thead className="sticky top-0 z-20 bg-[#faf8f5] shadow-sm">
+                    <tr>
+                      <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] bg-[#faf8f5]">Sr</th>
+                      <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-[#1A1A2E] bg-[#faf8f5]">Name</th>
+                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-emerald-700 bg-[#faf8f5]">Present</th>
+                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-amber-700 bg-[#faf8f5]">Late</th>
+                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-orange-700 bg-[#faf8f5]">HD</th>
+                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-blue-700 bg-[#faf8f5]">Leaves</th>
+                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-cyan-700 bg-[#faf8f5]">Paid Lv</th>
                       <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-indigo-700 bg-indigo-50">Carry</th>
                       <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-purple-700 bg-purple-50">Final Days</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF]">%</th>
-                      <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-[#1A1A2E]">Salary</th>
-                      <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-red-700">Cut</th>
-                      <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-[#E8590C]">Net</th>
+                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] bg-[#faf8f5]">%</th>
+                      <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-[#1A1A2E] bg-[#faf8f5]">Salary</th>
+                      <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-red-700 bg-[#faf8f5]">Cut</th>
+                      <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-[#E8590C] bg-[#faf8f5]">Net</th>
                     </tr>
                   </thead>
 
@@ -905,7 +926,7 @@ const PayrollReports = () => {
                     })}
 
                     {/* GRAND TOTAL */}
-                    <tr className="bg-gradient-to-r from-[#1A1A2E] to-[#2D2D44] text-white">
+                    <tr className="sticky bottom-0 z-10 bg-gradient-to-r from-[#1A1A2E] to-[#2D2D44] text-white">
                       <td colSpan="2" className="px-2 py-3 font-bold uppercase text-xs">GRAND TOTAL</td>
                       <td className="px-2 py-3 text-center text-emerald-300 font-bold text-xs">{payrollData.summary.total_present || 0}</td>
                       <td className="px-2 py-3 text-center text-amber-300 font-bold text-xs">{payrollData.summary.total_late || 0}</td>
