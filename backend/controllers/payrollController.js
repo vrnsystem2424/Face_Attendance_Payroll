@@ -12,35 +12,38 @@ const {
 const FREE_LEAVES_PER_MONTH = 1;
 
 // ════════════════════════════════════════════
+// 🆕 UNIVERSAL DATE PARSER (Handles /, -, YYYY-MM-DD)
+// ════════════════════════════════════════════
+const parseDateParts = (dateStr) => {
+  if (!dateStr) return null;
+  const str = String(dateStr).trim().split('T')[0];
+  let d, m, y;
+  if (str.includes('/')) {
+    const p = str.split('/');
+    d = parseInt(p[0]); m = parseInt(p[1]); y = parseInt(p[2]);
+  } else if (str.includes('-')) {
+    const p = str.split('-');
+    if (p[0].length === 4) { // YYYY-MM-DD
+      y = parseInt(p[0]); m = parseInt(p[1]); d = parseInt(p[2]);
+    } else { // DD-MM-YYYY
+      d = parseInt(p[0]); m = parseInt(p[1]); y = parseInt(p[2]);
+    }
+  }
+  if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+  return { day: d, month: m, year: y, key: `${d}/${m}/${y}` };
+};
+
+// ════════════════════════════════════════════
 // 🆕 HELPER: NEW JOINER LEAVE CREDIT (AFTER 25th = 0 LEAVES)
 // ════════════════════════════════════════════
 const getFreeLeavesForMonth = (employee, month, year) => {
   const joiningDateRaw = employee.joining_date || employee.createdAt;
   if (!joiningDateRaw) return FREE_LEAVES_PER_MONTH;
 
-  let jDay, jMonth, jYear;
-
-  if (typeof joiningDateRaw === 'string') {
-    if (joiningDateRaw.includes('/')) {
-      const parts = joiningDateRaw.split('/').map(Number);
-      jDay = parts[0]; jMonth = parts[1]; jYear = parts[2];
-    } else if (joiningDateRaw.includes('-')) {
-      const parts = joiningDateRaw.split('-').map(Number);
-      if (parts[0] > 1000) { // YYYY-MM-DD
-        jYear = parts[0]; jMonth = parts[1]; jDay = parts[2];
-      } else { // DD-MM-YYYY
-        jDay = parts[0]; jMonth = parts[1]; jYear = parts[2];
-      }
-    }
-  } else if (joiningDateRaw instanceof Date) {
-    jDay = joiningDateRaw.getDate();
-    jMonth = joiningDateRaw.getMonth() + 1;
-    jYear = joiningDateRaw.getFullYear();
-  }
-
-  if (Number(jMonth) === Number(month) && Number(jYear) === Number(year)) {
-    if (Number(jDay) > 25) {
-      return 0; // Joined after 25th -> 0 leaves
+  const parsed = parseDateParts(joiningDateRaw);
+  if (parsed) {
+    if (parsed.month === month && parsed.year === year) {
+      if (parsed.day > 25) return 0; // Joined after 25th -> 0 leaves
     }
   }
 
@@ -91,11 +94,6 @@ const formatHours = (totalMinutes) => {
   return `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
 };
 
-const normalizeDate = (dateStr) => {
-  const [d, m, y] = dateStr.split('/').map(Number);
-  return `${d}/${m}/${y}`;
-};
-
 // ════════════════════════════════════════════
 // 🎯 PAYROLL CALCULATION - TOTAL DAYS BASED
 // ════════════════════════════════════════════
@@ -105,11 +103,21 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   const weeklyOffSetting = settings?.weekly_off || ['Sunday'];
   const lateStartDay = getLateStartDay(month, year);
   const allDates = getDatesInMonth(month, year);
-  const holidaySet = new Set(holidays.map(h => h.date));
+  
+  const holidaySet = new Set();
+  holidays.forEach(h => {
+    const p = parseDateParts(h.date);
+    if (p) holidaySet.add(p.key);
+  });
 
   const totalDaysInMonth = new Date(year, month, 0).getDate();
 
-  const attendanceRecords = await Attendance.find({ emp_id: employee._id, date: { $in: allDates } });
+  const allEmpAttendance = await Attendance.find({ emp_id: employee._id });
+  const attendanceRecords = allEmpAttendance.filter(a => {
+    const p = parseDateParts(a.date);
+    return p && p.month === month && p.year === year;
+  });
+
   const allLeaves = await Leave.find({ emp_id: employee._id, status: 'approved' });
 
   // ════════════════════════════════════════
@@ -126,16 +134,18 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   allLeaves.forEach(l => {
     if (!l.from_date || !l.to_date) return;
 
-    const [fd, fm, fy] = l.from_date.split('/').map(Number);
-    const [td, tm, ty] = l.to_date.split('/').map(Number);
-    const leaveStart = new Date(fy, fm - 1, fd);
-    const leaveEnd = new Date(ty, tm - 1, td);
+    const pFrom = parseDateParts(l.from_date);
+    const pTo = parseDateParts(l.to_date);
+    if (!pFrom || !pTo) return;
+
+    const leaveStart = new Date(pFrom.year, pFrom.month - 1, pFrom.day);
+    const leaveEnd = new Date(pTo.year, pTo.month - 1, pTo.day);
 
     if (leaveEnd < monthStart || leaveStart > monthEnd) return;
 
     if (l.is_half_day) {
-      if (fm === month && fy === year) {
-        halfDayLeaveDates.add(normalizeDate(l.from_date));
+      if (pFrom.month === month && pFrom.year === year) {
+        halfDayLeaveDates.add(pFrom.key);
         halfDayLeaves += 1;
       }
     } else {
@@ -162,7 +172,7 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   }
 
   // ════════════════════════════════════════
-  // ATTENDANCE
+  // ATTENDANCE CALCULATION
   // ════════════════════════════════════════
   let totalWorkedMinutes = 0, totalCheckins = 0, sundayWorked = 0;
   let weekdayCheckins = 0;
@@ -177,9 +187,14 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   for (const dateStr of allDates) {
     const [d] = dateStr.split('/').map(Number);
     const dayName = getDayName(dateStr);
+
     if (isCurrentMonth && d > todayDate) continue;
 
-    const att = attendanceRecords.find(a => a.date === dateStr);
+    const att = attendanceRecords.find(a => {
+      const p = parseDateParts(a.date);
+      return p && p.key === dateStr;
+    });
+    
     if (att && att.in_time) {
       totalCheckins++;
       const isSunday = weeklyOffSetting.includes(dayName);
@@ -193,20 +208,19 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
       if (att.out_time) totalWorkedMinutes += calculateWorkingMinutes(att.in_time, att.out_time);
 
       const status = getAttendanceStatus(att.in_time, att.out_time);
-      const isLateDay = att.is_late !== undefined ? att.is_late : status.is_late;
-      const isHalfDayDay = att.is_half_day !== undefined ? att.is_half_day : status.is_half_day;
+      const isLateDay = att.is_late === true || status.is_late === true || att.daily_status === 'late' || (att.late_reasons && att.late_reasons.length > 0);
+      const isHalfDayDay = att.is_half_day === true || status.is_half_day === true || att.daily_status === 'half-day';
       
-      const normalizedDate = normalizeDate(dateStr);
-      const isHalfDayLeaveDay = halfDayLeaveDates.has(normalizedDate);
-      const isFullLeaveDay = fullLeaveDates.has(normalizedDate);
+      const isHalfDayLeaveDay = halfDayLeaveDates.has(dateStr);
+      const isFullLeaveDay = fullLeaveDates.has(dateStr);
       
       if (isHalfDayLeaveDay) hdLeaveWithAttendance++;
-      
-      // 🔧 FIX: Location STATUS se farak nahi padta! Late rules apply for ALL office workers.
+
+      // 🔧 SUNDAY LATE ALSO COUNTED NOW FOR OFFICE WORKERS
       if (d >= lateStartDay) {
-        if (!isOfficialSiteWorker && !isHalfDayLeaveDay && !isFullLeaveDay && !isSunday) {
+        if (!isOfficialSiteWorker && !isHalfDayLeaveDay && !isFullLeaveDay) {
           if (isLateDay) { lateCount++; lateDates.push(dateStr); }
-          if (isHalfDayDay) { halfDayCount++; halfDayDates.push(dateStr); }
+          if (isHalfDayDay && !isSunday) { halfDayCount++; halfDayDates.push(dateStr); }
         }
       } else {
         if (!isOfficialSiteWorker && (isLateDay || isHalfDayDay)) ignoredLateCount++;
@@ -219,7 +233,7 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   const lateLeaveDeduction = calculateLateLeaveDeduction(lateCount);
 
   // ════════════════════════════════════════
-  // 🆕 LEAVE BALANCE & CREDIT CHECK (25th rule)
+  // LEAVE BALANCE & CREDIT CHECK
   // ════════════════════════════════════════
   const creditedThisMonth = getFreeLeavesForMonth(employee, month, year);
 
@@ -261,17 +275,31 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   for (const dateStr of allDates) {
     const [d] = dateStr.split('/').map(Number);
     const dayName = getDayName(dateStr);
+
     if (isCurrentMonth && d > todayDate) continue;
     if (holidaySet.has(dateStr)) continue;
     if (weeklyOffSetting.includes(dayName)) continue;
     
-    const normalizedDate = normalizeDate(dateStr);
-    const att = attendanceRecords.find(a => a.date === dateStr);
+    const att = attendanceRecords.find(a => {
+      const p = parseDateParts(a.date);
+      return p && p.key === dateStr;
+    });
     const hasAttendance = att && att.in_time;
-    const isLeave = fullLeaveDates.has(normalizedDate) || halfDayLeaveDates.has(normalizedDate);
+    const isLeave = fullLeaveDates.has(dateStr) || halfDayLeaveDates.has(dateStr);
     
     if (!hasAttendance && !isLeave) absentDays++;
   }
+
+  // ════════════════════════════════════════
+  // 📢 SUMMARY CONSOLE LOG
+  // ════════════════════════════════════════
+  console.log(`\n==================================================`);
+  console.log(`👤 ${employee.name} (${employee.emp_code})`);
+  console.log(`   📅 Total Checkins in Month: ${attendanceRecords.length}`);
+  console.log(`   ⏰ LATE COUNT (Including Sunday Lates): ${lateCount} (-${lateLeaveDeduction}d deduction)`);
+  console.log(`   📋 LEAVES: ${fullDayLeaves}F + ${halfDayLeaves}HD = ${totalLeavesDays}d | Paid: ${paidLeaves} | Unpaid: ${unpaidLeaves}`);
+  console.log(`   🎯 Final Payable Days: ${finalPayableDays}/${totalDaysInMonth} | Earned: ₹${earned}`);
+  console.log(`==================================================\n`);
 
   return {
     emp_id: employee._id,
