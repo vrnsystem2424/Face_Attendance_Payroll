@@ -1,7 +1,5 @@
 
 
-// controllers/attendanceController.js
-
 const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
 const Site = require('../models/Site');
