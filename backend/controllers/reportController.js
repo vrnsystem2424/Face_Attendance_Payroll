@@ -43,13 +43,26 @@ const downloadPayrollPDF = async (req, res) => {
 
     const payrollData = [];
     for (const emp of employees) {
-      const payroll = await calculateEmployeePayroll(emp, currentMonth, currentYear, settings);
-      payrollData.push(payroll);
+      try {
+        const payroll = await calculateEmployeePayroll(emp, currentMonth, currentYear, settings);
+        // ✅ Only push if payroll calculation returned a valid object
+        if (payroll) {
+          payrollData.push(payroll);
+        }
+      } catch (err) {
+        console.error(`Error calculating payroll for employee ${emp._id} (${emp.name}):`, err.message);
+      }
     }
 
-    const totalSalary = payrollData.reduce((s, p) => s + p.monthly_salary, 0);
-    const totalEarned = payrollData.reduce((s, p) => s + p.earned_salary, 0);
-    const totalCut = payrollData.reduce((s, p) => s + p.total_deduction, 0);
+    if (payrollData.length === 0) {
+      return res.status(404).json({ success: false, message: 'Could not generate payroll data for any employee' });
+    }
+
+    // ✅ Safe Reduce with fallback values
+    const totalSalary = payrollData.reduce((s, p) => s + (p?.monthly_salary || 0), 0);
+    const totalEarned = payrollData.reduce((s, p) => s + (p?.earned_salary || p?.net_payable || 0), 0);
+    const totalCut = payrollData.reduce((s, p) => s + (p?.total_deduction || 0), 0);
+    
     const monthName = new Date(currentYear, currentMonth - 1).toLocaleString('en-US', {
       month: 'long',
     });
@@ -76,7 +89,6 @@ const downloadPayrollPDF = async (req, res) => {
       rowH = 15;
       cellFS = 8.5;
     } else if (empCount <= 64) {
-      // Exactly 2 pages for up to 64 employees (e.g. RCC with 63)
       rowsPerPage = Math.ceil(empCount / 2);
       rowH = 13.2;
       cellFS = 8.0;
@@ -86,7 +98,7 @@ const downloadPayrollPDF = async (req, res) => {
       cellFS = 8.0;
     }
 
-    const totalPages = Math.ceil(empCount / rowsPerPage);
+    const totalPages = Math.ceil(empCount / rowsPerPage) || 1;
 
     // 🔒 Set margin: 0 to DISABLE PDFKit internal auto-pagebreak bug
     const doc = new PDFDocument({
@@ -95,7 +107,7 @@ const downloadPayrollPDF = async (req, res) => {
       autoFirstPage: true,
     });
 
-    const filename = `Payroll_${company.code}_${monthName}_${currentYear}.pdf`;
+    const filename = `Payroll_${company.code || 'Company'}_${monthName}_${currentYear}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     doc.pipe(res);
@@ -143,7 +155,7 @@ const downloadPayrollPDF = async (req, res) => {
         .fillColor(colors.dark)
         .fontSize(15)
         .font('Helvetica-Bold')
-        .text(company.name.toUpperCase(), MARGIN, 12, { lineBreak: false });
+        .text((company.name || 'COMPANY').toUpperCase(), MARGIN, 12, { lineBreak: false });
 
       doc
         .fontSize(8.5)
@@ -261,7 +273,7 @@ const downloadPayrollPDF = async (req, res) => {
           if (col.key === 'leaves')  { textColor = (emp.total_leave_approved || 0) > 0 ? colors.blue : colors.gray; }
           if (col.key === 'paidlv')  { textColor = (emp.paid_leave_days || 0) > 0 ? colors.cyan : colors.gray; }
           if (col.key === 'final')   { textColor = colors.purple; fontStyle = 'Helvetica-Bold'; }
-          if (col.key === 'cut')     { textColor = emp.total_deduction > 0 ? colors.danger : colors.gray; }
+          if (col.key === 'cut')     { textColor = (emp.total_deduction || 0) > 0 ? colors.danger : colors.gray; }
           if (col.key === 'net')     { textColor = colors.primary; fontStyle = 'Helvetica-Bold'; }
           if (col.key === 'salary')  { fontStyle = 'Helvetica-Bold'; }
 
@@ -296,11 +308,11 @@ const downloadPayrollPDF = async (req, res) => {
       const TOTAL_ROW_H = 22;
       doc.rect(tableLeft, y, tableWidth, TOTAL_ROW_H).fill(colors.primary);
 
-      const totalPresent = payrollData.reduce((s, p) => s + (p.total_present || 0), 0);
-      const totalLate    = payrollData.reduce((s, p) => s + (p.late_count || 0), 0);
-      const totalHD      = payrollData.reduce((s, p) => s + ((p.half_day_count || 0) + (p.half_day_leave_count || 0)), 0);
-      const totalLeaves  = payrollData.reduce((s, p) => s + (p.total_leave_approved || 0), 0);
-      const totalPaidLv  = payrollData.reduce((s, p) => s + (p.paid_leave_days || 0), 0);
+      const totalPresent = payrollData.reduce((s, p) => s + (p?.total_present || 0), 0);
+      const totalLate    = payrollData.reduce((s, p) => s + (p?.late_count || 0), 0);
+      const totalHD      = payrollData.reduce((s, p) => s + ((p?.half_day_count || 0) + (p?.half_day_leave_count || 0)), 0);
+      const totalLeaves  = payrollData.reduce((s, p) => s + (p?.total_leave_approved || 0), 0);
+      const totalPaidLv  = payrollData.reduce((s, p) => s + (p?.paid_leave_days || 0), 0);
 
       let xT = tableLeft;
       const totalTextY = y + 6;
@@ -425,8 +437,18 @@ const downloadPayrollCSV = async (req, res) => {
 
     const payrollData = [];
     for (const emp of employees) {
-      const payroll = await calculateEmployeePayroll(emp, currentMonth, currentYear, settings);
-      payrollData.push(payroll);
+      try {
+        const payroll = await calculateEmployeePayroll(emp, currentMonth, currentYear, settings);
+        if (payroll) {
+          payrollData.push(payroll);
+        }
+      } catch (err) {
+        console.error(`Error calculating payroll for employee ${emp._id}:`, err.message);
+      }
+    }
+
+    if (payrollData.length === 0) {
+      return res.status(404).json({ success: false, message: 'Could not generate payroll data' });
     }
 
     const monthName = new Date(currentYear, currentMonth - 1).toLocaleString('en-US', {
@@ -465,23 +487,23 @@ const downloadPayrollCSV = async (req, res) => {
     ]);
 
     payrollData.forEach((emp, idx) => {
-      const totalHD = (emp.half_day_count || 0) + (emp.half_day_leave_count || 0);
-      const totalLeavesDays = emp.total_leave_approved || 0;
+      const totalHD = (emp?.half_day_count || 0) + (emp?.half_day_leave_count || 0);
+      const totalLeavesDays = emp?.total_leave_approved || 0;
 
       rows.push([
         idx + 1,
-        emp.name || '',
-        emp.total_present || 0,
-        emp.late_count || 0,
+        emp?.name || '',
+        emp?.total_present || 0,
+        emp?.late_count || 0,
         totalHD,
         totalLeavesDays,
-        emp.paid_leave_days || 0,
-        emp.leave_closing_balance || 0,
-        emp.final_payable_days || 0,
-        `${emp.progress_percent || 0}%`,
-        emp.monthly_salary || 0,
-        emp.total_deduction || 0,
-        emp.net_payable || 0,
+        emp?.paid_leave_days || 0,
+        emp?.leave_closing_balance || 0,
+        emp?.final_payable_days || 0,
+        `${emp?.progress_percent || 0}%`,
+        emp?.monthly_salary || 0,
+        emp?.total_deduction || 0,
+        emp?.net_payable || 0,
       ]);
     });
 
@@ -489,17 +511,17 @@ const downloadPayrollCSV = async (req, res) => {
     rows.push([
       '',
       'GRAND TOTAL',
-      payrollData.reduce((s, p) => s + (p.total_present || 0), 0),
-      payrollData.reduce((s, p) => s + (p.late_count || 0), 0),
-      payrollData.reduce((s, p) => s + ((p.half_day_count || 0) + (p.half_day_leave_count || 0)), 0),
-      payrollData.reduce((s, p) => s + (p.total_leave_approved || 0), 0),
-      payrollData.reduce((s, p) => s + (p.paid_leave_days || 0), 0),
-      payrollData.reduce((s, p) => s + (p.leave_closing_balance || 0), 0),
+      payrollData.reduce((s, p) => s + (p?.total_present || 0), 0),
+      payrollData.reduce((s, p) => s + (p?.late_count || 0), 0),
+      payrollData.reduce((s, p) => s + ((p?.half_day_count || 0) + (p?.half_day_leave_count || 0)), 0),
+      payrollData.reduce((s, p) => s + (p?.total_leave_approved || 0), 0),
+      payrollData.reduce((s, p) => s + (p?.paid_leave_days || 0), 0),
+      payrollData.reduce((s, p) => s + (p?.leave_closing_balance || 0), 0),
       '',
       '',
-      payrollData.reduce((s, p) => s + (p.monthly_salary || 0), 0),
-      payrollData.reduce((s, p) => s + (p.total_deduction || 0), 0),
-      payrollData.reduce((s, p) => s + (p.net_payable || 0), 0),
+      payrollData.reduce((s, p) => s + (p?.monthly_salary || 0), 0),
+      payrollData.reduce((s, p) => s + (p?.total_deduction || 0), 0),
+      payrollData.reduce((s, p) => s + (p?.net_payable || 0), 0),
     ]);
 
     const csvContent = rows
@@ -509,7 +531,7 @@ const downloadPayrollCSV = async (req, res) => {
     const bom = '\uFEFF';
     const csvWithBom = bom + csvContent;
 
-    const filename = `Payroll_${company.code}_${monthName}_${currentYear}.csv`;
+    const filename = `Payroll_${company.code || 'Company'}_${monthName}_${currentYear}.csv`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csvWithBom);
