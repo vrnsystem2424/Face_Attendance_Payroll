@@ -1,6 +1,11 @@
+
+
+
+
 // import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 // import API from '../../api/axios';
 
+// // ── EMPLOYEE - Fetch My Balance ──
 // export const fetchMyBalance = createAsyncThunk(
 //   'leaveBalance/fetchMy',
 //   async (_, { rejectWithValue }) => {
@@ -13,6 +18,7 @@
 //   }
 // );
 
+// // ── Admin/Manager - Fetch Employee Balance ──
 // export const fetchEmployeeBalance = createAsyncThunk(
 //   'leaveBalance/fetchEmployee',
 //   async (empId, { rejectWithValue }) => {
@@ -25,26 +31,117 @@
 //   }
 // );
 
+// // ── 🆕 SUPER ADMIN - Get All Employees with Balance (With Month & Year filter) ──
+// export const fetchAllEmployeesWithBalance = createAsyncThunk(
+//   'leaveBalance/fetchAllWithBalance',
+//   async (filters = {}, { rejectWithValue }) => {
+//     try {
+//       const params = new URLSearchParams();
+//       if (filters.company_id) params.append('company_id', filters.company_id);
+//       if (filters.search) params.append('search', filters.search);
+//       if (filters.month) params.append('month', filters.month);
+//       if (filters.year) params.append('year', filters.year);
+
+//       const response = await API.get(`/leave-balance/all-with-balance?${params.toString()}`);
+//       return response.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data?.message || 'Failed');
+//     }
+//   }
+// );
+
+// // ── SUPER ADMIN - Adjust Balance ──
+// export const adjustLeaveBalance = createAsyncThunk(
+//   'leaveBalance/adjust',
+//   async (data, { rejectWithValue }) => {
+//     try {
+//       const response = await API.post('/leave-balance/adjust', data);
+//       return response.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data?.message || 'Failed');
+//     }
+//   }
+// );
+
+// // ── SUPER ADMIN - Get Adjustment History ──
+// export const fetchAdjustmentHistory = createAsyncThunk(
+//   'leaveBalance/fetchHistory',
+//   async (empId = null, { rejectWithValue }) => {
+//     try {
+//       const url = empId 
+//         ? `/leave-balance/adjustment-history?emp_id=${empId}`
+//         : '/leave-balance/adjustment-history';
+//       const response = await API.get(url);
+//       return response.data.data;
+//     } catch (error) {
+//       return rejectWithValue(error.response?.data?.message || 'Failed');
+//     }
+//   }
+// );
+
 // const leaveBalanceSlice = createSlice({
 //   name: 'leaveBalance',
 //   initialState: {
 //     myBalance: null,
 //     employeeBalance: null,
+//     allEmployeesWithBalance: [],
+//     adjustmentHistory: [],
 //     loading: false,
 //     error: null,
+//     message: null,
 //   },
-//   reducers: {},
+//   reducers: {
+//     clearBalanceMessage: (state) => { state.message = null; },
+//     clearBalanceError: (state) => { state.error = null; },
+//   },
 //   extraReducers: (builder) => {
 //     builder
 //       .addCase(fetchMyBalance.fulfilled, (state, action) => {
 //         state.myBalance = action.payload;
-//       })
+//       });
+
+//     builder
 //       .addCase(fetchEmployeeBalance.fulfilled, (state, action) => {
 //         state.employeeBalance = action.payload;
+//       });
+
+//     builder
+//       .addCase(fetchAllEmployeesWithBalance.pending, (state) => {
+//         state.loading = true;
+//         state.error = null;
+//       })
+//       .addCase(fetchAllEmployeesWithBalance.fulfilled, (state, action) => {
+//         state.loading = false;
+//         state.allEmployeesWithBalance = action.payload;
+//       })
+//       .addCase(fetchAllEmployeesWithBalance.rejected, (state, action) => {
+//         state.loading = false;
+//         state.error = action.payload;
+//       });
+
+//     builder
+//       .addCase(adjustLeaveBalance.pending, (state) => {
+//         state.loading = true;
+//         state.error = null;
+//         state.message = null;
+//       })
+//       .addCase(adjustLeaveBalance.fulfilled, (state, action) => {
+//         state.loading = false;
+//         state.message = action.payload.message;
+//       })
+//       .addCase(adjustLeaveBalance.rejected, (state, action) => {
+//         state.loading = false;
+//         state.error = action.payload;
+//       });
+
+//     builder
+//       .addCase(fetchAdjustmentHistory.fulfilled, (state, action) => {
+//         state.adjustmentHistory = action.payload;
 //       });
 //   },
 // });
 
+// export const { clearBalanceMessage, clearBalanceError } = leaveBalanceSlice.actions;
 // export default leaveBalanceSlice.reducer;
 
 
@@ -80,7 +177,7 @@ export const fetchEmployeeBalance = createAsyncThunk(
   }
 );
 
-// ── 🆕 SUPER ADMIN - Get All Employees with Balance ──
+// ── SUPER ADMIN - Get All Employees with Balance ──
 export const fetchAllEmployeesWithBalance = createAsyncThunk(
   'leaveBalance/fetchAllWithBalance',
   async (filters = {}, { rejectWithValue }) => {
@@ -88,8 +185,12 @@ export const fetchAllEmployeesWithBalance = createAsyncThunk(
       const params = new URLSearchParams();
       if (filters.company_id) params.append('company_id', filters.company_id);
       if (filters.search) params.append('search', filters.search);
+      if (filters.month) params.append('month', filters.month);
+      if (filters.year) params.append('year', filters.year);
 
-      const response = await API.get(`/leave-balance/all-with-balance?${params.toString()}`);
+      const response = await API.get(
+        `/leave-balance/all-with-balance?${params.toString()}`
+      );
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed');
@@ -97,7 +198,7 @@ export const fetchAllEmployeesWithBalance = createAsyncThunk(
   }
 );
 
-// ── 🆕 SUPER ADMIN - Adjust Balance ──
+// ── SUPER ADMIN - Adjust Balance ──
 export const adjustLeaveBalance = createAsyncThunk(
   'leaveBalance/adjust',
   async (data, { rejectWithValue }) => {
@@ -110,16 +211,25 @@ export const adjustLeaveBalance = createAsyncThunk(
   }
 );
 
-// ── 🆕 SUPER ADMIN - Get Adjustment History ──
+// ── SUPER ADMIN - Get Adjustment History ──
 export const fetchAdjustmentHistory = createAsyncThunk(
   'leaveBalance/fetchHistory',
-  async (empId = null, { rejectWithValue }) => {
+  async (filters = {}, { rejectWithValue }) => {
     try {
-      const url = empId 
-        ? `/leave-balance/adjustment-history?emp_id=${empId}`
-        : '/leave-balance/adjustment-history';
-      const response = await API.get(url);
-      return response.data.data;
+      const params = new URLSearchParams();
+      // support old style: string empId
+      if (typeof filters === 'string' && filters) {
+        params.append('emp_id', filters);
+      } else if (filters && typeof filters === 'object') {
+        if (filters.emp_id) params.append('emp_id', filters.emp_id);
+        if (filters.company_id) params.append('company_id', filters.company_id);
+        if (filters.search) params.append('search', filters.search);
+      }
+
+      const response = await API.get(
+        `/leave-balance/adjustment-history?${params.toString()}`
+      );
+      return response.data.data || [];
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed');
     }
@@ -134,27 +244,27 @@ const leaveBalanceSlice = createSlice({
     allEmployeesWithBalance: [],
     adjustmentHistory: [],
     loading: false,
+    historyLoading: false,
     error: null,
     message: null,
   },
   reducers: {
-    clearBalanceMessage: (state) => { state.message = null; },
-    clearBalanceError: (state) => { state.error = null; },
+    clearBalanceMessage: (state) => {
+      state.message = null;
+    },
+    clearBalanceError: (state) => {
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
-    // Fetch My Balance
-    builder
-      .addCase(fetchMyBalance.fulfilled, (state, action) => {
-        state.myBalance = action.payload;
-      });
+    builder.addCase(fetchMyBalance.fulfilled, (state, action) => {
+      state.myBalance = action.payload;
+    });
 
-    // Fetch Employee Balance
-    builder
-      .addCase(fetchEmployeeBalance.fulfilled, (state, action) => {
-        state.employeeBalance = action.payload;
-      });
+    builder.addCase(fetchEmployeeBalance.fulfilled, (state, action) => {
+      state.employeeBalance = action.payload;
+    });
 
-    // 🆕 Fetch All Employees with Balance
     builder
       .addCase(fetchAllEmployeesWithBalance.pending, (state) => {
         state.loading = true;
@@ -162,14 +272,13 @@ const leaveBalanceSlice = createSlice({
       })
       .addCase(fetchAllEmployeesWithBalance.fulfilled, (state, action) => {
         state.loading = false;
-        state.allEmployeesWithBalance = action.payload;
+        state.allEmployeesWithBalance = action.payload || [];
       })
       .addCase(fetchAllEmployeesWithBalance.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
 
-    // 🆕 Adjust Balance
     builder
       .addCase(adjustLeaveBalance.pending, (state) => {
         state.loading = true;
@@ -178,20 +287,28 @@ const leaveBalanceSlice = createSlice({
       })
       .addCase(adjustLeaveBalance.fulfilled, (state, action) => {
         state.loading = false;
-        state.message = action.payload.message;
+        state.message = action.payload?.message || 'Adjusted successfully';
       })
       .addCase(adjustLeaveBalance.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });
 
-    // 🆕 Fetch Adjustment History
     builder
+      .addCase(fetchAdjustmentHistory.pending, (state) => {
+        state.historyLoading = true;
+      })
       .addCase(fetchAdjustmentHistory.fulfilled, (state, action) => {
-        state.adjustmentHistory = action.payload;
+        state.historyLoading = false;
+        state.adjustmentHistory = action.payload || [];
+      })
+      .addCase(fetchAdjustmentHistory.rejected, (state) => {
+        state.historyLoading = false;
+        state.adjustmentHistory = [];
       });
   },
 });
 
-export const { clearBalanceMessage, clearBalanceError } = leaveBalanceSlice.actions;
+export const { clearBalanceMessage, clearBalanceError } =
+  leaveBalanceSlice.actions;
 export default leaveBalanceSlice.reducer;
