@@ -51,6 +51,9 @@ import PendingLeaves from './pages/manager/PendingLeaves';
 
 
 import MySalary from './pages/MySalary';
+
+
+import EmployeeDetailedReport from './pages/super-admin/EmployeeDetailedReport';
 // ════════════════════════════════════════════════════════════
 // FACE REGISTER WRAPPER
 // ════════════════════════════════════════════════════════════
@@ -127,7 +130,7 @@ function App() {
         <Route path="/super-admin/sites" element={<SuperAdminRoute><SuperAdminSites /></SuperAdminRoute>} />
         <Route path="/super-admin/monthly-settings" element={<SuperAdminRoute><SuperAdminMonthlySettings /></SuperAdminRoute>} />
 <Route path="/super-admin/fix-attendance" element={<SuperAdminRoute><FixAttendance /></SuperAdminRoute>} />
-
+<Route path="/super-admin/movement-audit" element={<EmployeeDetailedReport />} />
         {/* 404 FALLBACK */}
         <Route path="*" element={<Navigate to="/login" />} />
 

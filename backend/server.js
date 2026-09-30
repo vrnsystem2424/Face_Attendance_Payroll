@@ -1,4 +1,6 @@
 
+
+
 // const express = require('express');
 // const mongoose = require('mongoose');
 // const cors = require('cors');
@@ -9,7 +11,33 @@
 
 // const app = express();
 
-// app.use(cors());
+// // ════════════════════════════════════════
+// // 🆕 CORS - Production Setup with Frontend URL
+// // ════════════════════════════════════════
+// const allowedOrigins = [
+//   'http://localhost:5173',                                      // Local dev (Vite)
+//   'http://localhost:3000',                                      // Local dev (React)
+//   'https://face-attendance-payroll.vercel.app',                // 🎯 Vercel Frontend
+//   'https://attendance-backend-api.signaturesbuilders.com',     // Backend (self)
+// ];
+
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     // Allow requests with no origin (mobile apps, Postman, health checks)
+//     if (!origin) return callback(null, true);
+    
+//     if (allowedOrigins.indexOf(origin) !== -1) {
+//       callback(null, true);
+//     } else {
+//       console.log('❌ CORS blocked origin:', origin);
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+// }));
+
 // app.use(express.json({ limit: '20mb' }));
 // app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
@@ -65,6 +93,7 @@
 //   res.json({
 //     message: 'Multi-Company Attendance API',
 //     version: '2.0',
+//     status: 'running',
 //     endpoints: {
 //       auth: '/api/auth',
 //       employees: '/api/employees',
@@ -141,6 +170,7 @@
 
 
 
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -152,18 +182,18 @@ dotenv.config();
 const app = express();
 
 // ════════════════════════════════════════
-// 🆕 CORS - Production Setup with Frontend URL
+// 🌐 CORS - Production & Local Setup
 // ════════════════════════════════════════
 const allowedOrigins = [
   'http://localhost:5173',                                      // Local dev (Vite)
   'http://localhost:3000',                                      // Local dev (React)
   'https://face-attendance-payroll.vercel.app',                // 🎯 Vercel Frontend
-  'https://attendance-backend-api.signaturesbuilders.com',     // Backend (self)
+  'https://attendance-backend-api.signaturesbuilders.com',     // Backend (Self)
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, health checks)
+    // Allow requests with no origin (mobile apps, Postman, server-to-server health checks)
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -189,7 +219,7 @@ app.get('/health', (req, res) => {
 });
 
 // ════════════════════════════════════════
-// EXISTING ROUTES
+// ROUTE IMPORTS
 // ════════════════════════════════════════
 const authRoutes = require('./routes/authRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
@@ -197,10 +227,6 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const leaveRoutes = require('./routes/leaveRoutes');
 const siteRoutes = require('./routes/siteRoutes');
 const masterRoutes = require('./routes/masterRoutes');
-
-// ════════════════════════════════════════
-// NEW ROUTES
-// ════════════════════════════════════════
 const companyRoutes = require('./routes/companyRoutes');
 const superAdminRoutes = require('./routes/superAdminRoutes');
 const managerRoutes = require('./routes/managerRoutes');
@@ -227,12 +253,12 @@ app.use('/api/payroll', payrollRoutes);
 app.use('/api/face', faceRoutes);
 
 // ════════════════════════════════════════
-// ROOT ROUTE (API info)
+// ROOT ROUTE (API Documentation Info)
 // ════════════════════════════════════════
 app.get('/', (req, res) => {
   res.json({
-    message: 'Multi-Company Attendance API',
-    version: '2.0',
+    message: 'Multi-Company Attendance & GPS Audit API',
+    version: '2.1',
     status: 'running',
     endpoints: {
       auth: '/api/auth',
@@ -243,8 +269,12 @@ app.get('/', (req, res) => {
       master: '/api/master',
       companies: '/api/companies',
       superAdmin: '/api/super-admin',
+      gpsAuditReports: '/api/super-admin/employee-report-pdf',
       manager: '/api/manager',
+      monthlySettings: '/api/monthly-settings',
+      leaveBalance: '/api/leave-balance',
       payroll: '/api/payroll',
+      faceRecognition: '/api/face',
     }
   });
 });
@@ -271,7 +301,7 @@ app.use((err, req, res, next) => {
 });
 
 // ════════════════════════════════════════
-// SELF-PING (keep alive on free hosting)
+// SELF-PING (Keep-alive on cloud servers)
 // ════════════════════════════════════════
 const BACKEND_URL = process.env.BACKEND_URL ||
                     `http://localhost:${process.env.PORT || 5000}`;
@@ -295,11 +325,11 @@ mongoose.connect(process.env.MONGODB_URI)
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`
-╔════════════════════════════════════════╗
-║  🚀 Server Running on Port ${PORT}        ║
-║  📡 ${BACKEND_URL}        
-║  🏢 Multi-Company Attendance System    ║
-╚════════════════════════════════════════╝
+╔════════════════════════════════════════════════════╗
+║  🚀 Server Running on Port ${PORT}                    ║
+║  📡 ${BACKEND_URL}    ║
+║  🏢 Multi-Company Attendance & GPS Audit System    ║
+╚════════════════════════════════════════════════════╝
       `);
     });
   })

@@ -1,8 +1,6 @@
-// routes/superAdminRoutes.js
-
 const express = require('express');
 const router = express.Router();
-const { protect, superAdminOnly } = require('../middleware/authMiddleware');
+
 const {
   getGlobalStats,
   createAdmin,
@@ -12,26 +10,37 @@ const {
   demoteToEmployee,
   getAllEmployees,
   getAllAttendanceGlobal,
-  resetUserPassword,    // 🆕
-  changeOwnPassword,    // 🆕
+  resetUserPassword,
+  changeOwnPassword,
 } = require('../controllers/superAdminController');
 
-// All routes need super admin
-router.use(protect, superAdminOnly);
+const { 
+  downloadEmployeeDetailedReportPDF,
+  getEmployeeDetailedReportData 
+} = require('../controllers/reportController');
+
+const { protect, superAdminOnly } = require('../middleware/authMiddleware');
+
+// 🔒 All routes protected
+router.use(protect);
+router.use(superAdminOnly);
 
 router.get('/stats', getGlobalStats);
 router.get('/admins', getAllAdmins);
 router.post('/admins', createAdmin);
 router.delete('/admins/:id', deleteAdmin);
+
 router.get('/employees', getAllEmployees);
 router.put('/promote/:id', promoteToManager);
 router.put('/demote/:id', demoteToEmployee);
 
-// All Attendance (across companies)
 router.get('/all-attendance', getAllAttendanceGlobal);
 
-// 🆕 Password Management
-router.post('/reset-password', resetUserPassword);      // Reset any user password
-router.post('/change-own-password', changeOwnPassword); // Change own password
+// 🆕 Live JSON Web Preview Data & PDF Report
+router.get('/employee-report-data', getEmployeeDetailedReportData);
+router.get('/employee-report-pdf', downloadEmployeeDetailedReportPDF);
+
+router.post('/reset-password', resetUserPassword);
+router.post('/change-own-password', changeOwnPassword);
 
 module.exports = router;
