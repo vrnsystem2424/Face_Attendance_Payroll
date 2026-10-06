@@ -1,5 +1,9 @@
 
 
+
+
+
+
 // // controllers/leaveBalanceController.js
 
 // const LeaveBalance = require('../models/LeaveBalance');
@@ -127,6 +131,35 @@
 //   return balance;
 // };
 
+// // Re-chains all opening & closing balances properly across months
+// const rechainBalances = (balance) => {
+//   if (!balance.history) return;
+
+//   balance.history.sort((a, b) => {
+//     if (Number(a.year) !== Number(b.year)) return Number(a.year) - Number(b.year);
+//     return Number(a.month) - Number(b.month);
+//   });
+
+//   let running = 0;
+//   let totCredited = 0;
+//   let totUsed = 0;
+
+//   balance.history.forEach((h) => {
+//     h.opening_balance = running;
+//     const credited = Number(h.credited || 0);
+//     const used = Number(h.used || 0);
+//     h.closing_balance = Math.max(0, running + credited - used);
+//     running = h.closing_balance;
+
+//     totCredited += credited;
+//     totUsed += used;
+//   });
+
+//   balance.current_balance = running;
+//   balance.total_credited = totCredited;
+//   balance.total_used = totUsed;
+// };
+
 // // Safe backfill for new months
 // const backfillBalance = async (empId) => {
 //   const employee = await Employee.findById(empId).populate('company_id', 'code');
@@ -182,17 +215,13 @@
 //       balance.history.push({
 //         month: m,
 //         year: y,
-//         opening_balance: balance.current_balance || 0,
+//         opening_balance: 0,
 //         credited,
 //         used: 0,
-//         closing_balance: (balance.current_balance || 0) + credited,
+//         closing_balance: 0,
 //         leaves_log: [],
 //         credited_on: new Date(),
 //       });
-//       balance.current_balance = (balance.current_balance || 0) + credited;
-//       balance.total_credited = (balance.total_credited || 0) + credited;
-//       balance.last_credited_month = m;
-//       balance.last_credited_year = y;
 //       changed = true;
 //     }
 
@@ -201,6 +230,7 @@
 //   }
 
 //   if (changed) {
+//     rechainBalances(balance);
 //     await balance.save();
 //   }
 
@@ -212,9 +242,7 @@
 //   return LeaveBalance.findOne({ emp_id: empIdOrBalance });
 // };
 
-// // ════════════════════════════════════════
-// // 👁️ READ-ONLY DISPLAY BUILDER (Itemizes Late + Leaves)
-// // ════════════════════════════════════════
+// // READ-ONLY DISPLAY BUILDER
 // const buildDisplayHistory = async (empId, rawHistory, workerType) => {
 //   if (!rawHistory || rawHistory.length === 0) return [];
 
@@ -236,7 +264,6 @@
 
 //     const logs = [];
 
-//     // 1. Manual Add/Deduct check
 //     let manualAdd = 0;
 //     let manualDeduct = 0;
 //     (h.leaves_log || []).forEach((log) => {
@@ -279,7 +306,6 @@
 //       }
 //     });
 
-//     // 2. Approved Leaves for this month
 //     let approvedLeaveDays = 0;
 //     approvedLeaves.forEach((l) => {
 //       if (!l.from_date || !l.to_date) return;
@@ -314,7 +340,6 @@
 //       });
 //     });
 
-//     // 3. Late Cuts for this month (from Attendance)
 //     let lateCutDays = 0;
 //     let lateCount = 0;
 //     if (workerType !== 'site') {
@@ -342,7 +367,6 @@
 //       }
 //     }
 
-//     // 4. Manual Deductions
 //     (h.leaves_log || []).forEach((log) => {
 //       const isAdj = log.is_adjustment || log.from_date === 'ADJUSTMENT' || !!log.adjustment_reason;
 //       if (isAdj && log.adjustment_type === 'deduct') {
@@ -377,16 +401,16 @@
 //   return result.reverse();
 // };
 
-// // GET MY BALANCE
 // const getMyBalance = async (req, res) => {
 //   try {
+//     const empId = req.employee?._id || req.user?._id;
 //     const now = new Date();
 //     const currentMonth = now.getMonth() + 1;
 //     const currentYear = now.getFullYear();
 
-//     await backfillBalance(req.employee._id);
+//     await backfillBalance(empId);
 
-//     const balance = await LeaveBalance.findOne({ emp_id: req.employee._id }).lean();
+//     const balance = await LeaveBalance.findOne({ emp_id: empId }).lean();
 //     if (!balance) {
 //       return res.json({
 //         success: true,
@@ -395,9 +419,9 @@
 //     }
 
 //     const formattedHistory = await buildDisplayHistory(
-//       req.employee._id,
+//       empId,
 //       balance.history,
-//       req.employee?.worker_type
+//       req.employee?.worker_type || req.user?.worker_type
 //     );
 
 //     res.json({
@@ -424,7 +448,7 @@
 
 // const getEmployeeBalance = async (req, res) => {
 //   try {
-//     const { emp_id } = req.params;
+//     const emp_id = req.params.emp_id || req.params.empId;
 //     const balance = await LeaveBalance.findOne({ emp_id }).lean();
 //     if (!balance) {
 //       return res.json({ success: true, data: { current_balance: 0, total_used: 0 } });
@@ -441,10 +465,6 @@
 //   const before = Number(balance.current_balance || 0);
 //   const paid = Math.min(before, Number(approvedDays || 0));
 //   const unpaid = Math.max(0, Number(approvedDays || 0) - paid);
-//   const after = Math.max(0, before - Number(approvedDays || 0));
-
-//   balance.current_balance = after;
-//   balance.total_used = Number(balance.total_used || 0) + Number(approvedDays || 0);
 
 //   const now = new Date();
 //   const currentMonth = now.getMonth() + 1;
@@ -458,17 +478,16 @@
 //     balance.history.push({
 //       month: currentMonth,
 //       year: currentYear,
-//       opening_balance: before,
+//       opening_balance: 0,
 //       credited: 0,
 //       used: 0,
-//       closing_balance: before,
+//       closing_balance: 0,
 //       leaves_log: [],
 //     });
 //     monthEntry = balance.history[balance.history.length - 1];
 //   }
 
 //   monthEntry.used = Number(monthEntry.used || 0) + Number(approvedDays || 0);
-//   monthEntry.closing_balance = after;
 //   monthEntry.leaves_log = monthEntry.leaves_log || [];
 //   monthEntry.leaves_log.push({
 //     leave_id: leaveId || null,
@@ -482,11 +501,12 @@
 //     deduction_type: 'approved_leave',
 //   });
 
+//   rechainBalances(balance);
 //   await balance.save();
 
 //   return {
 //     balance_before: before,
-//     balance_after: after,
+//     balance_after: balance.current_balance,
 //     paid_days: paid,
 //     unpaid_days: unpaid,
 //   };
@@ -496,19 +516,16 @@
 //   const balance = await LeaveBalance.findOne({ emp_id: empId });
 //   if (!balance) return;
 
-//   balance.current_balance = Number(balance.current_balance || 0) + Number(approvedDays || 0);
-//   balance.total_used = Math.max(0, Number(balance.total_used || 0) - Number(approvedDays || 0));
-
 //   const now = new Date();
 //   const currentMonth = now.getMonth() + 1;
 //   const currentYear = now.getFullYear();
+  
 //   const monthEntry = (balance.history || []).find(
 //     (h) => Number(h.month) === currentMonth && Number(h.year) === currentYear
 //   );
 
 //   if (monthEntry) {
 //     monthEntry.used = Math.max(0, Number(monthEntry.used || 0) - Number(approvedDays || 0));
-//     monthEntry.closing_balance = balance.current_balance;
 //     if (leaveId) {
 //       monthEntry.leaves_log = (monthEntry.leaves_log || []).filter(
 //         (l) => !l.leave_id || String(l.leave_id) !== String(leaveId)
@@ -516,40 +533,41 @@
 //     }
 //   }
 
+//   rechainBalances(balance);
 //   await balance.save();
 // };
 
 // const manualCredit = async (req, res) => {
 //   try {
-//     const { emp_id, days } = req.body;
+//     const { emp_id, days, month, year } = req.body;
 //     if (!emp_id || !days) {
 //       return res.status(400).json({ success: false, message: 'Employee and days required' });
 //     }
 
 //     const balance = await getOrCreateBalance(emp_id);
 //     const val = Math.abs(parseFloat(days));
+    
 //     const now = new Date();
-//     const currentMonth = now.getMonth() + 1;
-//     const currentYear = now.getFullYear();
+//     const targetMonth = month ? parseInt(month, 10) : now.getMonth() + 1;
+//     const targetYear = year ? parseInt(year, 10) : now.getFullYear();
 
 //     let monthEntry = balance.history.find(
-//       (h) => Number(h.month) === currentMonth && Number(h.year) === currentYear
+//       (h) => Number(h.month) === targetMonth && Number(h.year) === targetYear
 //     );
 //     if (!monthEntry) {
 //       balance.history.push({
-//         month: currentMonth,
-//         year: currentYear,
-//         opening_balance: balance.current_balance || 0,
+//         month: targetMonth,
+//         year: targetYear,
+//         opening_balance: 0,
 //         credited: 0,
 //         used: 0,
-//         closing_balance: balance.current_balance || 0,
+//         closing_balance: 0,
 //         leaves_log: [],
 //       });
 //       monthEntry = balance.history[balance.history.length - 1];
 //     }
 
 //     monthEntry.credited = Number(monthEntry.credited || 0) + val;
-//     monthEntry.closing_balance = Number(monthEntry.closing_balance || 0) + val;
 //     monthEntry.leaves_log = monthEntry.leaves_log || [];
 //     monthEntry.leaves_log.push({
 //       from_date: 'MANUAL_CREDIT',
@@ -561,11 +579,10 @@
 //       is_adjustment: true,
 //       adjustment_type: 'add',
 //       adjustment_reason: 'Manual credit by admin',
-//       adjusted_by: req.employee?.name || 'Admin',
+//       adjusted_by: req.employee?.name || req.user?.name || 'Admin',
 //     });
 
-//     balance.current_balance = Number(balance.current_balance || 0) + val;
-//     balance.total_credited = Number(balance.total_credited || 0) + val;
+//     rechainBalances(balance);
 //     await balance.save();
 
 //     res.json({ success: true, message: `${days} leaves credited`, data: balance });
@@ -576,7 +593,7 @@
 
 // const adjustLeaveBalance = async (req, res) => {
 //   try {
-//     const { emp_id, days, reason, adjustment_type } = req.body;
+//     const { emp_id, days, reason, adjustment_type, month, year } = req.body;
 
 //     if (!emp_id || !days || isNaN(parseFloat(days)) || !reason) {
 //       return res.status(400).json({ success: false, message: 'All fields required' });
@@ -592,24 +609,23 @@
 //     const balance = await getOrCreateBalance(emp_id);
 
 //     const before = Number(balance.current_balance || 0);
-//     const after = isAdd ? before + daysValue : Math.max(0, before - daysValue);
 
 //     const now = new Date();
-//     const currentMonth = now.getMonth() + 1;
-//     const currentYear = now.getFullYear();
+//     const targetMonth = month ? parseInt(month, 10) : now.getMonth() + 1;
+//     const targetYear = year ? parseInt(year, 10) : now.getFullYear();
 
 //     let monthEntry = (balance.history || []).find(
-//       (h) => Number(h.month) === currentMonth && Number(h.year) === currentYear
+//       (h) => Number(h.month) === targetMonth && Number(h.year) === targetYear
 //     );
 
 //     if (!monthEntry) {
 //       balance.history.push({
-//         month: currentMonth,
-//         year: currentYear,
-//         opening_balance: before,
+//         month: targetMonth,
+//         year: targetYear,
+//         opening_balance: 0,
 //         credited: 0,
 //         used: 0,
-//         closing_balance: before,
+//         closing_balance: 0,
 //         leaves_log: [],
 //       });
 //       monthEntry = balance.history[balance.history.length - 1];
@@ -617,13 +633,10 @@
 
 //     if (isAdd) {
 //       monthEntry.credited = Number(monthEntry.credited || 0) + daysValue;
-//       balance.total_credited = Number(balance.total_credited || 0) + daysValue;
 //     } else {
 //       monthEntry.used = Number(monthEntry.used || 0) + daysValue;
-//       balance.total_used = Number(balance.total_used || 0) + daysValue;
 //     }
 
-//     monthEntry.closing_balance = after;
 //     monthEntry.leaves_log = monthEntry.leaves_log || [];
 //     monthEntry.leaves_log.push({
 //       leave_id: null,
@@ -637,19 +650,19 @@
 //       is_adjustment: true,
 //       adjustment_type: isAdd ? 'add' : 'deduct',
 //       adjustment_reason: reason.trim(),
-//       adjusted_by: req.employee?.name || 'Super Admin',
+//       adjusted_by: req.employee?.name || req.user?.name || 'Super Admin',
 //     });
 
-//     balance.current_balance = after;
+//     rechainBalances(balance);
 //     await balance.save();
 
 //     res.json({
 //       success: true,
-//       message: `${isAdd ? 'Added' : 'Deducted'} ${daysValue} leave(s) for ${employee.name}. Balance: ${before} → ${after}`,
+//       message: `${isAdd ? 'Added' : 'Deducted'} ${daysValue} leave(s) for ${employee.name}.`,
 //       data: {
 //         employee: { name: employee.name, emp_code: employee.emp_code },
 //         balance_before: before,
-//         balance_after: after,
+//         balance_after: balance.current_balance,
 //         adjustment: isAdd ? daysValue : -daysValue,
 //         reason: reason.trim(),
 //       },
@@ -701,7 +714,6 @@
 //       const bal = balanceMap[String(emp._id)];
 //       const historyList = bal?.history || [];
 
-//       // Build rich itemized history dynamically
 //       const formattedHistory = await buildDisplayHistory(emp._id, historyList, emp.worker_type);
 
 //       const monthEntry = formattedHistory.find(
@@ -798,9 +810,7 @@
 //           if (!isAdj) return;
 
 //           adjustments.push({
-//             _id:
-//               log._id ||
-//               `${balance._id}-${monthEntry.month}-${monthEntry.year}-${log.approved_on || Math.random()}`,
+//             _id: log._id,
 //             emp_id: balance.emp_id?._id || balance.emp_id,
 //             employee_name: balance.name || balance.emp_id?.name || '—',
 //             emp_code: balance.emp_code || balance.emp_id?.emp_code || '—',
@@ -842,7 +852,61 @@
 //   }
 // };
 
+// const deleteAdjustment = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const balance = await LeaveBalance.findOne({ 'history.leaves_log._id': id });
+
+//     if (!balance) {
+//       return res.status(404).json({ success: false, message: 'Adjustment record not found' });
+//     }
+
+//     let found = false;
+//     let daysValue = 0;
+//     let isAdd = false;
+
+//     for (let i = 0; i < balance.history.length; i++) {
+//       const monthEntry = balance.history[i];
+//       if (monthEntry.leaves_log && monthEntry.leaves_log.length > 0) {
+//         const logIndex = monthEntry.leaves_log.findIndex(l => l._id && String(l._id) === id);
+        
+//         if (logIndex !== -1) {
+//           const log = monthEntry.leaves_log[logIndex];
+//           daysValue = Number(log.approved_days || 0);
+//           isAdd = log.adjustment_type !== 'deduct';
+
+//           monthEntry.leaves_log.splice(logIndex, 1);
+
+//           if (isAdd) {
+//             monthEntry.credited = Math.max(0, Number(monthEntry.credited || 0) - daysValue);
+//           } else {
+//             monthEntry.used = Math.max(0, Number(monthEntry.used || 0) - daysValue);
+//           }
+
+//           found = true;
+//           break;
+//         }
+//       }
+//     }
+
+//     if (!found) {
+//       return res.status(404).json({ success: false, message: 'Adjustment log could not be deleted' });
+//     }
+
+//     rechainBalances(balance);
+//     await balance.save();
+
+//     res.json({ success: true, message: 'Adjustment deleted and balance reverted successfully' });
+//   } catch (err) {
+//     console.error('Delete adjustment error:', err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
+// // 🌟 EXPORTS (Dono Naming Convention Aliased so Node Router won't crash)
 // module.exports = {
+//   // Original names
 //   getMyBalance,
 //   getEmployeeBalance,
 //   deductBalance,
@@ -855,8 +919,14 @@
 //   getAdjustmentHistory,
 //   recalculateAndFixLeaveBalance,
 //   getCreditedLeavesForMonth,
-// };
+//   deleteAdjustment,
 
+//   // Alias names used in Redux/Routes
+//   fetchMyBalance: getMyBalance,
+//   fetchEmployeeBalance: getEmployeeBalance,
+//   fetchAllEmployeesWithBalance: getAllEmployeesWithBalance,
+//   fetchAdjustmentHistory: getAdjustmentHistory,
+// };
 
 
 
@@ -1318,6 +1388,7 @@ const getEmployeeBalance = async (req, res) => {
   }
 };
 
+// 🆕 Support for backdated leaves inside standard admin deductions
 const deductBalance = async (empId, leaveId, approvedDays, fromDate, toDate, appliedDays) => {
   const balance = await getOrCreateBalance(empId);
 
@@ -1325,18 +1396,19 @@ const deductBalance = async (empId, leaveId, approvedDays, fromDate, toDate, app
   const paid = Math.min(before, Number(approvedDays || 0));
   const unpaid = Math.max(0, Number(approvedDays || 0) - paid);
 
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
+  // Parse target month/year from leave fromDate for accurate historical ledger placement
+  const pFrom = parseDateParts(fromDate);
+  const targetMonth = pFrom ? pFrom.month : (new Date().getMonth() + 1);
+  const targetYear = pFrom ? pFrom.year : new Date().getFullYear();
 
   let monthEntry = (balance.history || []).find(
-    (h) => Number(h.month) === currentMonth && Number(h.year) === currentYear
+    (h) => Number(h.month) === targetMonth && Number(h.year) === targetYear
   );
 
   if (!monthEntry) {
     balance.history.push({
-      month: currentMonth,
-      year: currentYear,
+      month: targetMonth,
+      year: targetYear,
       opening_balance: 0,
       credited: 0,
       used: 0,
@@ -1378,7 +1450,6 @@ const restoreBalance = async (empId, leaveId, approvedDays) => {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
-  
   const monthEntry = (balance.history || []).find(
     (h) => Number(h.month) === currentMonth && Number(h.year) === currentYear
   );
@@ -1405,7 +1476,6 @@ const manualCredit = async (req, res) => {
 
     const balance = await getOrCreateBalance(emp_id);
     const val = Math.abs(parseFloat(days));
-    
     const now = new Date();
     const targetMonth = month ? parseInt(month, 10) : now.getMonth() + 1;
     const targetYear = year ? parseInt(year, 10) : now.getFullYear();
@@ -1729,7 +1799,6 @@ const deleteAdjustment = async (req, res) => {
       const monthEntry = balance.history[i];
       if (monthEntry.leaves_log && monthEntry.leaves_log.length > 0) {
         const logIndex = monthEntry.leaves_log.findIndex(l => l._id && String(l._id) === id);
-        
         if (logIndex !== -1) {
           const log = monthEntry.leaves_log[logIndex];
           daysValue = Number(log.approved_days || 0);
@@ -1763,9 +1832,7 @@ const deleteAdjustment = async (req, res) => {
   }
 };
 
-// 🌟 EXPORTS (Dono Naming Convention Aliased so Node Router won't crash)
 module.exports = {
-  // Original names
   getMyBalance,
   getEmployeeBalance,
   deductBalance,
@@ -1780,7 +1847,6 @@ module.exports = {
   getCreditedLeavesForMonth,
   deleteAdjustment,
 
-  // Alias names used in Redux/Routes
   fetchMyBalance: getMyBalance,
   fetchEmployeeBalance: getEmployeeBalance,
   fetchAllEmployeesWithBalance: getAllEmployeesWithBalance,

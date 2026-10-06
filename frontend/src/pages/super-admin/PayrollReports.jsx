@@ -1,5 +1,4 @@
 
-
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -45,36 +44,22 @@ const PayrollReports = () => {
   const handleDownloadPDF = () => {
     if (!payrollData) { alert('Generate report first'); return; }
     dispatch(downloadPayrollPDF({ 
-      ...filters, 
-      calc_method: 'days',
-      company_name: payrollData.company?.name,
-      month_name: payrollData.month_name,
+      ...filters, calc_method: 'days', company_name: payrollData.company?.name, month_name: payrollData.month_name,
     }));
   };
 
   const handleDownloadCSV = () => {
     if (!payrollData) { alert('Generate report first'); return; }
     dispatch(downloadPayrollCSV({ 
-      ...filters, 
-      company_name: payrollData.company?.name,
-      month_name: payrollData.month_name,
+      ...filters, company_name: payrollData.company?.name, month_name: payrollData.month_name,
     }));
   };
 
   const handleFinalize = async () => {
     if (!payrollData) { alert('Generate report first'); return; }
-    
     const confirmMsg = 
-      `⚠️ Payroll Finalize\n\n` +
-      `Ye karne se sab employees ke leave balance se HD/Late/Leaves cut ho jaayenge.\n\n` +
-      `Month: ${payrollData.month_name} ${payrollData.year}\n` +
-      `Company: ${payrollData.company?.name}\n` +
-      `Employees: ${payrollData.employees.length}\n\n` +
-      `Ek baar finalize karne ke baad dobara nahi hoga.\n\n` +
-      `Are you sure?`;
-    
+      `⚠️ Payroll Finalize\n\nYe karne se sab employees ke leave balance se HD/Late/Leaves cut ho jaayenge.\n\nMonth: ${payrollData.month_name} ${payrollData.year}\nCompany: ${payrollData.company?.name}\nEmployees: ${payrollData.employees.length}\n\nEk baar finalize karne ke baad dobara nahi hoga.\n\nAre you sure?`;
     if (!window.confirm(confirmMsg)) return;
-    
     try {
       const result = await dispatch(finalizePayroll(filters)).unwrap();
       alert(`✅ ${result.message}`);
@@ -89,25 +74,10 @@ const PayrollReports = () => {
     return '₹' + Number(num).toLocaleString('en-IN');
   };
 
-  const getWorkingDays = () => payrollData?.employees?.[0]?.total_working_days || 0;
-  const getTotalDays = () => !payrollData ? 0 : new Date(payrollData.year, payrollData.month, 0).getDate();
-  const getWeeklyOff = () => {
-    if (!payrollData) return 0;
-    const { month: m, year: y } = payrollData;
-    const total = new Date(y, m, 0).getDate();
-    const wo = payrollData.settings?.weekly_off || ['Sunday'];
-    let c = 0;
-    for (let d = 1; d <= total; d++) {
-      const dn = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(y, m-1, d).getDay()];
-      if (wo.includes(dn)) c++;
-    }
-    return c;
-  };
-
   return (
     <div className="min-h-screen bg-[#faf8f5]">
       <div className="pointer-events-none fixed -top-32 -right-32 h-[420px] w-[420px] rounded-full bg-[#E8590C]/[0.04] blur-[100px]" />
-      <div className="relative z-10 mx-auto max-w-[1500px] px-4 py-8 sm:px-6">
+      <div className="relative z-10 mx-auto max-w-[1600px] px-4 py-8 sm:px-6">
 
         {/* HEADER */}
         <div className="mb-6 flex items-center gap-3">
@@ -167,41 +137,29 @@ const PayrollReports = () => {
               </button>
 
               {payrollData && (
-                <button onClick={handleDownloadPDF} disabled={downloading}
-                  className="rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
-                  {downloading ? '⏳ Downloading...' : '📄 PDF'}
-                </button>
-              )}
-
-              {payrollData && (
-                <button onClick={handleDownloadCSV} disabled={downloadingCSV}
-                  className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
-                  {downloadingCSV ? '⏳ Downloading...' : '📊 CSV (Excel/Sheets)'}
-                </button>
-              )}
-
-              {payrollData && !payrollData.is_finalized && (
-                <button onClick={handleFinalize} disabled={finalizing}
-                  className="rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
-                  {finalizing ? '⏳ Finalizing...' : '🔒 Finalize Payroll'}
-                </button>
-              )}
-
-              {payrollData && payrollData.is_finalized && (
-                <div className="flex items-center gap-2 rounded-xl bg-emerald-100 border-2 border-emerald-300 px-6 py-3">
-                  <span className="text-lg">✅</span>
-                  <span className="text-emerald-700 font-bold text-sm">Payroll Finalized</span>
-                </div>
+                <>
+                  <button onClick={handleDownloadPDF} disabled={downloading}
+                    className="rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
+                    {downloading ? '⏳ Downloading...' : '📄 PDF'}
+                  </button>
+                  <button onClick={handleDownloadCSV} disabled={downloadingCSV}
+                    className="rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
+                    {downloadingCSV ? '⏳ Downloading...' : '📊 CSV / Excel'}
+                  </button>
+                  {!payrollData.is_finalized ? (
+                    <button onClick={handleFinalize} disabled={finalizing}
+                      className="rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:-translate-y-0.5 disabled:opacity-50">
+                      {finalizing ? '⏳ Finalizing...' : '🔒 Finalize Payroll'}
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-xl bg-emerald-100 border-2 border-emerald-300 px-6 py-3">
+                      <span className="text-lg">✅</span>
+                      <span className="text-emerald-700 font-bold text-sm">Payroll Finalized</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
-
-            {payrollData && (
-              <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2">
-                <p className="text-[11px] text-blue-800">
-                  💡 
-                </p>
-              </div>
-            )}
           </div>
         </div>
 
@@ -211,273 +169,104 @@ const PayrollReports = () => {
             <p className="mt-4 text-sm text-[#9CA3AF]">Calculating...</p>
           </div>
         )}
-        {!loading && !payrollData && (
-          <div className="flex items-center justify-center rounded-2xl bg-white py-20 shadow-sm">
-            <p className="text-base font-semibold text-[#1A1A2E]">Select filters & generate</p>
-          </div>
-        )}
 
         {payrollData && (
-          <>
-            {/* COMPANY INFO */}
-            <div className="mb-6 rounded-2xl bg-gradient-to-br from-[#1A1A2E] to-[#2D2D44] p-6 text-white">
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#E8590C] to-[#D14800] text-xl font-bold shadow-lg">
-                    {payrollData.company?.code}
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-extrabold">{payrollData.company?.name}</h2>
-                    {payrollData.company?.address && <p className="text-sm text-gray-300">{payrollData.company.address}</p>}
-                    <p className="text-xs text-gray-400">Period: <span className="font-semibold text-white">{payrollData.month_name} {payrollData.year}</span></p>
-                  </div>
-                </div>
-                {payrollData.is_finalized && (
-                  <div className="rounded-xl bg-emerald-500/20 border border-emerald-400/50 px-4 py-2">
-                    <p className="text-emerald-300 text-xs font-bold">✅ FINALIZED</p>
-                    <p className="text-emerald-200 text-[10px]">Balance updated</p>
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <div className="rounded-xl bg-white/10 p-3"><p className="text-[10px] uppercase text-gray-300">Total Days</p><p className="text-2xl font-extrabold">{getTotalDays()}</p></div>
-                <div className="rounded-xl bg-purple-500/15 p-3"><p className="text-[10px] uppercase text-purple-200">Weekly Off</p><p className="text-2xl font-extrabold text-purple-300">{getWeeklyOff()}</p></div>
-                <div className="rounded-xl bg-red-500/15 p-3"><p className="text-[10px] uppercase text-red-200">Holidays</p><p className="text-2xl font-extrabold text-red-300">{payrollData.settings?.holidays_count || 0}</p></div>
-                <div className="rounded-xl bg-emerald-500/15 p-3"><p className="text-[10px] uppercase text-emerald-200">Working</p><p className="text-2xl font-extrabold text-emerald-300">{getWorkingDays()}</p></div>
-              </div>
+          <div className="overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100">
+            <div className="overflow-auto max-h-[calc(100vh-180px)]">
+              <table className="w-full text-[11px] whitespace-nowrap">
+                <thead className="sticky top-0 z-20 shadow-sm">
+                  <tr className="bg-[#faf8f5] border-b border-gray-200">
+                    <th className="px-2 py-3 text-left font-extrabold uppercase text-[#9CA3AF]">Sr</th>
+                    <th className="px-2 py-3 text-left font-extrabold uppercase text-[#1A1A2E] border-r border-gray-200">Name</th>
+                    
+                    <th className="px-2 py-3 text-center font-extrabold text-blue-700 bg-blue-50/30">Present</th>
+                    <th className="px-2 py-3 text-center font-extrabold text-indigo-700 bg-blue-50/30">W/O</th>
+                    <th className="px-2 py-3 text-center font-extrabold text-indigo-700 bg-blue-50/30">Hol</th>
+                    <th className="px-2 py-3 text-center font-extrabold text-amber-700 bg-amber-50/30">Late</th>
+                    <th className="px-2 py-3 text-center font-extrabold text-red-700 bg-amber-50/30">Late Ded.</th>
+                    <th className="px-2 py-3 text-center font-extrabold text-orange-700 bg-orange-50/30">HD</th>
+                    <th className="px-2 py-3 text-center font-extrabold text-red-700 bg-orange-50/30 border-r border-gray-200">HD Ded.</th>
+                    
+                    <th className="px-2 py-3 text-center font-extrabold text-blue-700 bg-purple-50/20">Leaves</th>
+                    <th className="px-2 py-3 text-center font-extrabold text-cyan-700 bg-purple-50/20">Paid Lv</th>
+                    <th className="px-2 py-3 text-center font-extrabold text-indigo-700 bg-purple-50/20">Prev Lv Carry</th>
+                    <th className="px-2 py-3 text-center font-extrabold text-purple-700 bg-purple-50/20 border-r border-gray-200">Carry</th>
+                    
+                    <th className="px-2 py-3 text-center font-extrabold text-emerald-800 bg-emerald-50/20">Final Days</th>
+                    <th className="px-2 py-3 text-center font-extrabold text-gray-700 bg-emerald-50/20">%</th>
+                    <th className="px-2 py-3 text-right font-extrabold text-[#1A1A2E] bg-emerald-50/20">Salary</th>
+                    <th className="px-2 py-3 text-right font-extrabold text-red-700 bg-emerald-50/20">Cut</th>
+                    <th className="px-2 py-3 text-right font-extrabold text-[#E8590C] bg-emerald-50/20">Net</th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-gray-100">
+                  {payrollData.employees.map((emp, idx) => {
+                    const totalPunches = emp.total_checkins || 0;
+                    const totalWO = emp.weekly_off_paid || 0; 
+                    const totalHol = emp.holiday_paid || 0; 
+                    const totalHD = (emp.half_day_count || 0) + (emp.half_day_leave_count || 0);
+                    // 👈 FIXED HD DEDUCTION: showing 1 for 2 HDs
+                    const hdDed = emp.half_day_deduction !== undefined ? emp.half_day_deduction : (totalHD * 0.5);
+                    const fullLeavesOnly = emp.full_day_leaves || 0;
+                    const prevLvBalance = (emp.leave_opening_balance || 0) + (emp.leave_credited || 0);
+
+                    return (
+                      <tr key={emp.emp_id || idx} className="hover:bg-orange-50/30 transition-colors">
+                        <td className="px-2 py-2 text-[#9CA3AF] font-medium">{idx + 1}</td>
+                        <td className="px-2 py-2 border-r border-gray-100">
+                          <span className="font-bold text-[#1A1A2E]">{emp.name}</span>
+                          {emp.is_fsr && <span className="ml-1 text-[8px] text-orange-600 font-bold bg-orange-100 px-1 rounded">FSR</span>}
+                        </td>
+
+                        <td className="px-2 py-2 text-center font-bold text-blue-700 bg-blue-50/10">{totalPunches}</td>
+                        <td className="px-2 py-2 text-center font-bold text-indigo-700 bg-blue-50/10">{totalWO}</td>
+                        <td className="px-2 py-2 text-center font-bold text-indigo-700 bg-blue-50/10">{totalHol}</td>
+                        
+                        <td className="px-2 py-2 text-center font-bold text-amber-700 bg-amber-50/10">{emp.late_count || 0}</td>
+                        <td className="px-2 py-2 text-center font-bold text-red-600 bg-amber-50/10">{emp.late_leave_deduction || 0}</td>
+                        
+                        <td className="px-2 py-2 text-center font-bold text-orange-700 bg-orange-50/10">{totalHD}</td>
+                        <td className="px-2 py-2 text-center font-bold text-red-600 bg-orange-50/10 border-r border-gray-100">{hdDed}</td>
+                        
+                        <td className="px-2 py-2 text-center font-bold text-blue-700 bg-purple-50/10">{fullLeavesOnly}</td>
+                        <td className="px-2 py-2 text-center font-bold text-cyan-700 bg-purple-50/10">{emp.paid_leave_days || 0}</td>
+                        <td className="px-2 py-2 text-center font-bold text-indigo-700 bg-purple-50/10">{prevLvBalance}</td>
+                        <td className="px-2 py-2 text-center font-bold text-purple-700 bg-purple-50/10 border-r border-gray-100">{emp.leave_closing_balance || 0}</td>
+                        
+                        <td className="px-2 py-2 text-center font-bold text-emerald-800 bg-emerald-50/10">{emp.final_payable_days || 0}</td>
+                        <td className="px-2 py-2 text-center font-bold text-gray-700 bg-emerald-50/10">{emp.progress_percent || 0}%</td>
+                        <td className="px-2 py-2 text-right font-bold text-[#1A1A2E] bg-emerald-50/10">{fmt(emp.monthly_salary)}</td>
+                        <td className="px-2 py-2 text-right font-bold text-red-600 bg-emerald-50/10">{emp.total_deduction > 0 ? fmt(emp.total_deduction) : '-'}</td>
+                        <td className="px-2 py-2 text-right font-extrabold text-[#E8590C] bg-emerald-50/20">{fmt(emp.net_payable)}</td>
+                      </tr>
+                    );
+                  })}
+
+                  {/* GRAND TOTAL */}
+                  <tr className="sticky bottom-0 z-10 bg-gradient-to-r from-[#1A1A2E] to-[#2D2D44] text-white text-[12px]">
+                    <td colSpan="2" className="px-2 py-3 font-bold uppercase border-r border-gray-700">TOTAL</td>
+                    <td className="px-2 py-3 text-center font-bold text-blue-300">{payrollData.summary?.total_checkins || 0}</td>
+                    <td className="px-2 py-3 text-center font-bold text-indigo-300">{payrollData.summary?.total_wo || 0}</td>
+                    <td className="px-2 py-3 text-center font-bold text-indigo-300">{payrollData.summary?.total_holiday || 0}</td>
+                    <td className="px-2 py-3 text-center font-bold text-amber-300">{payrollData.summary?.total_late || 0}</td>
+                    <td className="px-2 py-3 text-center font-bold text-red-300">{payrollData.summary?.total_late_deduction || 0}</td>
+                    <td className="px-2 py-3 text-center font-bold text-orange-300">{payrollData.summary?.total_half_day || 0}</td>
+                    <td className="px-2 py-3 text-center font-bold text-red-300 border-r border-gray-700">{payrollData.summary?.total_hd_deduction || 0}</td>
+                    <td className="px-2 py-3 text-center font-bold text-blue-300">{payrollData.summary?.total_leaves || 0}</td>
+                    <td className="px-2 py-3 text-center font-bold text-cyan-300">{payrollData.summary?.total_paid_leaves || 0}</td>
+                    <td className="px-2 py-3 text-center font-bold text-indigo-300">-</td>
+                    <td className="px-2 py-3 text-center font-bold text-purple-300 border-r border-gray-700">{payrollData.summary?.total_carry_forward || 0}</td>
+                    <td className="px-2 py-3 text-center font-bold text-emerald-300">-</td>
+                    <td className="px-2 py-3 text-center font-bold text-gray-300">-</td>
+                    <td className="px-2 py-3 text-right font-bold">{fmt(payrollData.summary?.total_monthly_salary)}</td>
+                    <td className="px-2 py-3 text-right font-bold text-red-400">{fmt(payrollData.summary?.total_deduction)}</td>
+                    <td className="px-2 py-3 text-right font-extrabold text-white">{fmt(payrollData.summary?.total_earned)}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-
-            {/* SUMMARY */}
-            <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-              {[
-                { label: 'Employees', value: payrollData.summary.total_employees, color: '#7c3aed', money: false },
-                { label: 'Total Salary', value: payrollData.summary.total_monthly_salary, color: '#1A1A2E', money: true },
-                { label: 'Total Earned', value: payrollData.summary.total_earned, color: '#16a34a', money: true },
-                { label: 'Total Cut', value: payrollData.summary.total_deduction, color: '#dc2626', money: true },
-              ].map(s => (
-                <div key={s.label} className="overflow-hidden rounded-2xl bg-white shadow-sm">
-                  <div className="h-1" style={{ background: s.color }} />
-                  <div className="p-5">
-                    <p className="text-xs font-semibold uppercase text-[#9CA3AF]">{s.label}</p>
-                    <p className="mt-1 text-2xl font-extrabold" style={{ color: s.color }}>{s.money ? fmt(s.value) : s.value}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* FORMULA */}
-            <div className="mb-4 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3">
-              <p className="text-[11px] text-blue-900">
-                <strong>Formula:</strong> Final = Present + HD + Paid Lv - Late &nbsp;|&nbsp;
-                <strong>HD</strong> = Attendance HD (att) + Half day leaves (lv) &nbsp;|&nbsp;
-                <strong>Leaves</strong> = Full + Half day leaves total &nbsp;|&nbsp;
-                <strong>Net</strong> = Salary × (Final ÷ {getWorkingDays()})
-              </p>
-            </div>
-
-            {/* TABLE */}
-            <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-              {/* 🔒 STICKY: Table Title Header */}
-              <div className="sticky top-0 z-30 border-b border-gray-100 bg-white px-6 py-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-bold text-[#1A1A2E]">Employee Salary Details</h3>
-                  <p className="text-xs text-[#9CA3AF]">{payrollData.employees.length} employees • Days Based</p>
-                </div>
-                {payrollData.is_finalized && (
-                  <span className="text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-bold">
-                    🔒 Balance Updated
-                  </span>
-                )}
-              </div>
-
-              {/* 🔒 Scrollable Table Wrapper with max height */}
-              <div className="overflow-auto max-h-[calc(100vh-180px)]">
-                <table className="w-full text-sm">
-                  {/* 🔒 STICKY: Column Headers */}
-                  <thead className="sticky top-0 z-20 bg-[#faf8f5] shadow-sm">
-                    <tr>
-                      <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] bg-[#faf8f5]">Sr</th>
-                      <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-[#1A1A2E] bg-[#faf8f5]">Name</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-emerald-700 bg-[#faf8f5]">Present</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-amber-700 bg-[#faf8f5]">Late</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-orange-700 bg-[#faf8f5]">HD</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-blue-700 bg-[#faf8f5]">Leaves</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-cyan-700 bg-[#faf8f5]">Paid Lv</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-indigo-700 bg-indigo-50">Carry</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-purple-700 bg-purple-50">Final Days</th>
-                      <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] bg-[#faf8f5]">%</th>
-                      <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-[#1A1A2E] bg-[#faf8f5]">Salary</th>
-                      <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-red-700 bg-[#faf8f5]">Cut</th>
-                      <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-[#E8590C] bg-[#faf8f5]">Net</th>
-                    </tr>
-                  </thead>
-
-                  <tbody className="divide-y divide-gray-50">
-                    {payrollData.employees.map((emp, idx) => {
-                      const totalHD = (emp.half_day_count || 0) + (emp.half_day_leave_count || 0);
-                      const totalLeavesDays = emp.total_leave_approved || 0;
-
-                      return (
-                        <tr key={emp.emp_id || idx} className="hover:bg-[#faf8f5]">
-                          <td className="px-2 py-3 text-xs text-[#9CA3AF]">{idx + 1}</td>
-
-                          <td className="px-2 py-3">
-                            <p className="font-semibold text-[#1A1A2E] text-[13px]">{emp.name}</p>
-                            <p className="text-[10px] text-[#9CA3AF] font-mono">{emp.emp_code}</p>
-                          </td>
-
-                          <td className="px-2 py-3 text-center">
-                            <span className="inline-flex h-7 min-w-[32px] px-1 items-center justify-center rounded-lg bg-emerald-50 text-xs font-bold text-emerald-700">
-                              {emp.total_present || 0}
-                            </span>
-                          </td>
-
-                          <td className="px-2 py-3 text-center">
-                            <div className="inline-flex flex-col items-center">
-                              <span className={`inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
-                                (emp.late_count || 0) > 0 ? 'bg-amber-50 text-amber-700' : 'bg-gray-50 text-gray-400'
-                              }`}>{emp.late_count || 0}</span>
-                              {emp.late_leave_deduction > 0 && (
-                                <span className="mt-0.5 text-[9px] font-bold text-red-600">-{emp.late_leave_deduction}d</span>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="px-2 py-3 text-center">
-                            <div className="inline-flex flex-col items-center">
-                              <span className={`inline-flex h-7 min-w-[32px] px-1 items-center justify-center rounded-lg text-xs font-bold ${
-                                totalHD > 0 ? 'bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-400'
-                              }`}>
-                                {totalHD}
-                              </span>
-                              {totalHD > 0 && (
-                                <span className="mt-0.5 text-[9px] font-bold text-orange-600">
-                                  {emp.half_day_count > 0 && `att:${emp.half_day_count}`}
-                                  {emp.half_day_count > 0 && emp.half_day_leave_count > 0 && ' • '}
-                                  {emp.half_day_leave_count > 0 && `lv:${emp.half_day_leave_count}`}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="px-2 py-3 text-center">
-                            <div className="inline-flex flex-col items-center">
-                              <span className={`inline-flex h-7 min-w-[32px] px-1 items-center justify-center rounded-lg text-xs font-bold ${
-                                totalLeavesDays > 0 ? 'bg-blue-50 text-blue-700' : 'bg-gray-50 text-gray-400'
-                              }`}>
-                                {totalLeavesDays}
-                              </span>
-                              {(emp.full_day_leaves > 0 || emp.half_day_leave_count > 0) && (
-                                <span className="mt-0.5 text-[9px] font-bold text-blue-600">
-                                  {emp.full_day_leaves > 0 && `${emp.full_day_leaves}F`}
-                                  {emp.full_day_leaves > 0 && emp.half_day_leave_count > 0 && '+'}
-                                  {emp.half_day_leave_count > 0 && `${emp.half_day_leave_count}HD`}
-                                </span>
-                              )}
-                              {(emp.unpaid_leave_days || 0) > 0 && (
-                                <span className="mt-0.5 text-[9px] font-bold text-red-600">{emp.unpaid_leave_days} unpaid</span>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="px-2 py-3 text-center">
-                            <div className="inline-flex flex-col items-center">
-                              <span className={`inline-flex h-7 min-w-[28px] items-center justify-center rounded-lg px-1 text-xs font-bold ${
-                                (emp.paid_leave_days || 0) > 0 ? 'bg-cyan-50 text-cyan-700' : 'bg-gray-50 text-gray-400'
-                              }`}>{emp.paid_leave_days || 0}</span>
-                              {(emp.half_day_deduction || 0) > 0 && (
-                                <span className="mt-0.5 text-[8px] font-bold text-cyan-600">hd:{emp.half_day_deduction}</span>
-                              )}
-                            </div>
-                          </td>
-
-                          <td className="px-2 py-3 text-center bg-indigo-50/30">
-                            <span className={`inline-flex h-7 min-w-[32px] items-center justify-center rounded-lg px-1 text-xs font-extrabold ${
-                              (emp.leave_closing_balance || 0) > 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-red-50 text-red-600'
-                            }`}>
-                              {emp.leave_closing_balance || 0}
-                            </span>
-                          </td>
-
-                          <td className="px-2 py-3 text-center bg-purple-50/30">
-                            <span className="inline-flex h-7 min-w-[40px] items-center justify-center rounded-lg bg-purple-100 px-2 text-xs font-extrabold text-purple-700">
-                              {emp.final_payable_days || 0}
-                            </span>
-                          </td>
-
-                          <td className="px-2 py-3 text-center">
-                            <span className={`inline-block rounded-md px-2 py-1 text-[10px] font-bold ${
-                              (emp.progress_percent || 0) >= 100 ? 'bg-emerald-100 text-emerald-700' :
-                              (emp.progress_percent || 0) >= 80 ? 'bg-amber-100 text-amber-700' :
-                              (emp.progress_percent || 0) >= 50 ? 'bg-orange-100 text-orange-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>{emp.progress_percent || 0}%</span>
-                          </td>
-
-                          <td className="px-2 py-3 text-right text-xs font-semibold text-[#1A1A2E]">{fmt(emp.monthly_salary)}</td>
-
-                          <td className="px-2 py-3 text-right">
-                            {(emp.total_deduction || 0) > 0 ? (
-                              <span className="text-xs font-semibold text-red-600">{fmt(emp.total_deduction)}</span>
-                            ) : <span className="text-xs font-bold text-emerald-600">—</span>}
-                          </td>
-
-                          <td className="px-2 py-3 text-right">
-                            <span className="rounded-lg bg-[#FFF3E8] px-2 py-1 text-xs font-extrabold text-[#E8590C]">
-                              {fmt(emp.net_payable)}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-
-                    {/* GRAND TOTAL */}
-                    <tr className="sticky bottom-0 z-10 bg-gradient-to-r from-[#1A1A2E] to-[#2D2D44] text-white">
-                      <td colSpan="2" className="px-2 py-3 font-bold uppercase text-xs">GRAND TOTAL</td>
-                      <td className="px-2 py-3 text-center text-emerald-300 font-bold text-xs">{payrollData.summary.total_present || 0}</td>
-                      <td className="px-2 py-3 text-center text-amber-300 font-bold text-xs">{payrollData.summary.total_late || 0}</td>
-                      <td className="px-2 py-3 text-center text-orange-300 font-bold text-xs">{payrollData.summary.total_half_day || 0}</td>
-                      <td className="px-2 py-3 text-center text-blue-300 font-bold text-xs">{payrollData.summary.total_leaves || 0}</td>
-                      <td className="px-2 py-3 text-center text-cyan-300 font-bold text-xs">{payrollData.summary.total_paid_leaves || 0}</td>
-                      <td className="px-2 py-3 text-center text-indigo-300 font-bold text-xs">{payrollData.summary.total_carry_forward || 0}</td>
-                      <td className="px-2 py-3 text-center text-purple-300 font-bold text-xs">—</td>
-                      <td></td>
-                      <td className="px-2 py-3 text-right text-xs font-bold">{fmt(payrollData.summary.total_monthly_salary)}</td>
-                      <td className="px-2 py-3 text-right text-red-300 text-xs font-bold">{fmt(payrollData.summary.total_deduction)}</td>
-                      <td className="px-2 py-3 text-right">
-                        <span className="rounded-lg bg-[#E8590C] px-2 py-1 text-xs font-extrabold">{fmt(payrollData.summary.total_earned)}</span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* FINALIZE INFO */}
-            {!payrollData.is_finalized && (
-              <div className="mt-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-                <p className="text-[12px] text-amber-900">
-                  <strong>⚠️ Note:</strong> Payroll finalize karne pe employees ke leave balance se HD/Late/Leaves cut ho jaayenge. 
-                  Next month ka carry forward properly hoga. Ek baar hi finalize ho sakta hai.
-                </p>
-              </div>
-            )}
-
-            {/* COLUMN LEGEND */}
-            <div className="mt-4 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3">
-              <p className="text-[11px] text-gray-700 font-semibold mb-1">📋 Column Guide:</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-1 text-[10px] text-gray-600">
-                <span><strong className="text-emerald-700">Present</strong> = Full worked days</span>
-                <span><strong className="text-amber-700">Late</strong> = After 9:45 AM (3L=0.5d)</span>
-                <span><strong className="text-orange-700">HD</strong> = Half Day (att + leaves)</span>
-                <span><strong className="text-blue-700">Leaves</strong> = Full + Half day leaves total</span>
-                <span><strong className="text-cyan-700">Paid Lv</strong> = Balance se paid</span>
-                <span><strong className="text-indigo-700">Carry</strong> = Balance for next month</span>
-                <span><strong className="text-purple-700">Final</strong> = Total payable days</span>
-                <span><strong className="text-[#E8590C]">Net</strong> = Final payable salary</span>
-              </div>
-            </div>
-          </>
+          </div>
         )}
       </div>
     </div>

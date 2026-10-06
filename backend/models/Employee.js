@@ -68,11 +68,11 @@ const employeeSchema = new mongoose.Schema({
   },
 
   // ✅ Worker Type
-  worker_type: {
-    type: String,
-    enum: ['office', 'site'],
-    default: 'office',
-  },
+ worker_type: {
+  type: String,
+  enum: ['office', 'site', 'fsr'],  // ← fsr add
+  default: 'office',
+},
 
 }, { timestamps: true });
 

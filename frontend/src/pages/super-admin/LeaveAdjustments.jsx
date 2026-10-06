@@ -1,11 +1,13 @@
 
 
+
 // import { useEffect, useState } from 'react';
 // import { useDispatch, useSelector } from 'react-redux';
 // import {
 //   fetchAllEmployeesWithBalance,
 //   adjustLeaveBalance,
 //   fetchAdjustmentHistory,
+//   deleteAdjustment, // 🆕 Import kiya gaya hai
 //   clearBalanceMessage,
 //   clearBalanceError,
 // } from '../../redux/slices/leaveBalanceSlice';
@@ -40,6 +42,10 @@
 //   const [adjustmentType, setAdjustmentType] = useState('add');
 //   const [days, setDays] = useState('');
 //   const [reason, setReason] = useState('');
+  
+//   // Target Month & Year selection for Adjustment Modal
+//   const [adjustMonth, setAdjustMonth] = useState(now.getMonth() + 1);
+//   const [adjustYear, setAdjustYear] = useState(now.getFullYear());
 
 //   const yearsList = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
 
@@ -87,6 +93,9 @@
 //     setAdjustmentType('add');
 //     setDays('');
 //     setReason('');
+//     // Default modal target month to currently selected filter month
+//     setAdjustMonth(selectedMonth);
+//     setAdjustYear(selectedYear);
 //   };
 
 //   const closeAdjustModal = () => {
@@ -112,12 +121,24 @@
 //         days: parseFloat(days),
 //         reason: reason.trim(),
 //         adjustment_type: adjustmentType,
+//         month: Number(adjustMonth),
+//         year: Number(adjustYear),
 //       })
 //     );
 
 //     if (result.meta.requestStatus === 'fulfilled') {
 //       closeAdjustModal();
 //       refreshAll();
+//     }
+//   };
+
+//   // 🆕 Delete and Revert Adjustment Handler
+//   const handleDeleteAdjustment = async (id) => {
+//     if (window.confirm('Are you sure you want to delete this adjustment? Balance will automatically revert.')) {
+//       const result = await dispatch(deleteAdjustment(id));
+//       if (result.meta.requestStatus === 'fulfilled') {
+//         refreshAll(); // Automatically reload history and balances after delete
+//       }
 //     }
 //   };
 
@@ -338,7 +359,8 @@
 //               <table className="w-full text-sm">
 //                 <thead>
 //                   <tr className="bg-[#faf8f5]">
-//                     {['Employee', 'Company', 'Month', 'Type', 'Days', 'Reason', 'By', 'Date'].map((h) => (
+//                     {/* 🆕 Actions header add kiya */}
+//                     {['Employee', 'Company', 'Month', 'Type', 'Days', 'Reason', 'By', 'Date', 'Action'].map((h) => (
 //                       <th key={h} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-[#9CA3AF]">
 //                         {h}
 //                       </th>
@@ -378,6 +400,15 @@
 //                               day: 'numeric', month: 'short', year: 'numeric',
 //                             })
 //                           : '—'}
+//                       </td>
+//                       {/* 🆕 Delete / Revert Button */}
+//                       <td className="px-4 py-3">
+//                         <button
+//                           onClick={() => handleDeleteAdjustment(adj._id)}
+//                           className="rounded-lg bg-red-50 border border-red-100 px-3 py-1.5 text-[10px] font-extrabold text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm"
+//                         >
+//                           🗑️ Revert
+//                         </button>
 //                       </td>
 //                     </tr>
 //                   ))}
@@ -534,9 +565,38 @@
 //           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl p-6">
 //             <h3 className="text-lg font-extrabold text-[#1A1A2E]">Adjust Leaves</h3>
 //             <p className="text-xs text-[#9CA3AF] mb-4">
-//               {adjustModal.name} — Current:{' '}
+//               {adjustModal.name} — Current Live Balance:{' '}
 //               <b className="text-blue-600">{adjustModal.current_balance}</b>
 //             </p>
+
+//             {/* Target Month & Year Selector */}
+//             <div className="grid grid-cols-2 gap-3 mb-4">
+//               <div>
+//                 <label className="block text-xs font-semibold mb-1 text-[#4B5563]">Target Month</label>
+//                 <select
+//                   value={adjustMonth}
+//                   onChange={(e) => setAdjustMonth(Number(e.target.value))}
+//                   className="w-full rounded-xl border border-gray-200 p-2.5 text-xs font-bold outline-none focus:border-[#E8590C]"
+//                 >
+//                   {MONTHS.map((m, idx) => (
+//                     <option key={m} value={idx + 1}>{m}</option>
+//                   ))}
+//                 </select>
+//               </div>
+
+//               <div>
+//                 <label className="block text-xs font-semibold mb-1 text-[#4B5563]">Target Year</label>
+//                 <select
+//                   value={adjustYear}
+//                   onChange={(e) => setAdjustYear(Number(e.target.value))}
+//                   className="w-full rounded-xl border border-gray-200 p-2.5 text-xs font-bold outline-none focus:border-[#E8590C]"
+//                 >
+//                   {yearsList.map((y) => (
+//                     <option key={y} value={y}>{y}</option>
+//                   ))}
+//                 </select>
+//               </div>
+//             </div>
 
 //             <div className="grid grid-cols-2 gap-3 mb-4">
 //               <button
@@ -614,17 +674,21 @@
 
 
 
+
+// pages/super-admin/LeaveAdjustments.jsx
+
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   fetchAllEmployeesWithBalance,
   adjustLeaveBalance,
   fetchAdjustmentHistory,
-  deleteAdjustment, // 🆕 Import kiya gaya hai
+  deleteAdjustment, 
   clearBalanceMessage,
   clearBalanceError,
 } from '../../redux/slices/leaveBalanceSlice';
 import { fetchCompanies } from '../../redux/slices/companySlice';
+import { addLeaveBySuperAdmin, clearLeaveMessage, clearLeaveError } from '../../redux/slices/leaveSlice';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -633,14 +697,18 @@ const MONTHS = [
 
 const LeaveAdjustments = () => {
   const dispatch = useDispatch();
+  
+  // Slices
   const {
     allEmployeesWithBalance,
     adjustmentHistory,
     loading,
     historyLoading,
-    message,
-    error,
+    message: balanceMessage,
+    error: balanceError,
   } = useSelector((s) => s.leaveBalance);
+  
+  const { leavesLoading, message: leaveMessage, error: leaveError } = useSelector((s) => s.leaves);
   const { companies } = useSelector((s) => s.company);
 
   const now = new Date();
@@ -649,16 +717,30 @@ const LeaveAdjustments = () => {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [search, setSearch] = useState('');
 
+  // Modals / Drawers
   const [adjustModal, setAdjustModal] = useState(null);
   const [historyDrawer, setHistoryDrawer] = useState(null);
+  const [manualLeaveModal, setManualLeaveModal] = useState(false); // 🆕 Manual Leave Modal State
 
+  // Adjustment form states
   const [adjustmentType, setAdjustmentType] = useState('add');
   const [days, setDays] = useState('');
   const [reason, setReason] = useState('');
-  
-  // Target Month & Year selection for Adjustment Modal
   const [adjustMonth, setAdjustMonth] = useState(now.getMonth() + 1);
   const [adjustYear, setAdjustYear] = useState(now.getFullYear());
+
+  // 🆕 Manual Leave Form States
+  const [manualEmpId, setManualEmpId] = useState('');
+  const [manualFromDate, setManualFromDate] = useState('');
+  const [manualToDate, setManualToDate] = useState('');
+  const [manualShift, setManualShift] = useState('General');
+  const [manualLeaveType, setManualLeaveType] = useState('sick');
+  const [manualReason, setManualReason] = useState('');
+  const [manualIsHalfDay, setManualIsHalfDay] = useState(false);
+  const [manualHalfDayPeriod, setManualHalfDayPeriod] = useState('first');
+  const [manualPaidDays, setManualPaidDays] = useState('');
+  const [manualUnpaidDays, setManualUnpaidDays] = useState('');
+  const [manualAdminRemark, setManualAdminRemark] = useState('');
 
   const yearsList = [now.getFullYear(), now.getFullYear() - 1, now.getFullYear() - 2];
 
@@ -692,21 +774,22 @@ const LeaveAdjustments = () => {
   }, [selectedCompany, selectedMonth, selectedYear, search]);
 
   useEffect(() => {
-    if (message || error) {
+    if (balanceMessage || balanceError || leaveMessage || leaveError) {
       const timer = setTimeout(() => {
         dispatch(clearBalanceMessage());
         dispatch(clearBalanceError());
-      }, 4000);
+        dispatch(clearLeaveMessage());
+        dispatch(clearLeaveError());
+      }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [message, error, dispatch]);
+  }, [balanceMessage, balanceError, leaveMessage, leaveError, dispatch]);
 
   const openAdjustModal = (emp) => {
     setAdjustModal(emp);
     setAdjustmentType('add');
     setDays('');
     setReason('');
-    // Default modal target month to currently selected filter month
     setAdjustMonth(selectedMonth);
     setAdjustYear(selectedYear);
   };
@@ -745,13 +828,90 @@ const LeaveAdjustments = () => {
     }
   };
 
-  // 🆕 Delete and Revert Adjustment Handler
   const handleDeleteAdjustment = async (id) => {
     if (window.confirm('Are you sure you want to delete this adjustment? Balance will automatically revert.')) {
       const result = await dispatch(deleteAdjustment(id));
       if (result.meta.requestStatus === 'fulfilled') {
-        refreshAll(); // Automatically reload history and balances after delete
+        refreshAll();
       }
+    }
+  };
+
+  // 🆕 Open Manual Leave Modal with pre-filled Employee (if clicked from Table)
+  const openManualLeaveModal = (emp = null) => {
+    if (emp) {
+      setManualEmpId(emp._id);
+    } else {
+      setManualEmpId(allEmployeesWithBalance?.[0]?._id || '');
+    }
+    setManualFromDate('');
+    setManualToDate('');
+    setManualShift('General');
+    setManualLeaveType('sick');
+    setManualReason('');
+    setManualIsHalfDay(false);
+    setManualHalfDayPeriod('first');
+    setManualPaidDays('');
+    setManualUnpaidDays('');
+    setManualAdminRemark('');
+    setManualLeaveModal(true);
+  };
+
+  // 🆕 Calculate Days and Auto split Paid/Unpaid inside modal
+  useEffect(() => {
+    if (manualFromDate && manualToDate) {
+      const d1 = new Date(manualFromDate);
+      const d2 = new Date(manualToDate);
+      if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+        let totalDays = 0;
+        if (manualIsHalfDay) {
+          totalDays = 0.5;
+        } else {
+          const diffTime = Math.abs(d2 - d1);
+          totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        const selectedEmp = allEmployeesWithBalance.find((e) => e._id === manualEmpId);
+        const curBal = selectedEmp ? selectedEmp.current_balance : 0;
+
+        const autoPaid = Math.min(totalDays, curBal);
+        const autoUnpaid = Math.max(0, totalDays - autoPaid);
+
+        setManualPaidDays(autoPaid.toString());
+        setManualUnpaidDays(autoUnpaid.toString());
+      }
+    }
+  }, [manualFromDate, manualToDate, manualIsHalfDay, manualEmpId, allEmployeesWithBalance]);
+
+  // 🆕 Handle Manual Leave Submission
+  const handleManualLeaveSubmit = async () => {
+    if (!manualEmpId || !manualFromDate || !manualToDate || !manualLeaveType || !manualReason) {
+      alert('Fill all required fields!');
+      return;
+    }
+
+    const leaveData = {
+      emp_id: manualEmpId,
+      from_date: manualFromDate,
+      to_date: manualToDate,
+      shift: manualShift,
+      leave_type: manualLeaveType,
+      reason: manualReason,
+      is_half_day: manualIsHalfDay,
+      half_day_period: manualIsHalfDay ? manualHalfDayPeriod : '',
+      paid_days: parseFloat(manualPaidDays) || 0,
+      unpaid_days: parseFloat(manualUnpaidDays) || 0,
+      admin_remark: manualAdminRemark || 'Manually added by Super Admin',
+    };
+
+    const result = await dispatch(addLeaveBySuperAdmin(leaveData));
+
+    if (result.meta.requestStatus === 'fulfilled') {
+      setManualLeaveModal(false);
+      refreshAll();
+      alert('Leave added successfully!');
+    } else {
+      alert(result.payload || 'Failed to apply leave');
     }
   };
 
@@ -762,25 +922,34 @@ const LeaveAdjustments = () => {
         {/* HEADER */}
         <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
           <div className="h-1 w-full bg-gradient-to-r from-[#E8590C] via-[#F4A261] to-[#E8590C]" />
-          <div className="p-6">
-            <h1 className="text-lg font-extrabold text-[#1A1A2E]">
-              Leave Balances & Deep Audit History
-            </h1>
-            <p className="text-xs text-[#9CA3AF] mt-1">
-              Current balance, approved leaves, late cuts, and manual adjustments — 100% itemized transparency.
-            </p>
+          <div className="p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div>
+              <h1 className="text-lg font-extrabold text-[#1A1A2E]">
+                Leave Balances & Deep Audit History
+              </h1>
+              <p className="text-xs text-[#9CA3AF] mt-1">
+                Current balance, approved leaves, late cuts, and manual adjustments — 100% itemized transparency.
+              </p>
+            </div>
+            {/* 🆕 Add Manual Leave Button on Header */}
+            <button
+              onClick={() => openManualLeaveModal()}
+              className="rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] px-4 py-2.5 text-xs font-black text-white hover:shadow-md transition-all self-start sm:self-center"
+            >
+              ➕ Add Manual Leave (Backdated)
+            </button>
           </div>
         </div>
 
         {/* MESSAGES */}
-        {message && (
+        {(balanceMessage || leaveMessage) && (
           <div className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm font-medium text-emerald-800">
-            {message}
+            {balanceMessage || leaveMessage}
           </div>
         )}
-        {error && (
+        {(balanceError || leaveError) && (
           <div className="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm font-medium text-red-800">
-            {error}
+            {balanceError || leaveError}
           </div>
         )}
 
@@ -925,7 +1094,7 @@ const LeaveAdjustments = () => {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => setHistoryDrawer(emp)}
                               className="rounded-lg bg-gray-100 px-2.5 py-1.5 text-[11px] font-bold text-gray-700 hover:bg-gray-200"
@@ -934,9 +1103,16 @@ const LeaveAdjustments = () => {
                             </button>
                             <button
                               onClick={() => openAdjustModal(emp)}
-                              className="rounded-lg bg-[#E8590C] px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-[#D14800]"
+                              className="rounded-lg bg-[#E8590C]/10 px-2.5 py-1.5 text-[11px] font-bold text-[#E8590C] hover:bg-[#E8590C]/20"
                             >
                               ⚙️ Adjust
+                            </button>
+                            {/* 🆕 Action Button to Apply manual backdated leave for this specific row employee */}
+                            <button
+                              onClick={() => openManualLeaveModal(emp)}
+                              className="rounded-lg bg-gradient-to-r from-[#E8590C] to-[#D14800] px-2.5 py-1.5 text-[11px] font-bold text-white hover:opacity-90"
+                            >
+                              ➕ Leave
                             </button>
                           </div>
                         </td>
@@ -972,7 +1148,6 @@ const LeaveAdjustments = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-[#faf8f5]">
-                    {/* 🆕 Actions header add kiya */}
                     {['Employee', 'Company', 'Month', 'Type', 'Days', 'Reason', 'By', 'Date', 'Action'].map((h) => (
                       <th key={h} className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-widest text-[#9CA3AF]">
                         {h}
@@ -1014,7 +1189,6 @@ const LeaveAdjustments = () => {
                             })
                           : '—'}
                       </td>
-                      {/* 🆕 Delete / Revert Button */}
                       <td className="px-4 py-3">
                         <button
                           onClick={() => handleDeleteAdjustment(adj._id)}
@@ -1269,6 +1443,225 @@ const LeaveAdjustments = () => {
               <button
                 onClick={closeAdjustModal}
                 className="flex-1 rounded-xl border border-gray-200 py-2.5 text-xs font-bold text-gray-600"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 ADD MANUAL LEAVE MODAL (BACKDATED OR CURRENT) */}
+      {manualLeaveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 overflow-y-auto">
+          <div className="w-full max-w-lg my-8 overflow-hidden rounded-[28px] bg-white shadow-2xl p-6">
+            <div className="mb-4 flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="text-base font-black text-[#1A1A2E]">
+                  Add Manual Approved Leave (Past / Present)
+                </h3>
+                <p className="text-[11px] text-[#9CA3AF] mt-0.5">
+                  Direct entry bypasses standard approval loop.
+                </p>
+              </div>
+              <button
+                onClick={() => setManualLeaveModal(false)}
+                className="h-7 w-7 rounded-full bg-gray-100 text-gray-500 font-bold hover:bg-gray-200 text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Employee Selector */}
+            <div className="mb-4">
+              <label className="block text-xs font-bold mb-1 text-[#4B5563] uppercase">
+                Select Employee <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={manualEmpId}
+                onChange={(e) => setManualEmpId(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 p-2.5 text-xs font-bold outline-none focus:border-[#E8590C]"
+              >
+                <option value="">-- Choose Employee --</option>
+                {allEmployeesWithBalance?.map((e) => (
+                  <option key={e._id} value={e._id}>
+                    {e.name} ({e.emp_code}) — Bal: {e.current_balance}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date Range Selection */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-xs font-bold mb-1 text-[#4B5563] uppercase">
+                  From Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={manualFromDate}
+                  onChange={(e) => setManualFromDate(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 p-2 text-xs outline-none focus:border-[#E8590C]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold mb-1 text-[#4B5563] uppercase">
+                  To Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={manualToDate}
+                  onChange={(e) => setManualToDate(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 p-2 text-xs outline-none focus:border-[#E8590C]"
+                />
+              </div>
+            </div>
+
+            {/* Toggle Half Day */}
+            <div className="mb-4 p-3 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-[#1A1A2E]">Half Day Selection</p>
+                <p className="text-[10px] text-gray-400">Specify if leave is for only 0.5 days</p>
+              </div>
+              <input
+                type="checkbox"
+                checked={manualIsHalfDay}
+                onChange={(e) => setManualIsHalfDay(e.target.checked)}
+                className="h-4 w-4 rounded text-[#E8590C] focus:ring-[#E8590C]"
+              />
+            </div>
+
+            {/* Half Day Period Selector */}
+            {manualIsHalfDay && (
+              <div className="mb-4">
+                <label className="block text-xs font-bold mb-1 text-[#4B5563] uppercase">Half Day Shift</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setManualHalfDayPeriod('first')}
+                    className={`py-2 rounded-xl text-xs font-bold border ${
+                      manualHalfDayPeriod === 'first'
+                        ? 'bg-orange-50 border-orange-500 text-orange-700'
+                        : 'bg-white border-gray-200 text-gray-500'
+                    }`}
+                  >
+                    🌅 First Half
+                  </button>
+                  <button
+                    onClick={() => setManualHalfDayPeriod('second')}
+                    className={`py-2 rounded-xl text-xs font-bold border ${
+                      manualHalfDayPeriod === 'second'
+                        ? 'bg-orange-50 border-orange-500 text-orange-700'
+                        : 'bg-white border-gray-200 text-gray-500'
+                    }`}
+                  >
+                    🌇 Second Half
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Shift & Leave Type Selection */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-xs font-bold mb-1 text-[#4B5563] uppercase">Shift</label>
+                <select
+                  value={manualShift}
+                  onChange={(e) => setManualShift(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 p-2.5 text-xs font-semibold outline-none focus:border-[#E8590C]"
+                >
+                  <option value="General">General</option>
+                  <option value="Day">Day</option>
+                  <option value="Night">Night</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold mb-1 text-[#4B5563] uppercase">
+                  Leave Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={manualLeaveType}
+                  onChange={(e) => setManualLeaveType(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 p-2.5 text-xs font-semibold outline-none focus:border-[#E8590C]"
+                >
+                  <option value="sick">Sick (SL)</option>
+                  <option value="casual">Casual (CL)</option>
+                  <option value="emergency">Emergency (EL)</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Auto Split Paid & Unpaid Days */}
+            <div className="grid grid-cols-2 gap-3 mb-4 p-3 bg-orange-50/50 border border-orange-100 rounded-2xl">
+              <div>
+                <label className="block text-[10px] font-bold text-emerald-800 uppercase mb-1">
+                  Paid Days (Deducted from Bal)
+                </label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={manualPaidDays}
+                  onChange={(e) => setManualPaidDays(e.target.value)}
+                  className="w-full rounded-xl border border-emerald-200 p-2 text-xs font-bold text-emerald-800 outline-none focus:border-[#E8590C]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-red-800 uppercase mb-1">
+                  Unpaid Days (Salary Deduction)
+                </label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={manualUnpaidDays}
+                  onChange={(e) => setManualUnpaidDays(e.target.value)}
+                  className="w-full rounded-xl border border-red-200 p-2 text-xs font-bold text-red-800 outline-none focus:border-[#E8590C]"
+                />
+              </div>
+            </div>
+
+            {/* Reason & Admin Remark */}
+            <div className="mb-4">
+              <label className="block text-xs font-bold mb-1 text-[#4B5563] uppercase">
+                Leave Reason <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={manualReason}
+                onChange={(e) => setManualReason(e.target.value)}
+                placeholder="Medical checkup, personal work, etc..."
+                rows="2"
+                className="w-full rounded-xl border border-gray-200 p-2 text-xs outline-none focus:border-[#E8590C]"
+              />
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-bold mb-1 text-[#4B5563] uppercase">
+                Admin Note / Remark (Visible to Payroll)
+              </label>
+              <input
+                type="text"
+                value={manualAdminRemark}
+                onChange={(e) => setManualAdminRemark(e.target.value)}
+                placeholder="Approved backdated entry by Super Admin"
+                className="w-full rounded-xl border border-gray-200 p-2 text-xs outline-none focus:border-[#E8590C]"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleManualLeaveSubmit}
+                disabled={leavesLoading}
+                className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-xs font-bold text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {leavesLoading ? 'Adding Leave...' : '✅ Save & Force Approve'}
+              </button>
+              <button
+                onClick={() => setManualLeaveModal(false)}
+                className="flex-1 rounded-xl border border-gray-200 py-3 text-xs font-bold text-gray-500 bg-white"
               >
                 Cancel
               </button>
