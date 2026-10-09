@@ -1,5 +1,9 @@
 
 
+
+
+// // backend/controllers/attendanceController.js
+
 // const Attendance = require('../models/Attendance');
 // const Employee = require('../models/Employee');
 // const Site = require('../models/Site');
@@ -24,9 +28,9 @@
 //   const a =
 //     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
 //     Math.cos(lat1 * Math.PI / 180) *
-//       Math.cos(lat2 * Math.PI / 180) *
-//       Math.sin(dLon / 2) *
-//       Math.sin(dLon / 2);
+//     Math.cos(lat2 * Math.PI / 180) *
+//     Math.sin(dLon / 2) *
+//     Math.sin(dLon / 2);
 //   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 //   return Math.round(R * c);
 // };
@@ -74,7 +78,6 @@
 //   return { distance: bestDistance, matched, confidence, matchedEncodings: matchCount, totalEncodings, reason };
 // };
 
-// // ✅ FIXED - Find only active sites
 // const findNearestSite = async (lat, lng, companyId) => {
 //   const filter = { is_active: true };
 //   if (companyId) filter.company_id = companyId;
@@ -169,7 +172,6 @@
 //   return dates;
 // };
 
-// // Helper: Check if date is on or after joining date
 // const parseJoiningDate = (joiningDateStr) => {
 //   if (!joiningDateStr || joiningDateStr.trim() === '') return null;
 //   const parts = joiningDateStr.trim().split('/').map(Number);
@@ -180,16 +182,13 @@
 // };
 
 // const isDateOnOrAfterJoining = (dateStr, joinInfo) => {
-//   if (!joinInfo) return true; // No DOJ = all dates eligible
+//   if (!joinInfo) return true;
 //   const [d, m, y] = dateStr.split('/').map(Number);
 //   const currentDate = new Date(y, m - 1, d);
 //   const joinDate = new Date(joinInfo.year, joinInfo.month - 1, joinInfo.day);
 //   return currentDate >= joinDate;
 // };
 
-// // ════════════════════════════════════════════════════════════
-// // SMART SITE NAME GENERATOR
-// // ════════════════════════════════════════════════════════════
 // const generateSiteNameFromAddress = (address) => {
 //   if (!address) return 'Unknown Location';
 //   const parts = address.split(',').map(p => p.trim()).filter(p => p);
@@ -225,7 +224,6 @@
 //       return res.status(400).json({ success: false, message: 'Pehle apna face register karo' });
 //     }
 
-//     // Face Match
 //     const matchResult = verifyFaceMatch(face_encoding, employee.face_encoding, employee.all_encodings);
 
 //     if (!matchResult.matched) {
@@ -240,7 +238,6 @@
 
 //     const isOfficialSiteWorker = employee.worker_type === 'site';
 
-//     // ── SMART GPS + SITE LOGIC ──
 //     let locationStatus = 'no-gps';
 //     let siteName = '';
 //     let distanceFromSite = 0;
@@ -262,11 +259,9 @@
 //         if (distance <= site.radius) {
 //           locationStatus = 'on-site';
 //           isWithinSiteRadius = true;
-//           console.log(`🏢 ON-SITE: ${matchedSiteName} (${distance}m within ${site.radius}m)`);
 //         } else {
 //           locationStatus = 'out-of-range';
 //           isWithinSiteRadius = false;
-//           console.log(`⚠️ OUT-OF-RANGE: ${distance}m from ${matchedSiteName} (radius: ${site.radius}m)`);
 //         }
 //       } else {
 //         locationStatus = 'no-site-configured';
@@ -278,14 +273,10 @@
 //       addressData = await reverseGeocode(latitude, longitude);
 //     }
 
-//     // ✅ FIXED: Display Site Name Rules
-//     // Only actual configured 'site' types will display their name. 'office' and 'out-of-range' remain blank.
 //     if (isWithinSiteRadius && matchedSiteType === 'site') {
 //       siteName = matchedSiteName;
-//       console.log(`📍 Showing SITE name: ${siteName}`);
 //     } else {
 //       siteName = '';
-//       console.log(`📍 No site name shown (office or out-of-range)`);
 //     }
 
 //     let selfieData = null;
@@ -502,7 +493,7 @@
 // };
 
 // // ════════════════════════════════════════════════════════════
-// // GET TODAY ATTENDANCE
+// // GET TODAY ATTENDANCE (Dashboard Overview)
 // // ════════════════════════════════════════════════════════════
 // const getTodayAttendance = async (req, res) => {
 //   try {
@@ -511,9 +502,33 @@
 
 //     const totalEmployees = await Employee.countDocuments({ ...filter, role: 'employee', status: 'approved' });
 //     const todayAttendance = await Attendance.find({ ...filter, date: today }).sort({ createdAt: -1 });
-
 //     const presentToday = todayAttendance.length;
-//     const absentToday = Math.max(0, totalEmployees - presentToday);
+
+//     // 🆕 Exclude those who are on leave from the absent count
+//     const Leave = require('../models/Leave');
+//     const todayIST = moment().tz('Asia/Kolkata');
+//     const todayDateObj = new Date(todayIST.year(), todayIST.month(), todayIST.date());
+
+//     const allLeaves = await Leave.find({
+//       ...filter,
+//       status: { $in: ['pending', 'approved'] },
+//     }).select('emp_id from_date to_date');
+
+//     const onLeaveEmpIds = new Set();
+//     allLeaves.forEach(leave => {
+//       try {
+//         const [fd, fm, fy] = leave.from_date.split('/').map(Number);
+//         const [td, tm, ty] = leave.to_date.split('/').map(Number);
+//         const fromDate = new Date(fy, fm - 1, fd);
+//         const toDate = new Date(ty, tm - 1, td);
+//         if (todayDateObj >= fromDate && todayDateObj <= toDate) {
+//           onLeaveEmpIds.add(leave.emp_id.toString());
+//         }
+//       } catch (err) {}
+//     });
+
+//     const leaveCount = onLeaveEmpIds.size;
+//     const absentToday = Math.max(0, totalEmployees - presentToday - leaveCount);
 
 //     res.json({
 //       success: true,
@@ -683,8 +698,7 @@
 // };
 
 // // ════════════════════════════════════════════════════════════
-// // ✅ UPDATED - GET MONTHLY SUMMARY (Dashboard)
-// // - Prorated calculations based on DOJ
+// // GET MONTHLY SUMMARY
 // // ════════════════════════════════════════════════════════════
 // const getMonthlySummary = async (req, res) => {
 //   try {
@@ -730,7 +744,6 @@
 //     });
 //     const isSiteWorker = sundayAttendances.length >= 2;
 
-//     // DOJ parsing
 //     const joinInfo = parseJoiningDate(employee.joining_date);
 
 //     let totalWorkedMinutes = 0;
@@ -770,7 +783,6 @@
 
 //       if (isCurrentMonth && d > todayDate) continue;
 
-//       // ✅ Skip calculation entirely if day is before joining date
 //       if (!isDateOnOrAfterJoining(dateStr, joinInfo)) {
 //         skippedDaysBeforeJoining++;
 //         continue;
@@ -778,7 +790,6 @@
 
 //       const attendance = attendanceRecords.find((a) => a.date === dateStr);
 
-//       // Site Worker Sunday
 //       if (isSiteWorker && dayName === 'Sunday' && attendance && attendance.in_time) {
 //         presentDays++;
 //         sundayWorked++;
@@ -794,19 +805,16 @@
 //         continue;
 //       }
 
-//       // Skip weekends
 //       if (weeklyOff.includes(dayName)) {
 //         weekendCount++;
 //         continue;
 //       }
 
-//       // Holiday
 //       if (holidaySet.has(dateStr)) {
 //         holidayCount++;
 //         continue;
 //       }
 
-//       // Leave
 //       if (leaveDateMap[dateStr]) {
 //         const leave = leaveDateMap[dateStr];
 //         if (leave.is_half_day) leaveCount += 0.5;
@@ -814,7 +822,6 @@
 //         continue;
 //       }
 
-//       // Present
 //       if (attendance && attendance.in_time) {
 //         presentDays++;
 //         if (attendance.is_late) lateCount++;
@@ -876,8 +883,7 @@
 // };
 
 // // ════════════════════════════════════════════════════════════
-// // ✅ UPDATED - GET CALENDAR (Dashboard)
-// // - DOJ support: neutral state before joining
+// // GET CALENDAR (Dashboard)
 // // ════════════════════════════════════════════════════════════
 // const getCalendar = async (req, res) => {
 //   try {
@@ -949,7 +955,6 @@
 //       const isToday = isCurrentMonth && d === todayDate;
 //       const isSunday = dayName === 'Sunday';
 
-//       // ✅ Check if date is before joining
 //       const isBeforeJoining = !isDateOnOrAfterJoining(dateStr, joinInfo);
 
 //       let status = 'absent';
@@ -957,9 +962,8 @@
 //       let minutes = 0;
 //       let extraInfo = {};
 
-//       // ── PRIORITY ORDER with DOJ check ──
 //       if (isBeforeJoining) {
-//         status = 'not-joined'; // ✅ Neutral state before joining (gray)
+//         status = 'not-joined';
 //         hours = '0h 0m';
 //       } else if (isFuture) {
 //         status = 'future';
@@ -1098,8 +1102,6 @@
 //     });
 
 //     const holidaySet = new Set(holidays.map((h) => h.date));
-
-//     // DOJ parsing
 //     const joinInfo = parseJoiningDate(employee.joining_date);
 
 //     let totalWorkedMinutes = 0;
@@ -1123,20 +1125,17 @@
 
 //       if (isCurrentMonth && d > todayDate) continue;
 
-//       // ✅ Skip dates BEFORE joining date
 //       if (!isDateOnOrAfterJoining(dateStr, joinInfo)) {
 //         skippedDaysBeforeJoining++;
 //         continue;
 //       }
 
-//       // Weekend
 //       if (weeklyOff.includes(dayName)) {
 //         eligibleSundays++;
 //         holidayMinutes += dailyMinutes;
 //         continue;
 //       }
 
-//       // Holiday
 //       if (holidaySet.has(dateStr)) {
 //         eligibleHolidays++;
 //         holidayMinutes += dailyMinutes;
@@ -1216,9 +1215,7 @@
 //         deduction: totalDeduction,
 //         unpaid_deduction: unpaidDeduction,
 //         absent_deduction: absentDeduction,
-//         deduction_percent: monthlySalary > 0
-//           ? parseFloat(((totalDeduction / monthlySalary) * 100).toFixed(1))
-//           : 0,
+//         deduction_percent: monthlySalary > 0 ? parseFloat(((totalDeduction / monthlySalary) * 100).toFixed(1)) : 0,
 //         joining_date: employee.joining_date || '',
 //         skipped_days_before_joining: skippedDaysBeforeJoining,
 //         eligible_working_days: eligibleWorkingDays,
@@ -1230,7 +1227,8 @@
 // };
 
 // // ════════════════════════════════════════════════════════════
-// // GET ABSENT EMPLOYEES TODAY
+// // 🆕 FIXED - GET ABSENT EMPLOYEES TODAY 
+// // Excludes those who are on Leave (pending or approved)
 // // ════════════════════════════════════════════════════════════
 // const getAbsentToday = async (req, res) => {
 //   try {
@@ -1254,8 +1252,34 @@
 //       todayAttendance.map(a => a.emp_id.toString())
 //     );
 
+//     // 🆕 FETCH LEAVES FOR TODAY TO EXCLUDE THEM FROM ABSENT LIST
+//     const Leave = require('../models/Leave');
+//     const todayIST = moment().tz('Asia/Kolkata');
+//     const todayDateObj = new Date(todayIST.year(), todayIST.month(), todayIST.date());
+
+//     const allLeaves = await Leave.find({
+//       ...filter,
+//       status: { $in: ['pending', 'approved'] },
+//     }).select('emp_id from_date to_date');
+
+//     const onLeaveEmpIds = new Set();
+//     allLeaves.forEach(leave => {
+//       try {
+//         const [fd, fm, fy] = leave.from_date.split('/').map(Number);
+//         const [td, tm, ty] = leave.to_date.split('/').map(Number);
+//         const fromDate = new Date(fy, fm - 1, fd);
+//         const toDate = new Date(ty, tm - 1, td);
+        
+//         // If today falls within their leave date range, they are on leave
+//         if (todayDateObj >= fromDate && todayDateObj <= toDate) {
+//           onLeaveEmpIds.add(leave.emp_id.toString());
+//         }
+//       } catch (err) {}
+//     });
+
+//     // 🆕 FILTER: Not present AND Not on leave
 //     const absentEmployees = allEmployees.filter(
-//       emp => !presentEmpIds.has(emp._id.toString())
+//       emp => !presentEmpIds.has(emp._id.toString()) && !onLeaveEmpIds.has(emp._id.toString())
 //     );
 
 //     res.json({
@@ -1342,13 +1366,11 @@
 //     }
 
 //     const dateFilter = { emp_id: employee._id };
-    
 //     if (from_date && to_date) {
 //       const [fd, fm, fy] = from_date.split('/').map(Number);
 //       const [td, tm, ty] = to_date.split('/').map(Number);
 //       const fromDate = new Date(fy, fm - 1, fd);
 //       const toDate = new Date(ty, tm - 1, td);
-      
 //       const datesInRange = [];
 //       const current = new Date(fromDate);
 //       while (current <= toDate) {
@@ -1411,7 +1433,6 @@
 //     const Leave = require('../models/Leave');
 //     const todayIST = moment().tz('Asia/Kolkata');
 //     const todayDate = `${todayIST.date()}/${todayIST.month() + 1}/${todayIST.year()}`;
-    
 //     const filter = req.employee.role === 'super_admin'
 //       ? {}
 //       : { company_id: req.employee.company_id?._id || req.employee.company_id };
@@ -1654,7 +1675,6 @@
 //       } else {
 //         statusInfo = getAttendanceStatus(attendance.in_time, attendance.out_time);
 //       }
-      
 //       attendance.is_late = statusInfo.is_late;
 //       attendance.is_half_day = statusInfo.is_half_day;
 //       attendance.daily_status = statusInfo.status;
@@ -1754,8 +1774,6 @@
 //   editAttendance,
 //   getAllAttendanceForFix,
 // };
-
-
 
 
 
@@ -1952,23 +1970,12 @@ const isDateOnOrAfterJoining = (dateStr, joinInfo) => {
   return currentDate >= joinDate;
 };
 
-const generateSiteNameFromAddress = (address) => {
-  if (!address) return 'Unknown Location';
-  const parts = address.split(',').map(p => p.trim()).filter(p => p);
-  if (parts.length === 0) return 'Unknown Location';
-  if (parts.length === 1) return parts[0].substring(0, 60);
-  if (parts.length === 2) return `${parts[0]}, ${parts[1]}`;
-  let siteName = parts[0];
-  if (parts[1] && parts[1].length > 2) siteName += `, ${parts[1]}`;
-  return siteName.substring(0, 60);
-};
-
 // ════════════════════════════════════════════════════════════
 // 🎯 MARK ATTENDANCE
 // ════════════════════════════════════════════════════════════
 const markAttendance = async (req, res) => {
   try {
-    const { face_encoding, latitude, longitude, action_type, selfie } = req.body;
+    const { face_encoding, latitude, longitude, accuracy, action_type, selfie } = req.body;
 
     if (!face_encoding || !Array.isArray(face_encoding) || face_encoding.length === 0) {
       return res.status(400).json({ success: false, message: 'Face encoding required' });
@@ -2019,7 +2026,15 @@ const markAttendance = async (req, res) => {
         matchedSiteType = site.type || '';
         matchedSiteName = site.site_name || '';
 
-        if (distance <= site.radius) {
+        // ════════════════════════════════════════════════════════════
+        // 🚀 SMART ACCURACY & INDOOR TOLERANCE BUFFER
+        // ════════════════════════════════════════════════════════════
+        const siteRadius = site.radius || 300;
+        const clientAccuracy = Math.min(Number(accuracy) || 0, 150); // Safe accuracy cap
+        const effectiveDistance = Math.max(0, distance - clientAccuracy);
+        const allowedRadiusWithBuffer = siteRadius + 100; // Extra 100m indoor tolerance
+
+        if (distance <= siteRadius || effectiveDistance <= allowedRadiusWithBuffer) {
           locationStatus = 'on-site';
           isWithinSiteRadius = true;
         } else {
@@ -2267,7 +2282,6 @@ const getTodayAttendance = async (req, res) => {
     const todayAttendance = await Attendance.find({ ...filter, date: today }).sort({ createdAt: -1 });
     const presentToday = todayAttendance.length;
 
-    // 🆕 Exclude those who are on leave from the absent count
     const Leave = require('../models/Leave');
     const todayIST = moment().tz('Asia/Kolkata');
     const todayDateObj = new Date(todayIST.year(), todayIST.month(), todayIST.date());
@@ -2990,8 +3004,7 @@ const getSalaryEstimate = async (req, res) => {
 };
 
 // ════════════════════════════════════════════════════════════
-// 🆕 FIXED - GET ABSENT EMPLOYEES TODAY 
-// Excludes those who are on Leave (pending or approved)
+// GET ABSENT EMPLOYEES TODAY 
 // ════════════════════════════════════════════════════════════
 const getAbsentToday = async (req, res) => {
   try {
@@ -3015,7 +3028,6 @@ const getAbsentToday = async (req, res) => {
       todayAttendance.map(a => a.emp_id.toString())
     );
 
-    // 🆕 FETCH LEAVES FOR TODAY TO EXCLUDE THEM FROM ABSENT LIST
     const Leave = require('../models/Leave');
     const todayIST = moment().tz('Asia/Kolkata');
     const todayDateObj = new Date(todayIST.year(), todayIST.month(), todayIST.date());
@@ -3033,14 +3045,12 @@ const getAbsentToday = async (req, res) => {
         const fromDate = new Date(fy, fm - 1, fd);
         const toDate = new Date(ty, tm - 1, td);
         
-        // If today falls within their leave date range, they are on leave
         if (todayDateObj >= fromDate && todayDateObj <= toDate) {
           onLeaveEmpIds.add(leave.emp_id.toString());
         }
       } catch (err) {}
     });
 
-    // 🆕 FILTER: Not present AND Not on leave
     const absentEmployees = allEmployees.filter(
       emp => !presentEmpIds.has(emp._id.toString()) && !onLeaveEmpIds.has(emp._id.toString())
     );

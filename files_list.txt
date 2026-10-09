@@ -103,6 +103,7 @@
 /backend/models/Attendance.js
 /backend/models/LeaveBalance.js
 /backend/models/Company.js
+/backend/models/AdjustmentHistory.js
 /backend/models/Leave.js
 /backend/models/MasterData.js
 /backend/models/Site.js
