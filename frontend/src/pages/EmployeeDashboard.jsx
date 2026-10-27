@@ -1,11 +1,5 @@
 
 
-
-
-
-
-
-
 // import { useEffect, useState } from 'react';
 // import { useDispatch, useSelector } from 'react-redux';
 // import { Link, useNavigate } from 'react-router-dom';
@@ -16,6 +10,7 @@
 // } from '../redux/slices/attendanceSlice';
 // import { fetchMyLeaves } from '../redux/slices/leaveSlice';
 // import { fetchMyBalance } from '../redux/slices/leaveBalanceSlice';
+// import { fetchMonthlySettings, fetchAllSettings } from '../redux/slices/monthlySettingsSlice';
 
 // const EmployeeDashboard = () => {
 //   const dispatch = useDispatch();
@@ -24,11 +19,17 @@
 //   const { todayStatus, monthlySummary, calendar } = useSelector((s) => s.attendance);
 //   const { myLeaves } = useSelector((s) => s.leaves);
 //   const { myBalance } = useSelector((s) => s.leaveBalance);
+//   const { current: monthlySettingsData, allSettings } = useSelector((s) => s.monthlySettings);
+
 //   const now = new Date();
 //   const [month, setMonth] = useState(now.getMonth() + 1);
 //   const [year, setYear] = useState(now.getFullYear());
 //   const [currentTime, setCurrentTime] = useState('');
 //   const [liveWorkingTime, setLiveWorkingTime] = useState('0h 0m');
+
+//   // ── Holiday Popup State ──
+//   const [showHolidayPopup, setShowHolidayPopup] = useState(false);
+//   const [upcomingHolidays, setUpcomingHolidays] = useState([]);
 
 //   // IST Time Clock
 //   useEffect(() => {
@@ -48,23 +49,83 @@
 //     dispatch(fetchTodayStatus());
 //     dispatch(fetchMyLeaves());
 //     dispatch(fetchMyBalance());
+//     dispatch(fetchAllSettings()); // 💥 Saare months ki settings fetch karega
 //   }, [dispatch]);
 
 //   useEffect(() => {
 //     dispatch(fetchMonthlySummary({ month, year }));
 //     dispatch(fetchCalendar({ month, year }));
+//     dispatch(fetchMonthlySettings({ month, year }));
 //   }, [dispatch, month, year]);
 
-//   // 🔧 FIXED - Live Working Timer (100% Working)
+//   // ── Holiday Popup Logic (Saare Months ki Holidays Check Karega) ──
+//   useEffect(() => {
+//     let rawList = [];
+
+//     // Saare months se holidays combine karo
+//     if (Array.isArray(allSettings) && allSettings.length > 0) {
+//       allSettings.forEach((s) => {
+//         if (s?.holidays && Array.isArray(s.holidays)) {
+//           rawList.push(...s.holidays);
+//         }
+//       });
+//     } else if (monthlySettingsData?.holidays) {
+//       rawList = [...monthlySettingsData.holidays];
+//     }
+
+//     if (rawList.length > 0) {
+//       const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+//       const todayStart = new Date(istNow.getFullYear(), istNow.getMonth(), istNow.getDate()).getTime();
+
+//       // Duplicate dates hatao
+//       const uniqueHolidays = [];
+//       const seenDates = new Set();
+//       for (const h of rawList) {
+//         if (h?.date && !seenDates.has(h.date)) {
+//           seenDates.add(h.date);
+//           uniqueHolidays.push(h);
+//         }
+//       }
+
+//       // Filter: Sirf AAJ ya AANE WALI dates (jo nikal nahi chuki hain)
+//       const upcoming = uniqueHolidays.filter((h) => {
+//         const parts = h.date.split('/');
+//         if (parts.length !== 3) return false;
+//         const hDate = new Date(
+//           parseInt(parts[2], 10),
+//           parseInt(parts[1], 10) - 1,
+//           parseInt(parts[0], 10)
+//         ).getTime();
+//         return hDate >= todayStart;
+//       });
+
+//       // Date order mein sort karo
+//       upcoming.sort((a, b) => {
+//         const pa = a.date.split('/');
+//         const pb = b.date.split('/');
+//         const da = new Date(parseInt(pa[2], 10), parseInt(pa[1], 10) - 1, parseInt(pa[0], 10));
+//         const db = new Date(parseInt(pb[2], 10), parseInt(pb[1], 10) - 1, parseInt(pb[0], 10));
+//         return da - db;
+//       });
+
+//       if (upcoming.length > 0) {
+//         setUpcomingHolidays(upcoming);
+//         setShowHolidayPopup(true);
+//       } else {
+//         setShowHolidayPopup(false);
+//         setUpcomingHolidays([]);
+//       }
+//     }
+//   }, [allSettings, monthlySettingsData]);
+
+//   // Live Working Timer
 //   useEffect(() => {
 //     if (todayStatus?.status === 'in-progress' && todayStatus?.in_time) {
 //       const updateTimer = () => {
-//         // Get current time in IST
 //         const now = new Date();
 //         const istNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
 //         const currentMinutes = istNow.getHours() * 60 + istNow.getMinutes();
         
-//         // Parse IN time (e.g., "09:37 AM")
 //         const inTime = todayStatus.in_time;
 //         const parts = inTime.split(' ');
 //         const [hStr, mStr] = parts[0].split(':');
@@ -86,12 +147,11 @@
 //       };
       
 //       updateTimer();
-//       const interval = setInterval(updateTimer, 30000); // Update every 30 seconds
+//       const interval = setInterval(updateTimer, 30000);
 //       return () => clearInterval(interval);
 //     }
 //   }, [todayStatus]);
 
-//   // Greeting based on IST time
 //   const greeting = () => {
 //     const istHour = parseInt(new Date().toLocaleString('en-US', {
 //       hour: 'numeric',
@@ -132,7 +192,6 @@
 //     },
 //   ];
 
-//   // All status colors
 //   const statusColors = {
 //     'present':         { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Present' },
 //     'in-progress':     { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Working' },
@@ -157,8 +216,21 @@
 //   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 //   const years = Array.from({ length: 3 }, (_, i) => now.getFullYear() - i);
 
-//   // Check if site worker
 //   const isSiteWorker = calendar?.is_site_worker || false;
+
+//   const formatHolidayDate = (dateStr) => {
+//     const parts = dateStr.split('/');
+//     if (parts.length !== 3) return dateStr;
+//     const d = parseInt(parts[0], 10);
+//     const m = parseInt(parts[1], 10) - 1;
+//     return `${d} ${months[m]}`;
+//   };
+
+//   const isHolidayToday = (dateStr) => {
+//     const istNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+//     const todayStr = `${istNow.getDate()}/${istNow.getMonth() + 1}/${istNow.getFullYear()}`;
+//     return dateStr === todayStr;
+//   };
 
 //   return (
 //     <div className="relative min-h-screen overflow-hidden bg-[#faf8f5]">
@@ -166,6 +238,206 @@
 //       <div className="pointer-events-none fixed bottom-0 left-0 h-[360px] w-[360px] rounded-full bg-[#F4A261]/[0.06] blur-[90px]" />
 //       <div className="pointer-events-none fixed inset-0 opacity-[0.025]"
 //         style={{ backgroundImage: 'radial-gradient(#1A1A2E 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
+
+//       {/* ══════════════════════════════════════════ */}
+//       {/* 🎉 HOLIDAY POPUP MODAL                    */}
+//       {/* ══════════════════════════════════════════ */}
+//       {/* {showHolidayPopup && upcomingHolidays.length > 0 && (
+//         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+//           <div
+//             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+//             onClick={() => setShowHolidayPopup(false)}
+//           />
+
+//           <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl shadow-purple-500/20">
+//             <div className="h-2 w-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400" />
+
+//             <button
+//               onClick={() => setShowHolidayPopup(false)}
+//               className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-all hover:bg-gray-200 hover:text-gray-700"
+//             >
+//               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+//                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+//               </svg>
+//             </button>
+
+//             <div className="px-6 pt-6 pb-4 text-center">
+//               <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-100 to-pink-100 text-3xl">
+//                 🎉
+//               </div>
+//               <h2 className="text-xl font-extrabold text-[#1A1A2E]">
+//                 {upcomingHolidays.some(h => isHolidayToday(h.date))
+//                   ? 'Aaj Holiday Hai!'
+//                   : 'Upcoming Holidays!'}
+//               </h2>
+//               <p className="mt-1 text-sm text-[#9CA3AF]">
+//                 {upcomingHolidays.some(h => isHolidayToday(h.date))
+//                   ? 'Enjoy your day off 🥳'
+//                   : 'Get ready for the upcoming holidays'}
+//               </p>
+//             </div>
+
+//             <div className="mx-4 mb-4 max-h-60 space-y-2 overflow-y-auto rounded-2xl bg-[#faf8f5] p-3">
+//               {upcomingHolidays.map((holiday, idx) => {
+//                 const isToday = isHolidayToday(holiday.date);
+//                 return (
+//                   <div
+//                     key={idx}
+//                     className={`flex items-center gap-3 rounded-xl p-3 transition-all ${
+//                       isToday
+//                         ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-200'
+//                         : 'bg-white shadow-sm'
+//                     }`}
+//                   >
+//                     <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg ${
+//                       isToday ? 'bg-white/20' : 'bg-purple-50'
+//                     }`}>
+//                       {isToday ? '🎊' : '📅'}
+//                     </div>
+//                     <div className="flex-1 min-w-0">
+//                       <p className={`text-sm font-bold ${isToday ? 'text-white' : 'text-[#1A1A2E]'}`}>
+//                         {holiday.name || 'Holiday'}
+//                       </p>
+//                       <p className={`text-xs ${isToday ? 'text-white/80' : 'text-[#9CA3AF]'}`}>
+//                         {formatHolidayDate(holiday.date)}
+//                         {isToday && ' — Today!'}
+//                       </p>
+//                     </div>
+//                     {isToday && (
+//                       <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white">
+//                         TODAY
+//                       </span>
+//                     )}
+//                   </div>
+//                 );
+//               })}
+//             </div>
+
+//             <div className="border-t border-gray-100 px-6 py-4">
+//               <button
+//                 onClick={() => setShowHolidayPopup(false)}
+//                 className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 py-3 text-sm font-bold text-white shadow-md shadow-purple-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+//               >
+//                 Got it! 👍
+//               </button>
+//               <p className="mt-2 text-center text-[10px] text-[#C0C0C0]">
+//                 This popup will show until the holidays are over
+//               </p>
+//             </div>
+//           </div>
+//         </div>
+//       )} */}
+
+
+
+//             {/* ══════════════════════════════════════════ */}
+//       {/* 🎉 HOLIDAY POPUP MODAL                    */}
+//       {/* ══════════════════════════════════════════ */}
+//       {showHolidayPopup && upcomingHolidays.length > 0 && (
+//         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+//           {/* Backdrop */}
+//           <div
+//             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+//             onClick={() => setShowHolidayPopup(false)}
+//           />
+
+//           {/* Modal */}
+//           <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-[0_20px_70px_-10px_rgba(26,26,46,0.25)]">
+//             {/* Top orange bar */}
+//             <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
+
+//             {/* Close button */}
+//             <button
+//               onClick={() => setShowHolidayPopup(false)}
+//               className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-all hover:bg-gray-200 hover:text-gray-600"
+//             >
+//               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+//                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+//               </svg>
+//             </button>
+
+//             {/* Header */}
+//             <div className="px-6 pt-7 pb-4 text-center">
+//               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF3E8]">
+//                 <svg className="h-7 w-7 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+//                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+//                 </svg>
+//               </div>
+//               <h2 className="text-xl font-extrabold text-[#1A1A2E]">
+//                 {upcomingHolidays.some(h => isHolidayToday(h.date))
+//                   ? 'Aaj Holiday Hai!'
+//                   : 'Upcoming Holidays!'}
+//               </h2>
+//               <p className="mt-1 text-sm text-[#9CA3AF]">
+//                 {upcomingHolidays.some(h => isHolidayToday(h.date))
+//                   ? 'Enjoy your day off'
+//                   : 'Get ready for the upcoming holidays'}
+//               </p>
+//             </div>
+
+//             {/* Holiday List */}
+//             <div className="mx-5 mb-4 max-h-60 space-y-2 overflow-y-auto rounded-2xl bg-[#faf8f5] p-3">
+//               {upcomingHolidays.map((holiday, idx) => {
+//                 const isToday = isHolidayToday(holiday.date);
+//                 return (
+//                   <div
+//                     key={idx}
+//                     className={`flex items-center gap-3 rounded-xl p-3.5 transition-all ${
+//                       isToday
+//                         ? 'bg-gradient-to-r from-[#E8590C] to-[#D14800] text-white shadow-md shadow-orange-200/50'
+//                         : 'bg-white shadow-sm shadow-gray-100'
+//                     }`}
+//                   >
+//                     {/* Clean icon - NO date number inside */}
+//                     <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+//                       isToday ? 'bg-white/20' : 'bg-[#FFF3E8]'
+//                     }`}>
+//                       <svg
+//                         className={`h-5 w-5 ${isToday ? 'text-white' : 'text-[#E8590C]'}`}
+//                         fill="none"
+//                         stroke="currentColor"
+//                         strokeWidth="1.5"
+//                         viewBox="0 0 24 24"
+//                       >
+//                         <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+//                       </svg>
+//                     </div>
+
+//                     <div className="flex-1 min-w-0">
+//                       <p className={`text-sm font-bold ${isToday ? 'text-white' : 'text-[#1A1A2E]'}`}>
+//                         {holiday.name || 'Holiday'}
+//                       </p>
+//                       <p className={`text-xs mt-0.5 ${isToday ? 'text-white/80' : 'text-[#9CA3AF]'}`}>
+//                         {formatHolidayDate(holiday.date)}
+//                         {isToday && ' — Today!'}
+//                       </p>
+//                     </div>
+
+//                     {isToday && (
+//                       <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
+//                         TODAY
+//                       </span>
+//                     )}
+//                   </div>
+//                 );
+//               })}
+//             </div>
+
+//             {/* Footer */}
+//             <div className="border-t border-gray-100 px-6 py-4">
+//               <button
+//                 onClick={() => setShowHolidayPopup(false)}
+//                 className="w-full rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+//               >
+//                 Got it!
+//               </button>
+//               <p className="mt-2.5 text-center text-[10px] text-[#C0C0C0]">
+//                 This popup will show until the holidays are over
+//               </p>
+//             </div>
+//           </div>
+//         </div>
+//       )}
 
 //       <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
 
@@ -322,7 +594,7 @@
 //           ))}
 //         </div>
 
-//         {/* LEAVE BANK - Simple View */}
+//         {/* LEAVE BANK */}
 //         {myBalance && (
 //           <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">
 //             <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-cyan-500" />
@@ -434,26 +706,19 @@
 
 //                       {day.status !== 'future' && (
 //                         <div className="mt-auto">
-//                           {/* Holiday */}
 //                           {day.status === 'holiday' && (
 //                             <span className="text-[8px] font-bold text-purple-700 sm:text-[9px]">🎉</span>
 //                           )}
-                          
-//                           {/* Leave */}
 //                           {(day.status === 'leave' || day.status === 'half-day-leave') && (
 //                             <span className="text-[8px] font-bold sm:text-[9px]" style={{ color: sc.text }}>
 //                               {day.status === 'half-day-leave' ? '½ Leave' : 'Leave'}
 //                             </span>
 //                           )}
-                          
-//                           {/* Weekend with work (Sunday work) */}
 //                           {day.status === 'weekend' && day.minutes > 0 && (
 //                             <span className="text-[8px] font-bold sm:text-[9px] text-emerald-600">
 //                               ☀️ {Math.floor(day.minutes / 60)}h{day.minutes % 60 > 0 ? `${day.minutes % 60}m` : ''}
 //                             </span>
 //                           )}
-                          
-//                           {/* Present / Late / Half Day / In Progress */}
 //                           {(day.status === 'present' || day.status === 'in-progress' || day.status === 'late' || day.status === 'half-day') && day.minutes > 0 && (
 //                             <span className="text-[8px] font-bold sm:text-[9px]" style={{ color: sc.text }}>
 //                               {day.status === 'late' && '⏰ '}
@@ -462,8 +727,6 @@
 //                               {Math.floor(day.minutes / 60)}h{day.minutes % 60 > 0 ? `${day.minutes % 60}m` : ''}
 //                             </span>
 //                           )}
-                          
-//                           {/* Absent */}
 //                           {day.status === 'absent' && (
 //                             <span className="text-[8px] font-bold text-red-700 sm:text-[9px]">Absent</span>
 //                           )}
@@ -471,7 +734,6 @@
 //                       )}
 //                     </div>
 
-//                     {/* Tooltip */}
 //                     {day.status !== 'future' && (
 //                       <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[200px] -translate-x-1/2 rounded-lg bg-[#1A1A2E] px-3 py-2 text-xs text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
 //                         <p className="font-bold">{day.date}</p>
@@ -506,7 +768,6 @@
 //               })}
 //             </div>
 
-//             {/* Legend */}
 //             <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
 //               {[
 //                 { key: 'present', label: 'Present' },
@@ -590,10 +851,6 @@
 
 
 
-
-
-
-
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
@@ -621,8 +878,7 @@ const EmployeeDashboard = () => {
   const [currentTime, setCurrentTime] = useState('');
   const [liveWorkingTime, setLiveWorkingTime] = useState('0h 0m');
 
-  // ── Holiday Popup State ──
-  const [showHolidayPopup, setShowHolidayPopup] = useState(false);
+  // ── Holiday State (Popup Hata Diya) ──
   const [upcomingHolidays, setUpcomingHolidays] = useState([]);
 
   // IST Time Clock
@@ -652,7 +908,7 @@ const EmployeeDashboard = () => {
     dispatch(fetchMonthlySettings({ month, year }));
   }, [dispatch, month, year]);
 
-  // ── Holiday Popup Logic (Saare Months ki Holidays Check Karega) ──
+  // ── Holiday Logic (Saare Months ki Holidays Check Karega) ──
   useEffect(() => {
     let rawList = [];
 
@@ -681,7 +937,7 @@ const EmployeeDashboard = () => {
         }
       }
 
-      // Filter: Sirf AAJ ya AANE WALI dates (jo nikal nahi chuki hain)
+      // Filter: Sirf AAJ ya AANE WALI dates
       const upcoming = uniqueHolidays.filter((h) => {
         const parts = h.date.split('/');
         if (parts.length !== 3) return false;
@@ -702,13 +958,9 @@ const EmployeeDashboard = () => {
         return da - db;
       });
 
-      if (upcoming.length > 0) {
-        setUpcomingHolidays(upcoming);
-        setShowHolidayPopup(true);
-      } else {
-        setShowHolidayPopup(false);
-        setUpcomingHolidays([]);
-      }
+      setUpcomingHolidays(upcoming);
+    } else {
+      setUpcomingHolidays([]);
     }
   }, [allSettings, monthlySettingsData]);
 
@@ -833,206 +1085,6 @@ const EmployeeDashboard = () => {
       <div className="pointer-events-none fixed inset-0 opacity-[0.025]"
         style={{ backgroundImage: 'radial-gradient(#1A1A2E 1px,transparent 1px)', backgroundSize: '28px 28px' }} />
 
-      {/* ══════════════════════════════════════════ */}
-      {/* 🎉 HOLIDAY POPUP MODAL                    */}
-      {/* ══════════════════════════════════════════ */}
-      {/* {showHolidayPopup && upcomingHolidays.length > 0 && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowHolidayPopup(false)}
-          />
-
-          <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl shadow-purple-500/20">
-            <div className="h-2 w-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400" />
-
-            <button
-              onClick={() => setShowHolidayPopup(false)}
-              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-all hover:bg-gray-200 hover:text-gray-700"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <div className="px-6 pt-6 pb-4 text-center">
-              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-100 to-pink-100 text-3xl">
-                🎉
-              </div>
-              <h2 className="text-xl font-extrabold text-[#1A1A2E]">
-                {upcomingHolidays.some(h => isHolidayToday(h.date))
-                  ? 'Aaj Holiday Hai!'
-                  : 'Upcoming Holidays!'}
-              </h2>
-              <p className="mt-1 text-sm text-[#9CA3AF]">
-                {upcomingHolidays.some(h => isHolidayToday(h.date))
-                  ? 'Enjoy your day off 🥳'
-                  : 'Get ready for the upcoming holidays'}
-              </p>
-            </div>
-
-            <div className="mx-4 mb-4 max-h-60 space-y-2 overflow-y-auto rounded-2xl bg-[#faf8f5] p-3">
-              {upcomingHolidays.map((holiday, idx) => {
-                const isToday = isHolidayToday(holiday.date);
-                return (
-                  <div
-                    key={idx}
-                    className={`flex items-center gap-3 rounded-xl p-3 transition-all ${
-                      isToday
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-200'
-                        : 'bg-white shadow-sm'
-                    }`}
-                  >
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg ${
-                      isToday ? 'bg-white/20' : 'bg-purple-50'
-                    }`}>
-                      {isToday ? '🎊' : '📅'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold ${isToday ? 'text-white' : 'text-[#1A1A2E]'}`}>
-                        {holiday.name || 'Holiday'}
-                      </p>
-                      <p className={`text-xs ${isToday ? 'text-white/80' : 'text-[#9CA3AF]'}`}>
-                        {formatHolidayDate(holiday.date)}
-                        {isToday && ' — Today!'}
-                      </p>
-                    </div>
-                    {isToday && (
-                      <span className="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white">
-                        TODAY
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="border-t border-gray-100 px-6 py-4">
-              <button
-                onClick={() => setShowHolidayPopup(false)}
-                className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 py-3 text-sm font-bold text-white shadow-md shadow-purple-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                Got it! 👍
-              </button>
-              <p className="mt-2 text-center text-[10px] text-[#C0C0C0]">
-                This popup will show until the holidays are over
-              </p>
-            </div>
-          </div>
-        </div>
-      )} */}
-
-
-
-            {/* ══════════════════════════════════════════ */}
-      {/* 🎉 HOLIDAY POPUP MODAL                    */}
-      {/* ══════════════════════════════════════════ */}
-      {showHolidayPopup && upcomingHolidays.length > 0 && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowHolidayPopup(false)}
-          />
-
-          {/* Modal */}
-          <div className="relative z-10 w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-[0_20px_70px_-10px_rgba(26,26,46,0.25)]">
-            {/* Top orange bar */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
-
-            {/* Close button */}
-            <button
-              onClick={() => setShowHolidayPopup(false)}
-              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition-all hover:bg-gray-200 hover:text-gray-600"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* Header */}
-            <div className="px-6 pt-7 pb-4 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF3E8]">
-                <svg className="h-7 w-7 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-extrabold text-[#1A1A2E]">
-                {upcomingHolidays.some(h => isHolidayToday(h.date))
-                  ? 'Aaj Holiday Hai!'
-                  : 'Upcoming Holidays!'}
-              </h2>
-              <p className="mt-1 text-sm text-[#9CA3AF]">
-                {upcomingHolidays.some(h => isHolidayToday(h.date))
-                  ? 'Enjoy your day off'
-                  : 'Get ready for the upcoming holidays'}
-              </p>
-            </div>
-
-            {/* Holiday List */}
-            <div className="mx-5 mb-4 max-h-60 space-y-2 overflow-y-auto rounded-2xl bg-[#faf8f5] p-3">
-              {upcomingHolidays.map((holiday, idx) => {
-                const isToday = isHolidayToday(holiday.date);
-                return (
-                  <div
-                    key={idx}
-                    className={`flex items-center gap-3 rounded-xl p-3.5 transition-all ${
-                      isToday
-                        ? 'bg-gradient-to-r from-[#E8590C] to-[#D14800] text-white shadow-md shadow-orange-200/50'
-                        : 'bg-white shadow-sm shadow-gray-100'
-                    }`}
-                  >
-                    {/* Clean icon - NO date number inside */}
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                      isToday ? 'bg-white/20' : 'bg-[#FFF3E8]'
-                    }`}>
-                      <svg
-                        className={`h-5 w-5 ${isToday ? 'text-white' : 'text-[#E8590C]'}`}
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                      </svg>
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold ${isToday ? 'text-white' : 'text-[#1A1A2E]'}`}>
-                        {holiday.name || 'Holiday'}
-                      </p>
-                      <p className={`text-xs mt-0.5 ${isToday ? 'text-white/80' : 'text-[#9CA3AF]'}`}>
-                        {formatHolidayDate(holiday.date)}
-                        {isToday && ' — Today!'}
-                      </p>
-                    </div>
-
-                    {isToday && (
-                      <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white">
-                        TODAY
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-gray-100 px-6 py-4">
-              <button
-                onClick={() => setShowHolidayPopup(false)}
-                className="w-full rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                Got it!
-              </button>
-              <p className="mt-2.5 text-center text-[10px] text-[#C0C0C0]">
-                This popup will show until the holidays are over
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
 
         {/* WELCOME HEADER */}
@@ -1070,6 +1122,74 @@ const EmployeeDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* ══════════════════════════════════════════ */}
+        {/* 🎉 NEW INLINE HOLIDAY SECTION (BLINKING)   */}
+        {/* ══════════════════════════════════════════ */}
+        {upcomingHolidays.length > 0 && (
+          <div className="mb-6 relative overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60 border border-purple-100">
+            {/* Blinking Gradient Line Top */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 animate-pulse" />
+            
+            <div className="p-5 sm:p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-600">
+                  {/* Blinking Dot Indicator */}
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500"></span>
+                  </span>
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-[#1A1A2E]">
+                    {upcomingHolidays.some(h => isHolidayToday(h.date)) ? 'Aaj Holiday Hai! 🎉' : 'Upcoming Holidays'}
+                  </h3>
+                  <p className="text-xs text-[#9CA3AF]">
+                    {upcomingHolidays.some(h => isHolidayToday(h.date)) ? 'Enjoy your day off today!' : 'Mark your calendar for upcoming breaks'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Holiday List Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {upcomingHolidays.map((holiday, idx) => {
+                  const isToday = isHolidayToday(holiday.date);
+                  return (
+                    <div key={idx} className={`relative flex items-center gap-3 rounded-xl p-3.5 border ${
+                      isToday 
+                        ? 'border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 shadow-sm' 
+                        : 'border-gray-100 bg-[#FAFAFA]'
+                    }`}>
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                        isToday ? 'bg-purple-500 text-white shadow-md animate-pulse' : 'bg-white text-gray-500 border border-gray-100'
+                      }`}>
+                        {isToday ? '🎊' : '📅'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-bold truncate ${isToday ? 'text-purple-700' : 'text-[#1A1A2E]'}`}>
+                          {holiday.name || 'Holiday'}
+                        </p>
+                        <p className={`text-[11px] mt-0.5 ${isToday ? 'text-purple-600 font-semibold' : 'text-[#9CA3AF]'}`}>
+                          {formatHolidayDate(holiday.date)}
+                        </p>
+                      </div>
+                      {isToday && (
+                        <span className="shrink-0 rounded-full bg-purple-100 border border-purple-200 px-2 py-0.5 text-[9px] font-extrabold text-purple-700 uppercase tracking-wider">
+                          Today
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+        {/* ══════════════════════════════════════════ */}
+
 
         {/* TODAY'S STATUS */}
         <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60">

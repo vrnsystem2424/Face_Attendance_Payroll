@@ -59,6 +59,7 @@ export const removeHoliday = createAsyncThunk(
 );
 
 // ── GET ALL SETTINGS (overview) ──
+
 export const fetchAllSettings = createAsyncThunk(
   'monthlySettings/fetchAll',
   async (_, { rejectWithValue }) => {
@@ -66,7 +67,8 @@ export const fetchAllSettings = createAsyncThunk(
       const response = await API.get('/monthly-settings/all');
       return response.data.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed');
+      // 403 Forbidden error silently handle karne ke liye
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch settings');
     }
   }
 );
