@@ -1,9 +1,5 @@
 
 
-
-
-// // src/components/Navbar.jsx
-
 // import { useState, useRef, useEffect } from 'react';
 // import { Link, useNavigate, useLocation } from 'react-router-dom';
 // import { useDispatch, useSelector } from 'react-redux';
@@ -47,18 +43,20 @@
 
 //   const isActive = (path) => location.pathname === path;
 
-//   // Employee Links
+//   // Employee Links (🆕 My Salary added)
 //   const employeeLinks = [
 //     { to: '/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6z' },
 //     { to: '/attendance', label: 'Attendance', icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25' },
 //     { to: '/leave', label: 'Leave', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25' },
 //     { to: '/my-records', label: 'Records', icon: 'M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5' },
+//     { to: '/my-salary', label: 'My Salary', icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75' },
 //   ];
 
-//   // Manager Links
+//   // Manager Links (🆕 My Salary added)
 //   const managerLinks = [
 //     { to: '/manager/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
 //     { to: '/manager/leaves', label: 'Pending Leaves', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5' },
+//     { to: '/my-salary', label: 'My Salary', icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75' },
 //   ];
 
 //   // Admin Links (Full Access)
@@ -71,13 +69,13 @@
 //     { to: '/admin/reception', label: 'Reception', icon: 'M6.827 6.175A2.31 2.31 0 015.186 7.23', highlight: true },
 //   ];
 
-//   // 🆕 MANAGER ADMIN LINKS (Leaves + Attendance)
+//   // Manager Admin Links
 //   const managerAdminLinks = [
 //     { to: '/admin/attendance', label: 'Attendance', icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
 //     { to: '/admin/leaves', label: 'Pending Leaves', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5' },
 //   ];
 
-//   // Follow-up Admin Links (Only Dashboard)
+//   // Follow-up Admin Links
 //   const followupAdminLinks = [
 //     { to: '/admin/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
 //   ];
@@ -408,7 +406,8 @@
 
 
 
-// src/components/Navbar.jsx
+
+
 
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -453,7 +452,7 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  // Employee Links (🆕 My Salary added)
+  // Employee Links
   const employeeLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6z' },
     { to: '/attendance', label: 'Attendance', icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25' },
@@ -462,14 +461,14 @@ const Navbar = () => {
     { to: '/my-salary', label: 'My Salary', icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75' },
   ];
 
-  // Manager Links (🆕 My Salary added)
+  // Manager Links
   const managerLinks = [
     { to: '/manager/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
     { to: '/manager/leaves', label: 'Pending Leaves', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5' },
     { to: '/my-salary', label: 'My Salary', icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75' },
   ];
 
-  // Admin Links (Full Access)
+  // Admin Links
   const adminLinks = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
     { to: '/admin/employees', label: 'Employees', icon: 'M15 19.128a9.38 9.38 0 002.625.372' },
@@ -490,13 +489,12 @@ const Navbar = () => {
     { to: '/admin/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
   ];
 
-  // Super Admin Main Links
+  // 🔥 Super Admin Main Links (Payroll REMOVED)
   const superAdminLinks = [
     { to: '/super-admin/dashboard', label: 'Dashboard', icon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25' },
     { to: '/super-admin/employees', label: 'Employees', icon: 'M15 19.128a9.38 9.38 0 002.625.372' },
     { to: '/super-admin/attendance', label: 'Attendance', icon: 'M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     { to: '/super-admin/leaves', label: 'Leaves', icon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5' },
-    { to: '/super-admin/payroll', label: 'Payroll', icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101', highlight: true },
   ];
 
   // Super Admin More Links
@@ -509,10 +507,17 @@ const Navbar = () => {
     { to: '/super-admin/monthly-settings', label: 'Monthly Settings', icon: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5', desc: 'Holidays & rules' },
   ];
 
+  // 🆕 ACCOUNT Links (SIRF Payroll)
+  const accountLinks = [
+    { to: '/account/payroll', label: 'Payroll', icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75', highlight: true },
+  ];
+
   // Pick links based on role
   let links = [];
   if (user?.role === 'super_admin') {
     links = superAdminLinks;
+  } else if (user?.role === 'account') {       // 🆕
+    links = accountLinks;
   } else if (user?.role === 'admin') {
     if (user?.admin_type === 'followup') {
       links = followupAdminLinks;
@@ -532,6 +537,8 @@ const Navbar = () => {
     switch (role) {
       case 'super_admin':
         return { label: 'Super Admin', bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' };
+      case 'account':     // 🆕
+        return { label: 'Account', bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' };
       case 'admin':
         if (user?.admin_type === 'followup') {
           return { label: 'Follow-up', bg: 'bg-cyan-100', text: 'text-cyan-700', dot: 'bg-cyan-500' };

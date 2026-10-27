@@ -18,7 +18,7 @@
 /frontend/public/models/face_landmark_68_tiny_model.bin
 /frontend/public/models/face_recognition_model-weights_manifest.json
 /frontend/public/icons.svg
-/frontend/public/favicon.svg
+/frontend/public/favicon.svgx
 /frontend/.gitignore
 /frontend/package-lock.json
 /frontend/package.json

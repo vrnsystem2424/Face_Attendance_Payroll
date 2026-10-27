@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 // import { useEffect, useState } from 'react';
 // import { useDispatch, useSelector } from 'react-redux';
 // import {
@@ -9,21 +17,41 @@
 //   fetchAllEmployeesGlobal,
 //   clearSuperAdminMessage,
 //   clearSuperAdminError,
+//   resetUserPassword,
+//   changeOwnPassword,
+//   clearPasswordMessage,
 // } from '../../redux/slices/superAdminSlice';
 // import { fetchCompanies } from '../../redux/slices/companySlice';
 
 // const ManageAdmins = () => {
 //   const dispatch = useDispatch();
-//   const { admins, allEmployees, loading, error, message } = useSelector((s) => s.superAdmin);
+//   const { admins, allEmployees, loading, error, message, passwordLoading, passwordMessage, passwordError } = useSelector((s) => s.superAdmin);
+//   const { user } = useSelector((s) => s.auth);
 //   const { companies } = useSelector((s) => s.company);
 
-//   const [activeTab, setActiveTab] = useState('admins'); // 'admins' | 'employees'
+//   const [activeTab, setActiveTab] = useState('admins');
 //   const [showForm, setShowForm] = useState(false);
 //   const [filter, setFilter] = useState({ role: '', company_id: '' });
 
 //   const [formData, setFormData] = useState({
 //     name: '', email: '', phone: '', password: '', company_id: '',
 //   });
+
+//   // 🆕 Password Reset Modal States
+//   const [passwordModal, setPasswordModal] = useState(null); // { user object }
+//   const [newPassword, setNewPassword] = useState('');
+//   const [confirmPassword, setConfirmPassword] = useState('');
+//   const [showNewPass, setShowNewPass] = useState(false);
+//   const [showConfirmPass, setShowConfirmPass] = useState(false);
+
+//   // 🆕 Change Own Password Modal
+//   const [ownPasswordModal, setOwnPasswordModal] = useState(false);
+//   const [currentPassword, setCurrentPassword] = useState('');
+//   const [ownNewPassword, setOwnNewPassword] = useState('');
+//   const [ownConfirmPassword, setOwnConfirmPassword] = useState('');
+//   const [showCurrent, setShowCurrent] = useState(false);
+//   const [showOwnNew, setShowOwnNew] = useState(false);
+//   const [showOwnConfirm, setShowOwnConfirm] = useState(false);
 
 //   useEffect(() => {
 //     dispatch(fetchCompanies());
@@ -43,6 +71,13 @@
 //       return () => clearTimeout(t);
 //     }
 //   }, [message, dispatch]);
+
+//   useEffect(() => {
+//     if (passwordMessage || passwordError) {
+//       const t = setTimeout(() => dispatch(clearPasswordMessage()), 4000);
+//       return () => clearTimeout(t);
+//     }
+//   }, [passwordMessage, passwordError, dispatch]);
 
 //   const handleChange = (e) =>
 //     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -77,6 +112,89 @@
 //     }
 //   };
 
+//   // 🆕 Password Reset Handlers
+//   const openPasswordModal = (user) => {
+//     setPasswordModal(user);
+//     setNewPassword('');
+//     setConfirmPassword('');
+//     setShowNewPass(false);
+//     setShowConfirmPass(false);
+//   };
+
+//   const closePasswordModal = () => {
+//     setPasswordModal(null);
+//     setNewPassword('');
+//     setConfirmPassword('');
+//   };
+
+//   const handleResetPassword = async () => {
+//     if (newPassword.length < 6) {
+//       alert('Password kam se kam 6 characters ka hona chahiye');
+//       return;
+//     }
+//     if (newPassword !== confirmPassword) {
+//       alert('Dono passwords match nahi kar rahe');
+//       return;
+//     }
+
+//     const result = await dispatch(resetUserPassword({
+//       user_id: passwordModal._id,
+//       new_password: newPassword,
+//     }));
+
+//     if (result.meta.requestStatus === 'fulfilled') {
+//       closePasswordModal();
+//     }
+//   };
+
+//   // 🆕 Own Password Change Handlers
+//   const openOwnPasswordModal = () => {
+//     setOwnPasswordModal(true);
+//     setCurrentPassword('');
+//     setOwnNewPassword('');
+//     setOwnConfirmPassword('');
+//   };
+
+//   const closeOwnPasswordModal = () => {
+//     setOwnPasswordModal(false);
+//     setCurrentPassword('');
+//     setOwnNewPassword('');
+//     setOwnConfirmPassword('');
+//   };
+
+//   const handleChangeOwnPassword = async () => {
+//     if (!currentPassword) {
+//       alert('Current password daalo');
+//       return;
+//     }
+//     if (ownNewPassword.length < 6) {
+//       alert('New password kam se kam 6 characters ka hona chahiye');
+//       return;
+//     }
+//     if (ownNewPassword !== ownConfirmPassword) {
+//       alert('Dono new passwords match nahi kar rahe');
+//       return;
+//     }
+
+//     const result = await dispatch(changeOwnPassword({
+//       current_password: currentPassword,
+//       new_password: ownNewPassword,
+//     }));
+
+//     if (result.meta.requestStatus === 'fulfilled') {
+//       closeOwnPasswordModal();
+//     }
+//   };
+
+//   // Password strength calculator
+//   const getPasswordStrength = (pass) => {
+//     if (!pass) return { level: 0, label: '', color: '' };
+//     if (pass.length < 6) return { level: 1, label: 'Weak', color: 'bg-red-500' };
+//     if (pass.length < 10) return { level: 2, label: 'Fair', color: 'bg-amber-500' };
+//     if (pass.length < 14) return { level: 3, label: 'Good', color: 'bg-blue-500' };
+//     return { level: 4, label: 'Strong', color: 'bg-emerald-500' };
+//   };
+
 //   const inputCls = "w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-4 text-sm text-[#1A1A2E] placeholder:text-[#C0C0C0] outline-none transition-all focus:border-[#E8590C] focus:bg-white focus:shadow-[0_0_0_3px_rgba(232,89,12,0.07)]";
 
 //   const roleColor = (role) => {
@@ -84,6 +202,7 @@
 //       employee: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
 //       manager: { bg: 'bg-purple-50', text: 'text-purple-700', dot: 'bg-purple-500' },
 //       admin: { bg: 'bg-[#FFF3E8]', text: 'text-[#E8590C]', dot: 'bg-[#E8590C]' },
+//       super_admin: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
 //     };
 //     return map[role] || map.employee;
 //   };
@@ -109,25 +228,35 @@
 //             </div>
 //           </div>
 
-//           {activeTab === 'admins' && (
+//           <div className="flex gap-2">
+//             {/* 🆕 Change Own Password Button */}
 //             <button
-//               onClick={() => setShowForm(!showForm)}
-//               className={`rounded-xl px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 ${
-//                 showForm
-//                   ? 'border border-gray-200 bg-white text-[#4B5563]'
-//                   : 'bg-gradient-to-r from-[#E8590C] to-[#D14800] text-white shadow-md shadow-orange-200/40 hover:shadow-lg'
-//               }`}
+//               onClick={openOwnPasswordModal}
+//               className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 transition-all hover:-translate-y-0.5 hover:bg-red-100"
 //             >
-//               {showForm ? 'Close' : '+ Create Admin'}
+//               🔑 Change My Password
 //             </button>
-//           )}
+
+//             {activeTab === 'admins' && (
+//               <button
+//                 onClick={() => setShowForm(!showForm)}
+//                 className={`rounded-xl px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 ${
+//                   showForm
+//                     ? 'border border-gray-200 bg-white text-[#4B5563]'
+//                     : 'bg-gradient-to-r from-[#E8590C] to-[#D14800] text-white shadow-md shadow-orange-200/40 hover:shadow-lg'
+//                 }`}
+//               >
+//                 {showForm ? 'Close' : '+ Create Admin'}
+//               </button>
+//             )}
+//           </div>
 //         </div>
 
 //         {/* Tabs */}
 //         <div className="mb-6 flex gap-2">
 //           {[
-//             { key: 'admins', label: 'Admins & Managers', icon: '🛡' },
-//             { key: 'employees', label: 'All Users', icon: '👥' },
+//             { key: 'admins', label: 'Admins & Managers' },
+//             { key: 'employees', label: 'All Users' },
 //           ].map((tab) => (
 //             <button
 //               key={tab.key}
@@ -154,6 +283,20 @@
 //             {error}
 //           </div>
 //         )}
+//         {/* 🆕 Password Messages */}
+//         {passwordMessage && (
+//           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3">
+//             <svg className="h-5 w-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+//               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+//             </svg>
+//             <p className="text-sm font-medium text-emerald-800">{passwordMessage}</p>
+//           </div>
+//         )}
+//         {passwordError && (
+//           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+//             ❌ {passwordError}
+//           </div>
+//         )}
 
 //         {/* Create Admin Form */}
 //         {showForm && activeTab === 'admins' && (
@@ -167,8 +310,7 @@
 //                     <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
 //                       Company <span className="text-[#E8590C]">*</span>
 //                     </label>
-//                     <select name="company_id" value={formData.company_id} onChange={handleChange} required
-//                       className={inputCls}>
+//                     <select name="company_id" value={formData.company_id} onChange={handleChange} required className={inputCls}>
 //                       <option value="">Select company</option>
 //                       {companies.map((c) => (
 //                         <option key={c._id} value={c._id}>{c.name} ({c.code})</option>
@@ -179,8 +321,7 @@
 //                     <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
 //                       Full Name <span className="text-[#E8590C]">*</span>
 //                     </label>
-//                     <input type="text" name="name" value={formData.name} onChange={handleChange} required
-//                       placeholder="Admin name" className={inputCls} />
+//                     <input type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="Admin name" className={inputCls} />
 //                   </div>
 //                 </div>
 
@@ -189,15 +330,13 @@
 //                     <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
 //                       Email <span className="text-[#E8590C]">*</span>
 //                     </label>
-//                     <input type="email" name="email" value={formData.email} onChange={handleChange} required
-//                       placeholder="admin@company.com" className={inputCls} />
+//                     <input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="admin@company.com" className={inputCls} />
 //                   </div>
 //                   <div>
 //                     <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
 //                       Phone <span className="text-[#E8590C]">*</span>
 //                     </label>
-//                     <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required maxLength={10}
-//                       placeholder="10 digit" className={inputCls} />
+//                     <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required maxLength={10} placeholder="10 digit" className={inputCls} />
 //                   </div>
 //                 </div>
 
@@ -205,12 +344,10 @@
 //                   <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
 //                     Password <span className="text-[#E8590C]">*</span>
 //                   </label>
-//                   <input type="password" name="password" value={formData.password} onChange={handleChange} required minLength={6}
-//                     placeholder="Min 6 characters" className={inputCls} />
+//                   <input type="password" name="password" value={formData.password} onChange={handleChange} required minLength={6} placeholder="Min 6 characters" className={inputCls} />
 //                 </div>
 
-//                 <button type="submit"
-//                   className="w-full rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg">
+//                 <button type="submit" className="w-full rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg">
 //                   Create Admin Account
 //                 </button>
 //               </form>
@@ -261,58 +398,69 @@
 //                   </tr>
 //                 </thead>
 //                 <tbody className="divide-y divide-gray-50">
-//                   {(activeTab === 'admins' ? admins : allEmployees).map((user) => {
-//                     const rc = roleColor(user.role);
+//                   {(activeTab === 'admins' ? admins : allEmployees).map((usr) => {
+//                     const rc = roleColor(usr.role);
 //                     return (
-//                       <tr key={user._id} className="group hover:bg-[#faf8f5]">
+//                       <tr key={usr._id} className="group hover:bg-[#faf8f5]">
 //                         <td className="px-5 py-3.5">
 //                           <div className="flex items-center gap-3">
 //                             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#E8590C] to-[#D14800] text-sm font-bold text-white">
-//                               {user.name?.charAt(0).toUpperCase()}
+//                               {usr.name?.charAt(0).toUpperCase()}
 //                             </div>
 //                             <div>
-//                               <p className="font-semibold text-[#1A1A2E]">{user.name}</p>
-//                               <p className="text-[11px] text-[#9CA3AF]">{user.emp_code}</p>
+//                               <p className="font-semibold text-[#1A1A2E]">{usr.name}</p>
+//                               <p className="text-[11px] text-[#9CA3AF]">{usr.emp_code}</p>
 //                             </div>
 //                           </div>
 //                         </td>
-//                         <td className="px-5 py-3.5 text-[#4B5563]">{user.email}</td>
+//                         <td className="px-5 py-3.5 text-[#4B5563]">{usr.email}</td>
 //                         <td className="px-5 py-3.5">
 //                           <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-[#4B5563]">
-//                             {user.company_id?.code || '—'}
+//                             {usr.company_id?.code || '—'}
 //                           </span>
 //                         </td>
 //                         <td className="px-5 py-3.5">
 //                           <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase ${rc.bg} ${rc.text}`}>
 //                             <span className={`h-1.5 w-1.5 rounded-full ${rc.dot}`} />
-//                             {user.role}
+//                             {usr.role}
 //                           </span>
 //                         </td>
 //                         <td className="px-5 py-3.5">
 //                           <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-//                             user.status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
-//                             user.status === 'pending' ? 'bg-amber-50 text-amber-700' :
+//                             usr.status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
+//                             usr.status === 'pending' ? 'bg-amber-50 text-amber-700' :
 //                             'bg-red-50 text-red-600'
 //                           }`}>
-//                             {user.status}
+//                             {usr.status}
 //                           </span>
 //                         </td>
 //                         <td className="px-5 py-3.5">
-//                           <div className="flex items-center gap-2">
-//                             {user.role === 'admin' && (
-//                               <button onClick={() => handleDeleteAdmin(user._id)}
+//                           <div className="flex items-center gap-2 flex-wrap">
+//                             {/* 🆕 Reset Password Button - for all except self */}
+//                             {usr._id !== user?.id && (
+//                               <button 
+//                                 onClick={() => openPasswordModal(usr)}
+//                                 className="rounded-lg bg-orange-100 px-2.5 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-200 transition-colors"
+//                                 title="Reset Password"
+//                               >
+//                                 🔑 Reset
+//                               </button>
+//                             )}
+
+//                             {usr.role === 'admin' && (
+//                               <button onClick={() => handleDeleteAdmin(usr._id)}
 //                                 className="rounded-lg bg-red-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-red-600">
 //                                 Delete
 //                               </button>
 //                             )}
-//                             {user.role === 'employee' && (
-//                               <button onClick={() => handlePromote(user._id, user.name)}
+//                             {usr.role === 'employee' && (
+//                               <button onClick={() => handlePromote(usr._id, usr.name)}
 //                                 className="rounded-lg bg-purple-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-purple-600">
 //                                 ↑ Promote
 //                               </button>
 //                             )}
-//                             {user.role === 'manager' && (
-//                               <button onClick={() => handleDemote(user._id, user.name)}
+//                             {usr.role === 'manager' && (
+//                               <button onClick={() => handleDemote(usr._id, usr.name)}
 //                                 className="rounded-lg bg-gray-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-gray-600">
 //                                 ↓ Demote
 //                               </button>
@@ -329,20 +477,298 @@
 //         </div>
 //       </div>
 
+//       {/* ══════════════════════════════════════════ */}
+//       {/* 🆕 RESET USER PASSWORD MODAL             */}
+//       {/* ══════════════════════════════════════════ */}
+//       {passwordModal && (
+//         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
+//           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
+//             <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
+//             <div className="p-7">
+
+//               <div className="mb-5 flex items-center gap-3">
+//                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
+//                   <svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+//                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+//                   </svg>
+//                 </div>
+//                 <div>
+//                   <h3 className="text-lg font-extrabold text-[#1A1A2E]">Reset Password</h3>
+//                   <p className="text-xs text-[#9CA3AF]">{passwordModal.name} — {passwordModal.email}</p>
+//                 </div>
+//               </div>
+
+//               <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3 space-y-1">
+//                 <p className="text-xs">
+//                   <span className="text-[#9CA3AF]">Role:</span>{' '}
+//                   <span className="font-bold text-[#1A1A2E] uppercase">{passwordModal.role}</span>
+//                 </p>
+//                 <p className="text-xs">
+//                   <span className="text-[#9CA3AF]">Code:</span>{' '}
+//                   <span className="font-bold text-[#1A1A2E]">{passwordModal.emp_code}</span>
+//                 </p>
+//               </div>
+
+//               {/* New Password */}
+//               <div className="mb-4">
+//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
+//                   New Password <span className="text-[#E8590C]">*</span>
+//                 </label>
+//                 <div className="relative">
+//                   <input
+//                     type={showNewPass ? 'text' : 'password'}
+//                     value={newPassword}
+//                     onChange={(e) => setNewPassword(e.target.value)}
+//                     placeholder="Minimum 6 characters"
+//                     autoFocus
+//                     className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]"
+//                   />
+//                   <button
+//                     type="button"
+//                     onClick={() => setShowNewPass(!showNewPass)}
+//                     className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-[#E8590C]"
+//                   >
+//                     {showNewPass ? '🙈' : '👁️'}
+//                   </button>
+//                 </div>
+
+//                 {/* Password Strength */}
+//                 {newPassword && (
+//                   <div className="mt-2">
+//                     <div className="flex gap-1">
+//                       {[1, 2, 3, 4].map((i) => {
+//                         const strength = getPasswordStrength(newPassword);
+//                         return (
+//                           <div
+//                             key={i}
+//                             className={`h-1 flex-1 rounded-full transition-all ${
+//                               i <= strength.level ? strength.color : 'bg-gray-200'
+//                             }`}
+//                           />
+//                         );
+//                       })}
+//                     </div>
+//                     <p className="mt-1 text-[10px] text-[#9CA3AF]">
+//                       Strength: <span className="font-bold">{getPasswordStrength(newPassword).label}</span>
+//                     </p>
+//                   </div>
+//                 )}
+//               </div>
+
+//               {/* Confirm Password */}
+//               <div className="mb-6">
+//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
+//                   Confirm Password <span className="text-[#E8590C]">*</span>
+//                 </label>
+//                 <div className="relative">
+//                   <input
+//                     type={showConfirmPass ? 'text' : 'password'}
+//                     value={confirmPassword}
+//                     onChange={(e) => setConfirmPassword(e.target.value)}
+//                     placeholder="Same password dobara daalo"
+//                     className={`w-full rounded-xl border py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none transition-all
+//                       ${confirmPassword && confirmPassword !== newPassword
+//                         ? 'border-red-300 bg-red-50'
+//                         : confirmPassword && confirmPassword === newPassword
+//                         ? 'border-emerald-300 bg-emerald-50'
+//                         : 'border-gray-200 bg-[#FAFAFA] focus:border-[#E8590C]'}`}
+//                   />
+//                   <button
+//                     type="button"
+//                     onClick={() => setShowConfirmPass(!showConfirmPass)}
+//                     className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-[#E8590C]"
+//                   >
+//                     {showConfirmPass ? '🙈' : '👁️'}
+//                   </button>
+//                 </div>
+//                 {confirmPassword && confirmPassword !== newPassword && (
+//                   <p className="mt-1 text-xs text-red-500">❌ Passwords match nahi kar rahe</p>
+//                 )}
+//                 {confirmPassword && confirmPassword === newPassword && (
+//                   <p className="mt-1 text-xs text-emerald-600">✅ Passwords match kar rahe hain</p>
+//                 )}
+//               </div>
+
+//               <div className="flex gap-3">
+//                 <button
+//                   onClick={handleResetPassword}
+//                   disabled={passwordLoading || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+//                   className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+//                 >
+//                   {passwordLoading ? 'Resetting...' : '🔑 Reset Password'}
+//                 </button>
+//                 <button
+//                   onClick={closePasswordModal}
+//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50"
+//                 >
+//                   Cancel
+//                 </button>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* ══════════════════════════════════════════ */}
+//       {/* 🆕 CHANGE OWN PASSWORD MODAL             */}
+//       {/* ══════════════════════════════════════════ */}
+//       {ownPasswordModal && (
+//         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
+//           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
+//             <div className="h-1.5 w-full bg-gradient-to-r from-red-500 to-red-600" />
+//             <div className="p-7">
+
+//               <div className="mb-5 flex items-center gap-3">
+//                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50">
+//                   <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+//                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+//                   </svg>
+//                 </div>
+//                 <div>
+//                   <h3 className="text-lg font-extrabold text-[#1A1A2E]">Change My Password</h3>
+//                   <p className="text-xs text-[#9CA3AF]">Super Admin Account</p>
+//                 </div>
+//               </div>
+
+//               {/* Current Password */}
+//               <div className="mb-4">
+//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
+//                   Current Password <span className="text-[#E8590C]">*</span>
+//                 </label>
+//                 <div className="relative">
+//                   <input
+//                     type={showCurrent ? 'text' : 'password'}
+//                     value={currentPassword}
+//                     onChange={(e) => setCurrentPassword(e.target.value)}
+//                     placeholder="Aapka current password"
+//                     autoFocus
+//                     className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none focus:border-red-500"
+//                   />
+//                   <button
+//                     type="button"
+//                     onClick={() => setShowCurrent(!showCurrent)}
+//                     className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-red-500"
+//                   >
+//                     {showCurrent ? '🙈' : '👁️'}
+//                   </button>
+//                 </div>
+//               </div>
+
+//               {/* New Password */}
+//               <div className="mb-4">
+//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
+//                   New Password <span className="text-[#E8590C]">*</span>
+//                 </label>
+//                 <div className="relative">
+//                   <input
+//                     type={showOwnNew ? 'text' : 'password'}
+//                     value={ownNewPassword}
+//                     onChange={(e) => setOwnNewPassword(e.target.value)}
+//                     placeholder="Minimum 6 characters"
+//                     className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none focus:border-red-500"
+//                   />
+//                   <button
+//                     type="button"
+//                     onClick={() => setShowOwnNew(!showOwnNew)}
+//                     className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-red-500"
+//                   >
+//                     {showOwnNew ? '🙈' : '👁️'}
+//                   </button>
+//                 </div>
+
+//                 {ownNewPassword && (
+//                   <div className="mt-2">
+//                     <div className="flex gap-1">
+//                       {[1, 2, 3, 4].map((i) => {
+//                         const strength = getPasswordStrength(ownNewPassword);
+//                         return (
+//                           <div
+//                             key={i}
+//                             className={`h-1 flex-1 rounded-full transition-all ${
+//                               i <= strength.level ? strength.color : 'bg-gray-200'
+//                             }`}
+//                           />
+//                         );
+//                       })}
+//                     </div>
+//                     <p className="mt-1 text-[10px] text-[#9CA3AF]">
+//                       Strength: <span className="font-bold">{getPasswordStrength(ownNewPassword).label}</span>
+//                     </p>
+//                   </div>
+//                 )}
+//               </div>
+
+//               {/* Confirm New Password */}
+//               <div className="mb-6">
+//                 <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
+//                   Confirm New Password <span className="text-[#E8590C]">*</span>
+//                 </label>
+//                 <div className="relative">
+//                   <input
+//                     type={showOwnConfirm ? 'text' : 'password'}
+//                     value={ownConfirmPassword}
+//                     onChange={(e) => setOwnConfirmPassword(e.target.value)}
+//                     placeholder="Same password dobara daalo"
+//                     className={`w-full rounded-xl border py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none transition-all
+//                       ${ownConfirmPassword && ownConfirmPassword !== ownNewPassword
+//                         ? 'border-red-300 bg-red-50'
+//                         : ownConfirmPassword && ownConfirmPassword === ownNewPassword
+//                         ? 'border-emerald-300 bg-emerald-50'
+//                         : 'border-gray-200 bg-[#FAFAFA] focus:border-red-500'}`}
+//                   />
+//                   <button
+//                     type="button"
+//                     onClick={() => setShowOwnConfirm(!showOwnConfirm)}
+//                     className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-red-500"
+//                   >
+//                     {showOwnConfirm ? '🙈' : '👁️'}
+//                   </button>
+//                 </div>
+//                 {ownConfirmPassword && ownConfirmPassword !== ownNewPassword && (
+//                   <p className="mt-1 text-xs text-red-500">❌ Passwords match nahi kar rahe</p>
+//                 )}
+//                 {ownConfirmPassword && ownConfirmPassword === ownNewPassword && (
+//                   <p className="mt-1 text-xs text-emerald-600">✅ Passwords match kar rahe hain</p>
+//                 )}
+//               </div>
+
+//               <div className="flex gap-3">
+//                 <button
+//                   onClick={handleChangeOwnPassword}
+//                   disabled={passwordLoading || !currentPassword || !ownNewPassword || !ownConfirmPassword || ownNewPassword !== ownConfirmPassword}
+//                   className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-md shadow-red-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+//                 >
+//                   {passwordLoading ? 'Changing...' : '🔑 Change Password'}
+//                 </button>
+//                 <button
+//                   onClick={closeOwnPasswordModal}
+//                   className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50"
+//                 >
+//                   Cancel
+//                 </button>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
 //       <style>{`
 //         @keyframes formIn {
 //           from { opacity:0; transform:translateY(-8px) }
 //           to   { opacity:1; transform:translateY(0) }
 //         }
 //         .animate-formIn { animation:formIn .25s ease-out }
+//         @keyframes modalIn {
+//           from { opacity:0; transform:scale(.95) translateY(10px) }
+//           to   { opacity:1; transform:scale(1) translateY(0) }
+//         }
+//         .animate-modalIn { animation:modalIn .25s ease-out }
 //       `}</style>
 //     </div>
 //   );
 // };
 
 // export default ManageAdmins;
-
-
 
 
 
@@ -376,18 +802,17 @@ const ManageAdmins = () => {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState({ role: '', company_id: '' });
 
+  // 🆕 role added
   const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', password: '', company_id: '',
+    name: '', email: '', phone: '', password: '', company_id: '', role: 'admin',
   });
 
-  // 🆕 Password Reset Modal States
-  const [passwordModal, setPasswordModal] = useState(null); // { user object }
+  const [passwordModal, setPasswordModal] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  // 🆕 Change Own Password Modal
   const [ownPasswordModal, setOwnPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [ownNewPassword, setOwnNewPassword] = useState('');
@@ -429,14 +854,14 @@ const ManageAdmins = () => {
     e.preventDefault();
     const result = await dispatch(createAdmin(formData));
     if (result.meta.requestStatus === 'fulfilled') {
-      setFormData({ name: '', email: '', phone: '', password: '', company_id: '' });
+      setFormData({ name: '', email: '', phone: '', password: '', company_id: '', role: 'admin' });
       setShowForm(false);
       dispatch(fetchAllAdmins(filter));
     }
   };
 
   const handleDeleteAdmin = async (id) => {
-    if (window.confirm('Delete this admin?')) {
+    if (window.confirm('Delete this user?')) {
       await dispatch(deleteAdmin(id));
     }
   };
@@ -455,7 +880,6 @@ const ManageAdmins = () => {
     }
   };
 
-  // 🆕 Password Reset Handlers
   const openPasswordModal = (user) => {
     setPasswordModal(user);
     setNewPassword('');
@@ -490,7 +914,6 @@ const ManageAdmins = () => {
     }
   };
 
-  // 🆕 Own Password Change Handlers
   const openOwnPasswordModal = () => {
     setOwnPasswordModal(true);
     setCurrentPassword('');
@@ -529,7 +952,6 @@ const ManageAdmins = () => {
     }
   };
 
-  // Password strength calculator
   const getPasswordStrength = (pass) => {
     if (!pass) return { level: 0, label: '', color: '' };
     if (pass.length < 6) return { level: 1, label: 'Weak', color: 'bg-red-500' };
@@ -540,12 +962,14 @@ const ManageAdmins = () => {
 
   const inputCls = "w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 pl-4 pr-4 text-sm text-[#1A1A2E] placeholder:text-[#C0C0C0] outline-none transition-all focus:border-[#E8590C] focus:bg-white focus:shadow-[0_0_0_3px_rgba(232,89,12,0.07)]";
 
+  // 🆕 account added
   const roleColor = (role) => {
     const map = {
       employee: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
       manager: { bg: 'bg-purple-50', text: 'text-purple-700', dot: 'bg-purple-500' },
       admin: { bg: 'bg-[#FFF3E8]', text: 'text-[#E8590C]', dot: 'bg-[#E8590C]' },
       super_admin: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
+      account: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
     };
     return map[role] || map.employee;
   };
@@ -572,7 +996,6 @@ const ManageAdmins = () => {
           </div>
 
           <div className="flex gap-2">
-            {/* 🆕 Change Own Password Button */}
             <button
               onClick={openOwnPasswordModal}
               className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-700 transition-all hover:-translate-y-0.5 hover:bg-red-100"
@@ -589,7 +1012,7 @@ const ManageAdmins = () => {
                     : 'bg-gradient-to-r from-[#E8590C] to-[#D14800] text-white shadow-md shadow-orange-200/40 hover:shadow-lg'
                 }`}
               >
-                {showForm ? 'Close' : '+ Create Admin'}
+                {showForm ? 'Close' : '+ Create Admin / Account'}
               </button>
             )}
           </div>
@@ -626,7 +1049,6 @@ const ManageAdmins = () => {
             {error}
           </div>
         )}
-        {/* 🆕 Password Messages */}
         {passwordMessage && (
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3">
             <svg className="h-5 w-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -641,13 +1063,63 @@ const ManageAdmins = () => {
           </div>
         )}
 
-        {/* Create Admin Form */}
+        {/* Create Form */}
         {showForm && activeTab === 'admins' && (
           <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm shadow-gray-200/60 animate-formIn">
             <div className="h-1 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
             <div className="p-6">
-              <h3 className="mb-5 text-sm font-bold text-[#1A1A2E]">Create New Admin</h3>
+              <h3 className="mb-5 text-sm font-bold text-[#1A1A2E]">Create New User</h3>
               <form onSubmit={handleSubmit} className="space-y-4">
+
+                {/* 🆕 Role Selection */}
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
+                    User Role <span className="text-[#E8590C]">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, role: 'admin' })}
+                      className={`relative overflow-hidden rounded-xl border-2 p-4 text-left transition-all ${
+                        formData.role === 'admin'
+                          ? 'border-[#E8590C] bg-[#FFF8F3]'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      {formData.role === 'admin' && (
+                        <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#E8590C]">
+                          <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="mb-1 text-xl">🛡️</div>
+                      <p className="text-sm font-bold text-[#1A1A2E]">Admin</p>
+                      <p className="mt-0.5 text-[10px] text-[#9CA3AF] leading-tight">Full access — Attendance, Leaves, Employees</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, role: 'account' })}
+                      className={`relative overflow-hidden rounded-xl border-2 p-4 text-left transition-all ${
+                        formData.role === 'account'
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      {formData.role === 'account' && (
+                        <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                          <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="mb-1 text-xl">💰</div>
+                      <p className="text-sm font-bold text-[#1A1A2E]">Account</p>
+                      <p className="mt-0.5 text-[10px] text-[#9CA3AF] leading-tight">Payroll only — Salary & Reports</p>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
@@ -664,7 +1136,7 @@ const ManageAdmins = () => {
                     <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
                       Full Name <span className="text-[#E8590C]">*</span>
                     </label>
-                    <input type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="Admin name" className={inputCls} />
+                    <input type="text" name="name" value={formData.name} onChange={handleChange} required placeholder="User name" className={inputCls} />
                   </div>
                 </div>
 
@@ -673,7 +1145,7 @@ const ManageAdmins = () => {
                     <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
                       Email <span className="text-[#E8590C]">*</span>
                     </label>
-                    <input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="admin@company.com" className={inputCls} />
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required placeholder="user@company.com" className={inputCls} />
                   </div>
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
@@ -690,8 +1162,12 @@ const ManageAdmins = () => {
                   <input type="password" name="password" value={formData.password} onChange={handleChange} required minLength={6} placeholder="Min 6 characters" className={inputCls} />
                 </div>
 
-                <button type="submit" className="w-full rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg">
-                  Create Admin Account
+                <button type="submit" className={`w-full rounded-xl py-3 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg ${
+                  formData.role === 'account'
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 shadow-green-200/40'
+                    : 'bg-gradient-to-r from-[#E8590C] to-[#D14800] shadow-orange-200/40'
+                }`}>
+                  {formData.role === 'account' ? '💰 Create Account User' : '🛡️ Create Admin Account'}
                 </button>
               </form>
             </div>
@@ -712,6 +1188,7 @@ const ManageAdmins = () => {
               className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-[#1A1A2E] outline-none focus:border-[#E8590C]">
               <option value="">All Roles</option>
               <option value="admin">Admins</option>
+              <option value="account">Account</option>
               <option value="manager">Managers</option>
             </select>
           )}
@@ -779,7 +1256,6 @@ const ManageAdmins = () => {
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2 flex-wrap">
-                            {/* 🆕 Reset Password Button - for all except self */}
                             {usr._id !== user?.id && (
                               <button 
                                 onClick={() => openPasswordModal(usr)}
@@ -790,7 +1266,8 @@ const ManageAdmins = () => {
                               </button>
                             )}
 
-                            {usr.role === 'admin' && (
+                            {/* 🆕 account bhi delete allow */}
+                            {(usr.role === 'admin' || usr.role === 'account') && (
                               <button onClick={() => handleDeleteAdmin(usr._id)}
                                 className="rounded-lg bg-red-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-red-600">
                                 Delete
@@ -820,15 +1297,12 @@ const ManageAdmins = () => {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════ */}
-      {/* 🆕 RESET USER PASSWORD MODAL             */}
-      {/* ══════════════════════════════════════════ */}
+      {/* RESET PASSWORD MODAL */}
       {passwordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
             <div className="h-1.5 w-full bg-gradient-to-r from-[#E8590C] to-[#F4A261]" />
             <div className="p-7">
-
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50">
                   <svg className="h-6 w-6 text-[#E8590C]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -842,253 +1316,115 @@ const ManageAdmins = () => {
               </div>
 
               <div className="mb-5 rounded-xl bg-[#faf8f5] px-4 py-3 space-y-1">
-                <p className="text-xs">
-                  <span className="text-[#9CA3AF]">Role:</span>{' '}
-                  <span className="font-bold text-[#1A1A2E] uppercase">{passwordModal.role}</span>
-                </p>
-                <p className="text-xs">
-                  <span className="text-[#9CA3AF]">Code:</span>{' '}
-                  <span className="font-bold text-[#1A1A2E]">{passwordModal.emp_code}</span>
-                </p>
+                <p className="text-xs"><span className="text-[#9CA3AF]">Role:</span>{' '}<span className="font-bold text-[#1A1A2E] uppercase">{passwordModal.role}</span></p>
+                <p className="text-xs"><span className="text-[#9CA3AF]">Code:</span>{' '}<span className="font-bold text-[#1A1A2E]">{passwordModal.emp_code}</span></p>
               </div>
 
-              {/* New Password */}
               <div className="mb-4">
-                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-                  New Password <span className="text-[#E8590C]">*</span>
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">New Password <span className="text-[#E8590C]">*</span></label>
                 <div className="relative">
-                  <input
-                    type={showNewPass ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Minimum 6 characters"
-                    autoFocus
-                    className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPass(!showNewPass)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-[#E8590C]"
-                  >
+                  <input type={showNewPass ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimum 6 characters" autoFocus className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none focus:border-[#E8590C]" />
+                  <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-[#E8590C]">
                     {showNewPass ? '🙈' : '👁️'}
                   </button>
                 </div>
-
-                {/* Password Strength */}
                 {newPassword && (
                   <div className="mt-2">
                     <div className="flex gap-1">
                       {[1, 2, 3, 4].map((i) => {
                         const strength = getPasswordStrength(newPassword);
-                        return (
-                          <div
-                            key={i}
-                            className={`h-1 flex-1 rounded-full transition-all ${
-                              i <= strength.level ? strength.color : 'bg-gray-200'
-                            }`}
-                          />
-                        );
+                        return (<div key={i} className={`h-1 flex-1 rounded-full transition-all ${i <= strength.level ? strength.color : 'bg-gray-200'}`} />);
                       })}
                     </div>
-                    <p className="mt-1 text-[10px] text-[#9CA3AF]">
-                      Strength: <span className="font-bold">{getPasswordStrength(newPassword).label}</span>
-                    </p>
+                    <p className="mt-1 text-[10px] text-[#9CA3AF]">Strength: <span className="font-bold">{getPasswordStrength(newPassword).label}</span></p>
                   </div>
                 )}
               </div>
 
-              {/* Confirm Password */}
               <div className="mb-6">
-                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-                  Confirm Password <span className="text-[#E8590C]">*</span>
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Confirm Password <span className="text-[#E8590C]">*</span></label>
                 <div className="relative">
-                  <input
-                    type={showConfirmPass ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Same password dobara daalo"
-                    className={`w-full rounded-xl border py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none transition-all
-                      ${confirmPassword && confirmPassword !== newPassword
-                        ? 'border-red-300 bg-red-50'
-                        : confirmPassword && confirmPassword === newPassword
-                        ? 'border-emerald-300 bg-emerald-50'
-                        : 'border-gray-200 bg-[#FAFAFA] focus:border-[#E8590C]'}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPass(!showConfirmPass)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-[#E8590C]"
-                  >
+                  <input type={showConfirmPass ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Same password dobara daalo"
+                    className={`w-full rounded-xl border py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none transition-all ${confirmPassword && confirmPassword !== newPassword ? 'border-red-300 bg-red-50' : confirmPassword && confirmPassword === newPassword ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-[#FAFAFA] focus:border-[#E8590C]'}`} />
+                  <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-[#E8590C]">
                     {showConfirmPass ? '🙈' : '👁️'}
                   </button>
                 </div>
-                {confirmPassword && confirmPassword !== newPassword && (
-                  <p className="mt-1 text-xs text-red-500">❌ Passwords match nahi kar rahe</p>
-                )}
-                {confirmPassword && confirmPassword === newPassword && (
-                  <p className="mt-1 text-xs text-emerald-600">✅ Passwords match kar rahe hain</p>
-                )}
+                {confirmPassword && confirmPassword !== newPassword && (<p className="mt-1 text-xs text-red-500">❌ Passwords match nahi kar rahe</p>)}
+                {confirmPassword && confirmPassword === newPassword && (<p className="mt-1 text-xs text-emerald-600">✅ Passwords match kar rahe hain</p>)}
               </div>
 
               <div className="flex gap-3">
-                <button
-                  onClick={handleResetPassword}
-                  disabled={passwordLoading || !newPassword || !confirmPassword || newPassword !== confirmPassword}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-                >
+                <button onClick={handleResetPassword} disabled={passwordLoading || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-[#E8590C] to-[#D14800] py-3 text-sm font-bold text-white shadow-md shadow-orange-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50">
                   {passwordLoading ? 'Resetting...' : '🔑 Reset Password'}
                 </button>
-                <button
-                  onClick={closePasswordModal}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
+                <button onClick={closePasswordModal} className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">Cancel</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ══════════════════════════════════════════ */}
-      {/* 🆕 CHANGE OWN PASSWORD MODAL             */}
-      {/* ══════════════════════════════════════════ */}
+      {/* OWN PASSWORD MODAL */}
       {ownPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A2E]/60 backdrop-blur-sm px-4">
           <div className="w-full max-w-md overflow-hidden rounded-[28px] bg-white shadow-2xl animate-modalIn">
             <div className="h-1.5 w-full bg-gradient-to-r from-red-500 to-red-600" />
             <div className="p-7">
-
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50">
                   <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                   </svg>
                 </div>
-                <div>
-                  <h3 className="text-lg font-extrabold text-[#1A1A2E]">Change My Password</h3>
-                  <p className="text-xs text-[#9CA3AF]">Super Admin Account</p>
+                <div><h3 className="text-lg font-extrabold text-[#1A1A2E]">Change My Password</h3><p className="text-xs text-[#9CA3AF]">Super Admin Account</p></div>
+              </div>
+
+              <div className="mb-4">
+                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Current Password <span className="text-[#E8590C]">*</span></label>
+                <div className="relative">
+                  <input type={showCurrent ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Aapka current password" autoFocus className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none focus:border-red-500" />
+                  <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-red-500">{showCurrent ? '🙈' : '👁️'}</button>
                 </div>
               </div>
 
-              {/* Current Password */}
               <div className="mb-4">
-                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-                  Current Password <span className="text-[#E8590C]">*</span>
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">New Password <span className="text-[#E8590C]">*</span></label>
                 <div className="relative">
-                  <input
-                    type={showCurrent ? 'text' : 'password'}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Aapka current password"
-                    autoFocus
-                    className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none focus:border-red-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrent(!showCurrent)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-red-500"
-                  >
-                    {showCurrent ? '🙈' : '👁️'}
-                  </button>
+                  <input type={showOwnNew ? 'text' : 'password'} value={ownNewPassword} onChange={(e) => setOwnNewPassword(e.target.value)} placeholder="Minimum 6 characters" className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none focus:border-red-500" />
+                  <button type="button" onClick={() => setShowOwnNew(!showOwnNew)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-red-500">{showOwnNew ? '🙈' : '👁️'}</button>
                 </div>
-              </div>
-
-              {/* New Password */}
-              <div className="mb-4">
-                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-                  New Password <span className="text-[#E8590C]">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showOwnNew ? 'text' : 'password'}
-                    value={ownNewPassword}
-                    onChange={(e) => setOwnNewPassword(e.target.value)}
-                    placeholder="Minimum 6 characters"
-                    className="w-full rounded-xl border border-gray-200 bg-[#FAFAFA] py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none focus:border-red-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowOwnNew(!showOwnNew)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-red-500"
-                  >
-                    {showOwnNew ? '🙈' : '👁️'}
-                  </button>
-                </div>
-
                 {ownNewPassword && (
                   <div className="mt-2">
                     <div className="flex gap-1">
                       {[1, 2, 3, 4].map((i) => {
                         const strength = getPasswordStrength(ownNewPassword);
-                        return (
-                          <div
-                            key={i}
-                            className={`h-1 flex-1 rounded-full transition-all ${
-                              i <= strength.level ? strength.color : 'bg-gray-200'
-                            }`}
-                          />
-                        );
+                        return (<div key={i} className={`h-1 flex-1 rounded-full transition-all ${i <= strength.level ? strength.color : 'bg-gray-200'}`} />);
                       })}
                     </div>
-                    <p className="mt-1 text-[10px] text-[#9CA3AF]">
-                      Strength: <span className="font-bold">{getPasswordStrength(ownNewPassword).label}</span>
-                    </p>
+                    <p className="mt-1 text-[10px] text-[#9CA3AF]">Strength: <span className="font-bold">{getPasswordStrength(ownNewPassword).label}</span></p>
                   </div>
                 )}
               </div>
 
-              {/* Confirm New Password */}
               <div className="mb-6">
-                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">
-                  Confirm New Password <span className="text-[#E8590C]">*</span>
-                </label>
+                <label className="mb-2 block text-sm font-semibold text-[#1A1A2E]">Confirm New Password <span className="text-[#E8590C]">*</span></label>
                 <div className="relative">
-                  <input
-                    type={showOwnConfirm ? 'text' : 'password'}
-                    value={ownConfirmPassword}
-                    onChange={(e) => setOwnConfirmPassword(e.target.value)}
-                    placeholder="Same password dobara daalo"
-                    className={`w-full rounded-xl border py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none transition-all
-                      ${ownConfirmPassword && ownConfirmPassword !== ownNewPassword
-                        ? 'border-red-300 bg-red-50'
-                        : ownConfirmPassword && ownConfirmPassword === ownNewPassword
-                        ? 'border-emerald-300 bg-emerald-50'
-                        : 'border-gray-200 bg-[#FAFAFA] focus:border-red-500'}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowOwnConfirm(!showOwnConfirm)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-red-500"
-                  >
-                    {showOwnConfirm ? '🙈' : '👁️'}
-                  </button>
+                  <input type={showOwnConfirm ? 'text' : 'password'} value={ownConfirmPassword} onChange={(e) => setOwnConfirmPassword(e.target.value)} placeholder="Same password dobara daalo"
+                    className={`w-full rounded-xl border py-3 px-4 pr-12 text-sm text-[#1A1A2E] outline-none transition-all ${ownConfirmPassword && ownConfirmPassword !== ownNewPassword ? 'border-red-300 bg-red-50' : ownConfirmPassword && ownConfirmPassword === ownNewPassword ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-[#FAFAFA] focus:border-red-500'}`} />
+                  <button type="button" onClick={() => setShowOwnConfirm(!showOwnConfirm)} className="absolute inset-y-0 right-0 flex items-center pr-4 text-[#9CA3AF] hover:text-red-500">{showOwnConfirm ? '🙈' : '👁️'}</button>
                 </div>
-                {ownConfirmPassword && ownConfirmPassword !== ownNewPassword && (
-                  <p className="mt-1 text-xs text-red-500">❌ Passwords match nahi kar rahe</p>
-                )}
-                {ownConfirmPassword && ownConfirmPassword === ownNewPassword && (
-                  <p className="mt-1 text-xs text-emerald-600">✅ Passwords match kar rahe hain</p>
-                )}
+                {ownConfirmPassword && ownConfirmPassword !== ownNewPassword && (<p className="mt-1 text-xs text-red-500">❌ Passwords match nahi kar rahe</p>)}
+                {ownConfirmPassword && ownConfirmPassword === ownNewPassword && (<p className="mt-1 text-xs text-emerald-600">✅ Passwords match kar rahe hain</p>)}
               </div>
 
               <div className="flex gap-3">
-                <button
-                  onClick={handleChangeOwnPassword}
-                  disabled={passwordLoading || !currentPassword || !ownNewPassword || !ownConfirmPassword || ownNewPassword !== ownConfirmPassword}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-md shadow-red-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-                >
+                <button onClick={handleChangeOwnPassword} disabled={passwordLoading || !currentPassword || !ownNewPassword || !ownConfirmPassword || ownNewPassword !== ownConfirmPassword}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-red-500 to-red-600 py-3 text-sm font-bold text-white shadow-md shadow-red-200/40 transition-all hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50">
                   {passwordLoading ? 'Changing...' : '🔑 Change Password'}
                 </button>
-                <button
-                  onClick={closeOwnPasswordModal}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
+                <button onClick={closeOwnPasswordModal} className="flex-1 rounded-xl border border-gray-200 bg-white py-3 text-sm font-bold text-[#4B5563] hover:bg-gray-50">Cancel</button>
               </div>
             </div>
           </div>
@@ -1096,15 +1432,9 @@ const ManageAdmins = () => {
       )}
 
       <style>{`
-        @keyframes formIn {
-          from { opacity:0; transform:translateY(-8px) }
-          to   { opacity:1; transform:translateY(0) }
-        }
+        @keyframes formIn { from { opacity:0; transform:translateY(-8px) } to { opacity:1; transform:translateY(0) } }
         .animate-formIn { animation:formIn .25s ease-out }
-        @keyframes modalIn {
-          from { opacity:0; transform:scale(.95) translateY(10px) }
-          to   { opacity:1; transform:scale(1) translateY(0) }
-        }
+        @keyframes modalIn { from { opacity:0; transform:scale(.95) translateY(10px) } to { opacity:1; transform:scale(1) translateY(0) } }
         .animate-modalIn { animation:modalIn .25s ease-out }
       `}</style>
     </div>

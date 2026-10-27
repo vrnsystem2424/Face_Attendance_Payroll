@@ -23,18 +23,22 @@ const Login = () => {
   }, [dispatch]);
 
   // ── 🔧 UPDATED — Role-based redirect ──
- useEffect(() => {
+ // Ye useEffect replace karo (jo navigate wala hai):
+
+useEffect(() => {
   if (user) {
     if (user.role === 'super_admin') {
       navigate('/super-admin/dashboard');
     } else if (user.role === 'admin') {
       navigate('/admin/dashboard');
+    } else if (user.role === 'account') {          // 🆕 NEW
+      navigate('/account/payroll');
     } else if (user.role === 'manager') {
       navigate('/manager/dashboard');
     } else if (user.face_registered === false) {
       navigate('/face-register');
     } else {
-      navigate('/dashboard');    // 🔧 Changed from /attendance
+      navigate('/dashboard');
     }
   }
 }, [user, navigate]);
@@ -374,3 +378,9 @@ const Login = () => {
 };
 
 export default Login;
+
+
+
+
+
+

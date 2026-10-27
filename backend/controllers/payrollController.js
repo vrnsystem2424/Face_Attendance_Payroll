@@ -1138,10 +1138,302 @@ const calculateEmployeePayroll = async (employee, month, year, settings) => {
   };
 };
 
+// const getCompanyPayroll = async (req, res) => {
+//   try {
+//     const { company_id, department, month, year } = req.query;
+//     if (!company_id) return res.status(400).json({ success: false, message: 'company_id required' });
+
+//     const currentMonth = parseInt(month, 10) || new Date().getMonth() + 1;
+//     const currentYear = parseInt(year, 10) || new Date().getFullYear();
+
+//     const company = await Company.findById(company_id);
+//     if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
+
+//     const settings = await MonthlySettings.findOne({ company_id, month: currentMonth, year: currentYear });
+
+//     const filter = { company_id, status: 'approved', role: { $ne: 'super_admin' } };
+//     if (department && department !== 'all') filter.department = department;
+
+//     const employees = await Employee.find(filter).sort({ name: 1 });
+
+//     if (employees.length === 0) {
+//       return res.json({
+//         success: true,
+//         data: {
+//           company: { name: company.name, code: company.code, address: company.address },
+//           month: currentMonth, year: currentYear,
+//           month_name: new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long' }),
+//           employees: [], summary: { total_employees: 0 },
+//         },
+//       });
+//     }
+
+//     const payrollData = [];
+//     for (const emp of employees) {
+//       const payroll = await calculateEmployeePayroll(emp, currentMonth, currentYear, settings);
+//       if (payroll) payrollData.push(payroll);
+//     }
+
+//     const anyBalance = await LeaveBalance.findOne({
+//       emp_id: { $in: employees.map((e) => e._id) },
+//       'history.payroll_finalized': true,
+//       'history.month': currentMonth, 'history.year': currentYear,
+//     });
+//     const isFinalized = !!anyBalance;
+    
+//     const summary = {
+//       total_employees: payrollData.length,
+//       total_monthly_salary: payrollData.reduce((s, p) => s + p.monthly_salary, 0),
+//       total_checkins: payrollData.reduce((s, p) => s + (p.total_checkins || 0), 0),
+//       total_wo: payrollData.reduce((s, p) => s + (p.weekly_off_paid || 0), 0),
+//       total_holiday: payrollData.reduce((s, p) => s + (p.holiday_paid || 0), 0),
+//       total_late: payrollData.reduce((s, p) => s + (p.late_count || 0), 0),
+//       total_late_deduction: payrollData.reduce((s, p) => s + (p.late_leave_deduction || 0), 0),
+//       total_half_day: payrollData.reduce((s, p) => s + ((p.half_day_count || 0) + (p.half_day_leave_count || 0)), 0),
+//       total_hd_deduction: payrollData.reduce((s, p) => s + (p.half_day_deduction || 0), 0),
+//       total_leaves: payrollData.reduce((s, p) => s + (p.full_day_leaves || 0), 0),
+//       total_paid_leaves: payrollData.reduce((s, p) => s + (p.paid_leave_days || 0), 0),
+//       total_carry_forward: payrollData.reduce((s, p) => s + (p.leave_closing_balance || 0), 0),
+//       total_earned: payrollData.reduce((s, p) => s + p.earned_salary, 0),
+//       total_deduction: payrollData.reduce((s, p) => s + p.total_deduction, 0),
+//       total_net_payable: payrollData.reduce((s, p) => s + p.net_payable, 0),
+//     };
+    
+//     return res.json({
+//       success: true,
+//       data: {
+//         company: { _id: company._id, name: company.name, code: company.code, address: company.address },
+//         month: currentMonth, year: currentYear,
+//         month_name: new Date(currentYear, currentMonth - 1).toLocaleString('en-US', { month: 'long' }),
+//         department: department || 'all',
+//         is_finalized: isFinalized,
+//         settings: {
+//           daily_hours: settings?.daily_hours || 8,
+//           holidays_count: (settings?.holidays || []).length,
+//           weekly_off: settings?.weekly_off || ['Sunday'],
+//           free_paid_leaves_office: FREE_LEAVES_OFFICE,
+//           free_paid_leaves_site_rcc: FREE_LEAVES_SITE_RCC,
+//           late_start_day: getLateStartDay(currentMonth, currentYear),
+//         },
+//         employees: payrollData,
+//         summary,
+//       },
+//     });
+//   } catch (error) {
+//     return res.status(500).json({ success: false, message: 'Server error', error: error.message });
+//   }
+// };
+
+// const finalizePayroll = async (req, res) => {
+//   try {
+//     const { company_id, month, year, department } = req.body;
+//     if (!company_id || !month || !year) return res.status(400).json({ success: false, message: 'company_id, month, year required' });
+
+//     const currentMonth = parseInt(month, 10);
+//     const currentYear = parseInt(year, 10);
+
+//     const company = await Company.findById(company_id);
+//     if (!company) return res.status(404).json({ success: false, message: 'Company not found' });
+
+//     const settings = await MonthlySettings.findOne({ company_id, month: currentMonth, year: currentYear });
+
+//     const filter = { company_id, status: 'approved', role: { $ne: 'super_admin' } };
+//     if (department && department !== 'all') filter.department = department;
+
+//     const employees = await Employee.find(filter);
+//     if (employees.length === 0) return res.status(404).json({ success: false, message: 'No employees found' });
+
+//     let recalculateAndFixLeaveBalance = null;
+//     try { 
+//       recalculateAndFixLeaveBalance = require('./leaveBalanceController').recalculateAndFixLeaveBalance; 
+//     } catch (e) {}
+
+//     const results = [];
+//     let alreadyFinalizedCount = 0;
+//     let processedCount = 0;
+
+//     for (const emp of employees) {
+//       const payroll = await calculateEmployeePayroll(emp, currentMonth, currentYear, settings);
+//       if (!payroll) continue;
+
+//       const creditedThisMonth = payroll.leave_credited || 0;
+//       let balance = await LeaveBalance.findOne({ emp_id: emp._id });
+
+//       if (!balance) {
+//         balance = await LeaveBalance.create({
+//           emp_id: emp._id, emp_code: emp.emp_code, name: emp.name, company_id: emp.company_id,
+//           current_balance: 0, total_credited: 0, total_used: 0, history: [],
+//         });
+//       }
+
+//       let monthEntry = balance.history.find((h) => Number(h.month) === currentMonth && Number(h.year) === currentYear);
+
+//       if (!monthEntry) {
+//         balance.history.push({
+//           month: currentMonth, year: currentYear, 
+//           opening_balance: balance.current_balance || 0,
+//           credited: creditedThisMonth, used: 0, 
+//           closing_balance: balance.current_balance || 0, 
+//           leaves_log: [],
+//         });
+//         monthEntry = balance.history[balance.history.length - 1];
+//       }
+
+//       if (monthEntry.payroll_finalized) {
+//         alreadyFinalizedCount++;
+//         results.push({ 
+//           name: emp.name, emp_code: emp.emp_code, 
+//           status: 'already_finalized', balance: balance.current_balance 
+//         });
+//         continue;
+//       }
+
+//       monthEntry.credited = creditedThisMonth;
+//       monthEntry.leaves_log = (monthEntry.leaves_log || []).filter(
+//         (l) => !(l.is_payroll_deduction || l.from_date === 'PAYROLL' || l.from_date === 'LATE_CUT' || l.from_date === 'HALFDAY_CUT')
+//       );
+
+//       const fullLeaveDays = Number(payroll.full_day_leaves || 0) + Number(payroll.half_day_leave_count || 0) * 0.5;
+//       const lateCutDays = Number(payroll.late_leave_deduction || 0);
+//       const hdCutDays = Number(payroll.half_day_deduction || 0);
+//       const paidLeaveDays = Number(payroll.paid_leave_days || 0);
+
+//       if (fullLeaveDays > 0) {
+//         monthEntry.leaves_log.push({
+//           leave_id: null, from_date: 'LEAVE', to_date: 'LEAVE', 
+//           applied_days: fullLeaveDays, approved_days: fullLeaveDays,
+//           paid_days: Math.min(fullLeaveDays, paidLeaveDays), 
+//           unpaid_days: Math.max(0, fullLeaveDays - paidLeaveDays),
+//           approved_on: new Date(), is_payroll_deduction: true, 
+//           deduction_type: 'approved_leave', note: 'Approved leave days used in payroll',
+//         });
+//       }
+
+//       if (lateCutDays > 0) {
+//         monthEntry.leaves_log.push({
+//           leave_id: null, from_date: 'LATE_CUT', to_date: 'LATE_CUT', 
+//           applied_days: lateCutDays, approved_days: lateCutDays,
+//           paid_days: lateCutDays, unpaid_days: 0, approved_on: new Date(), 
+//           is_payroll_deduction: true, deduction_type: 'late_cut',
+//           late_count: payroll.late_count || 0, 
+//           note: `Late cut: ${payroll.late_count || 0} late → ${lateCutDays} day(s) leave deducted`,
+//         });
+//       }
+
+//       if (hdCutDays > 0) {
+//         monthEntry.leaves_log.push({
+//           leave_id: null, from_date: 'HALFDAY_CUT', to_date: 'HALFDAY_CUT', 
+//           applied_days: hdCutDays, approved_days: hdCutDays,
+//           paid_days: hdCutDays, unpaid_days: 0, approved_on: new Date(), 
+//           is_payroll_deduction: true, deduction_type: 'halfday_cut',
+//           half_day_count: payroll.half_day_count || 0, 
+//           note: `Half-day attendance cut: ${payroll.half_day_count || 0} HD → ${hdCutDays} day(s)`,
+//         });
+//       }
+
+//       monthEntry.used = paidLeaveDays;
+//       monthEntry.late_cut_days = lateCutDays;
+//       monthEntry.halfday_cut_days = hdCutDays;
+//       monthEntry.approved_leave_days = fullLeaveDays;
+//       monthEntry.payroll_finalized = true;
+//       monthEntry.finalized_on = new Date();
+//       monthEntry.finalized_by = req.employee?.name || 'System';
+
+//       if (typeof recalculateAndFixLeaveBalance === 'function') {
+//         await recalculateAndFixLeaveBalance(balance);
+//       } else {
+//         const before = Number(balance.current_balance || 0);
+//         balance.current_balance = Math.max(0, before + creditedThisMonth - paidLeaveDays);
+//         balance.total_credited = Number(balance.total_credited || 0) + creditedThisMonth;
+//         balance.total_used = Number(balance.total_used || 0) + paidLeaveDays;
+//         monthEntry.closing_balance = balance.current_balance;
+//         await balance.save();
+//       }
+
+//       processedCount++;
+//       results.push({ 
+//         name: emp.name, emp_code: emp.emp_code, 
+//         status: 'finalized', 
+//         paid_leave_days: paidLeaveDays, 
+//         late_cut: lateCutDays, 
+//         halfday_cut: hdCutDays, 
+//         balance_after: balance.current_balance 
+//       });
+//     }
+
+//     return res.json({ 
+//       success: true, 
+//       message: `Payroll finalized! ${processedCount} processed, ${alreadyFinalizedCount} already finalized`, 
+//       data: { 
+//         month: currentMonth, year: currentYear, 
+//         total_employees: employees.length, 
+//         processed: processedCount, 
+//         already_finalized: alreadyFinalizedCount, 
+//         results 
+//       } 
+//     });
+//   } catch (error) { 
+//     return res.status(500).json({ success: false, message: 'Finalize failed', error: error.message }); 
+//   }
+// };
+
+
+
+
+
+
+
+
+// --- 1. YAHAN SE HELPER ADD KARO (File ke top par constants ke neeche) ---
+const assertCompanyAccess = async (user, companyId) => {
+  if (!user || !companyId) return false;
+  const role = (user.role || '').toLowerCase();
+  
+  // Super Admin ko sab allowed hai
+  if (['super_admin', 'superadmin', 'admin'].includes(role)) return true;
+
+  // Manual fallback check for Account Role based on exact email/code
+  const email = (user.email || '').toLowerCase();
+  const empCode = (user.emp_code || '').toUpperCase();
+  
+  let allowedCodes = [];
+  if (email === 'payroll@gmail.com' || empCode === 'ACC-RCC-7482') {
+    allowedCodes = ['RCC', 'VRN'];
+  } else if (email === 'payroll@dim.com' || empCode === 'ACC-DIM-3223') {
+    allowedCodes = ['DIM'];
+  }
+
+  if (allowedCodes.length > 0) {
+    const comp = await Company.findById(companyId);
+    if (comp && allowedCodes.includes((comp.code || '').toUpperCase())) return true;
+  }
+
+  // Database check (agar DB mein add kiya hai to)
+  if (Array.isArray(user.allowed_companies) && user.allowed_companies.length > 0) {
+    const allowedIds = user.allowed_companies.map(c => c.toString());
+    if (allowedIds.includes(companyId.toString())) return true;
+  }
+
+  // Primary company check
+  const primaryId = user.company_id?._id || user.company_id;
+  if (primaryId && primaryId.toString() === companyId.toString()) return true;
+
+  return false;
+};
+
+// --- 2. REPLACE THESE FUNCTIONS ---
+
 const getCompanyPayroll = async (req, res) => {
   try {
     const { company_id, department, month, year } = req.query;
     if (!company_id) return res.status(400).json({ success: false, message: 'company_id required' });
+
+    // ✅ SECURITY CHECK ADDED
+    const user = req.employee || req.user;
+    const isAllowed = await assertCompanyAccess(user, company_id);
+    if (!isAllowed) {
+      return res.status(403).json({ success: false, message: 'Access denied for this company' });
+    }
 
     const currentMonth = parseInt(month, 10) || new Date().getMonth() + 1;
     const currentYear = parseInt(year, 10) || new Date().getFullYear();
@@ -1228,6 +1520,13 @@ const finalizePayroll = async (req, res) => {
   try {
     const { company_id, month, year, department } = req.body;
     if (!company_id || !month || !year) return res.status(400).json({ success: false, message: 'company_id, month, year required' });
+
+    // ✅ SECURITY CHECK ADDED
+    const user = req.employee || req.user;
+    const isAllowed = await assertCompanyAccess(user, company_id);
+    if (!isAllowed) {
+      return res.status(403).json({ success: false, message: 'Access denied for this company' });
+    }
 
     const currentMonth = parseInt(month, 10);
     const currentYear = parseInt(year, 10);
@@ -1453,3 +1752,7 @@ module.exports = {
   finalizePayroll,
   getMySalary,
 };
+
+
+
+
