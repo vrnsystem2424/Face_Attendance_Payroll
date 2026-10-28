@@ -311,13 +311,13 @@ const SuperDashboard = () => {
       icon: 'M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm4.5 0c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z',
       highlight: true,
     },
-    {
-      to: '/super-admin/payroll',
-      label: 'Payroll Reports',
-      desc: 'Monthly salary reports & PDF download',
-      icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75',
-      highlight: false,
-    },
+    // {
+    //   to: '/super-admin/payroll',
+    //   label: 'Payroll Reports',
+    //   desc: 'Monthly salary reports & PDF download',
+    //   icon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75',
+    //   highlight: false,
+    // },
     {
       to: '/super-admin/companies',
       label: 'Manage Companies',

@@ -198,6 +198,7 @@ import PendingLeaves from './pages/manager/PendingLeaves';
 import MySalary from './pages/MySalary';
 
 import EmployeeDetailedReport from './pages/super-admin/EmployeeDetailedReport';
+import AccountEmployees from './pages/account/AccountEmployees';
 
 // ════════════════════════════════════════════════════════════
 // FACE REGISTER WRAPPER
@@ -292,6 +293,7 @@ function App() {
 
         {/* 🆕 ACCOUNT ROUTES */}
         <Route path="/account/payroll" element={<AccountRoute><PayrollReports /></AccountRoute>} />
+   <Route path="/account/employees" element={<AccountRoute><AccountEmployees /></AccountRoute>} />
 
         {/* 404 FALLBACK */}
         <Route path="*" element={<Navigate to="/login" />} />
