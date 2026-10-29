@@ -335,7 +335,7 @@ const AllEmployees = () => {
                   <tr className="bg-[#faf8f5]">
                     {[
                       'Sr', 'Name', 'Code', 'Phone', 'Company',
-                      'Department', 'Designation', 'Salary',
+                      'Department', 'Designation',
                       'Joining',       // ✅ NEW
                       'Worker Type',
                       'Face', 'Status', 'Actions'
@@ -379,13 +379,7 @@ const AllEmployees = () => {
                       <td className="px-4 py-3 text-[#4B5563] text-xs">{emp.designation || '—'}</td>
 
                       {/* Salary */}
-                      <td className="px-4 py-3">
-                        {emp.monthly_salary > 0 ? (
-                          <span className="font-bold text-[#1A1A2E]">{formatINR(emp.monthly_salary)}</span>
-                        ) : (
-                          <span className="text-[11px] italic text-gray-400">Not set</span>
-                        )}
-                      </td>
+                    
 
                       {/* ✅ NEW - Joining Date */}
                       <td className="px-4 py-3">
