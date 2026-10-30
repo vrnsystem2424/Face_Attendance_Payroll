@@ -1,5 +1,8 @@
 
-// import { useEffect, useState } from 'react';
+
+
+
+// import { useEffect, useState, useMemo } from 'react';
 // import { useDispatch, useSelector } from 'react-redux';
 // import {
 //   fetchCompanyPayroll,
@@ -15,6 +18,9 @@
 //   const dispatch = useDispatch();
 //   const { payrollData, departments, loading, downloading, downloadingCSV, finalizing } = useSelector((s) => s.payroll);
 //   const { companies } = useSelector((s) => s.company);
+  
+//   // ✅ Get logged in user details
+//   const { user } = useSelector((s) => s.auth);
 
 //   const today = new Date();
 //   const [filters, setFilters] = useState({
@@ -28,7 +34,55 @@
 //   const years = [];
 //   for (let y = today.getFullYear(); y >= today.getFullYear() - 3; y--) years.push(y);
 
+//   // =====================================================
+//   // ✅ LOGIC: Dropdown mein wahi company dikhegi jiska access hai
+//   // =====================================================
+//   const availableCompanies = useMemo(() => {
+//     if (!companies?.length || !user) return [];
+
+//     const role = (user.role || '').toLowerCase();
+
+//     // 1. Super Admin ko sab dikhega
+//     if (['super_admin', 'superadmin', 'admin'].includes(role)) {
+//       return companies;
+//     }
+
+//     // 2. Agar backend se DB mein allowed_companies array aati hai
+//     if (Array.isArray(user.allowed_companies) && user.allowed_companies.length > 0) {
+//       const allowedIds = user.allowed_companies.map(c => (c._id || c).toString());
+//       return companies.filter(c => allowedIds.includes(c._id.toString()));
+//     }
+
+//     // 3. Fallback (Jab tak backend me field update nahi karte, manually email/code se map kiya hai)
+//     const email = (user.email || '').toLowerCase();
+//     const empCode = (user.emp_code || '').toUpperCase();
+    
+//     let allowedCodes = [];
+//     if (email === 'payroll@gmail.com' || empCode === 'ACC-RCC-7482') {
+//       allowedCodes = ['RCC', 'VRN']; // Isko RCC aur VRN dono dikhega
+//     } else if (email === 'payroll@dim.com' || empCode === 'ACC-DIM-3223') {
+//       allowedCodes = ['DIM']; // Isko sirf DIM dikhega
+//     }
+
+//     if (allowedCodes.length > 0) {
+//       return companies.filter(c => allowedCodes.includes((c.code || '').toUpperCase()));
+//     }
+
+//     // 4. Default: User ki primary company
+//     const singleCompanyId = user.company_id?._id || user.company_id;
+//     return companies.filter(c => c._id === singleCompanyId);
+    
+//   }, [companies, user]);
+
+//   // ✅ Agar user ke paas sirf 1 company ka access hai, to auto-select ho jayega
+//   useEffect(() => {
+//     if (availableCompanies.length === 1 && !filters.company_id) {
+//       setFilters(prev => ({ ...prev, company_id: availableCompanies[0]._id, department: 'all' }));
+//     }
+//   }, [availableCompanies, filters.company_id]);
+
 //   useEffect(() => { dispatch(fetchCompanies()); return () => dispatch(clearPayrollData()); }, [dispatch]);
+  
 //   useEffect(() => { if (filters.company_id) dispatch(fetchCompanyDepartments(filters.company_id)); }, [filters.company_id, dispatch]);
 
 //   const handleFilterChange = (key, value) => {
@@ -101,8 +155,9 @@
 //                 <label className="mb-2 block text-xs font-bold uppercase text-[#9CA3AF]">Company *</label>
 //                 <select value={filters.company_id} onChange={e => handleFilterChange('company_id', e.target.value)}
 //                   className="w-full rounded-xl border-2 border-[#E8590C]/20 bg-[#FFF8F3] py-3 px-4 text-sm font-semibold outline-none focus:border-[#E8590C]">
-//                   <option value="">— Select —</option>
-//                   {companies.map(c => <option key={c._id} value={c._id}>{c.name} ({c.code})</option>)}
+//                   <option value="">— Select Company —</option>
+//                   {/* ✅ YAHAN availableCompanies MAP KIYA HAI */}
+//                   {availableCompanies.map(c => <option key={c._id} value={c._id}>{c.name} ({c.code})</option>)}
 //                 </select>
 //               </div>
 //               <div>
@@ -170,6 +225,7 @@
 //           </div>
 //         )}
 
+//         {/* TABLE DATA */}
 //         {payrollData && (
 //           <div className="overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100">
 //             <div className="overflow-auto max-h-[calc(100vh-180px)]">
@@ -178,7 +234,6 @@
 //                   <tr className="bg-[#faf8f5] border-b border-gray-200">
 //                     <th className="px-2 py-3 text-left font-extrabold uppercase text-[#9CA3AF]">Sr</th>
 //                     <th className="px-2 py-3 text-left font-extrabold uppercase text-[#1A1A2E] border-r border-gray-200">Name</th>
-                    
 //                     <th className="px-2 py-3 text-center font-extrabold text-blue-700 bg-blue-50/30">Present</th>
 //                     <th className="px-2 py-3 text-center font-extrabold text-indigo-700 bg-blue-50/30">W/O</th>
 //                     <th className="px-2 py-3 text-center font-extrabold text-indigo-700 bg-blue-50/30">Hol</th>
@@ -186,12 +241,10 @@
 //                     <th className="px-2 py-3 text-center font-extrabold text-red-700 bg-amber-50/30">Late Ded.</th>
 //                     <th className="px-2 py-3 text-center font-extrabold text-orange-700 bg-orange-50/30">HD</th>
 //                     <th className="px-2 py-3 text-center font-extrabold text-red-700 bg-orange-50/30 border-r border-gray-200">HD Ded.</th>
-                    
 //                     <th className="px-2 py-3 text-center font-extrabold text-blue-700 bg-purple-50/20">Leaves</th>
 //                     <th className="px-2 py-3 text-center font-extrabold text-cyan-700 bg-purple-50/20">Paid Lv</th>
 //                     <th className="px-2 py-3 text-center font-extrabold text-indigo-700 bg-purple-50/20">Prev Lv Carry</th>
 //                     <th className="px-2 py-3 text-center font-extrabold text-purple-700 bg-purple-50/20 border-r border-gray-200">Carry</th>
-                    
 //                     <th className="px-2 py-3 text-center font-extrabold text-emerald-800 bg-emerald-50/20">Final Days</th>
 //                     <th className="px-2 py-3 text-center font-extrabold text-gray-700 bg-emerald-50/20">%</th>
 //                     <th className="px-2 py-3 text-right font-extrabold text-[#1A1A2E] bg-emerald-50/20">Salary</th>
@@ -206,7 +259,6 @@
 //                     const totalWO = emp.weekly_off_paid || 0; 
 //                     const totalHol = emp.holiday_paid || 0; 
 //                     const totalHD = (emp.half_day_count || 0) + (emp.half_day_leave_count || 0);
-//                     // 👈 FIXED HD DEDUCTION: showing 1 for 2 HDs
 //                     const hdDed = emp.half_day_deduction !== undefined ? emp.half_day_deduction : (totalHD * 0.5);
 //                     const fullLeavesOnly = emp.full_day_leaves || 0;
 //                     const prevLvBalance = (emp.leave_opening_balance || 0) + (emp.leave_credited || 0);
@@ -218,22 +270,17 @@
 //                           <span className="font-bold text-[#1A1A2E]">{emp.name}</span>
 //                           {emp.is_fsr && <span className="ml-1 text-[8px] text-orange-600 font-bold bg-orange-100 px-1 rounded">FSR</span>}
 //                         </td>
-
 //                         <td className="px-2 py-2 text-center font-bold text-blue-700 bg-blue-50/10">{totalPunches}</td>
 //                         <td className="px-2 py-2 text-center font-bold text-indigo-700 bg-blue-50/10">{totalWO}</td>
 //                         <td className="px-2 py-2 text-center font-bold text-indigo-700 bg-blue-50/10">{totalHol}</td>
-                        
 //                         <td className="px-2 py-2 text-center font-bold text-amber-700 bg-amber-50/10">{emp.late_count || 0}</td>
 //                         <td className="px-2 py-2 text-center font-bold text-red-600 bg-amber-50/10">{emp.late_leave_deduction || 0}</td>
-                        
 //                         <td className="px-2 py-2 text-center font-bold text-orange-700 bg-orange-50/10">{totalHD}</td>
 //                         <td className="px-2 py-2 text-center font-bold text-red-600 bg-orange-50/10 border-r border-gray-100">{hdDed}</td>
-                        
 //                         <td className="px-2 py-2 text-center font-bold text-blue-700 bg-purple-50/10">{fullLeavesOnly}</td>
 //                         <td className="px-2 py-2 text-center font-bold text-cyan-700 bg-purple-50/10">{emp.paid_leave_days || 0}</td>
 //                         <td className="px-2 py-2 text-center font-bold text-indigo-700 bg-purple-50/10">{prevLvBalance}</td>
 //                         <td className="px-2 py-2 text-center font-bold text-purple-700 bg-purple-50/10 border-r border-gray-100">{emp.leave_closing_balance || 0}</td>
-                        
 //                         <td className="px-2 py-2 text-center font-bold text-emerald-800 bg-emerald-50/10">{emp.final_payable_days || 0}</td>
 //                         <td className="px-2 py-2 text-center font-bold text-gray-700 bg-emerald-50/10">{emp.progress_percent || 0}%</td>
 //                         <td className="px-2 py-2 text-right font-bold text-[#1A1A2E] bg-emerald-50/10">{fmt(emp.monthly_salary)}</td>
@@ -243,7 +290,6 @@
 //                     );
 //                   })}
 
-//                   {/* GRAND TOTAL */}
 //                   <tr className="sticky bottom-0 z-10 bg-gradient-to-r from-[#1A1A2E] to-[#2D2D44] text-white text-[12px]">
 //                     <td colSpan="2" className="px-2 py-3 font-bold uppercase border-r border-gray-700">TOTAL</td>
 //                     <td className="px-2 py-3 text-center font-bold text-blue-300">{payrollData.summary?.total_checkins || 0}</td>
@@ -277,7 +323,6 @@
 
 
 
-
 import { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -294,8 +339,6 @@ const PayrollReports = () => {
   const dispatch = useDispatch();
   const { payrollData, departments, loading, downloading, downloadingCSV, finalizing } = useSelector((s) => s.payroll);
   const { companies } = useSelector((s) => s.company);
-  
-  // ✅ Get logged in user details
   const { user } = useSelector((s) => s.auth);
 
   const today = new Date();
@@ -310,47 +353,39 @@ const PayrollReports = () => {
   const years = [];
   for (let y = today.getFullYear(); y >= today.getFullYear() - 3; y--) years.push(y);
 
-  // =====================================================
-  // ✅ LOGIC: Dropdown mein wahi company dikhegi jiska access hai
-  // =====================================================
   const availableCompanies = useMemo(() => {
     if (!companies?.length || !user) return [];
 
     const role = (user.role || '').toLowerCase();
 
-    // 1. Super Admin ko sab dikhega
     if (['super_admin', 'superadmin', 'admin'].includes(role)) {
       return companies;
     }
 
-    // 2. Agar backend se DB mein allowed_companies array aati hai
     if (Array.isArray(user.allowed_companies) && user.allowed_companies.length > 0) {
       const allowedIds = user.allowed_companies.map(c => (c._id || c).toString());
       return companies.filter(c => allowedIds.includes(c._id.toString()));
     }
 
-    // 3. Fallback (Jab tak backend me field update nahi karte, manually email/code se map kiya hai)
     const email = (user.email || '').toLowerCase();
     const empCode = (user.emp_code || '').toUpperCase();
     
     let allowedCodes = [];
     if (email === 'payroll@gmail.com' || empCode === 'ACC-RCC-7482') {
-      allowedCodes = ['RCC', 'VRN']; // Isko RCC aur VRN dono dikhega
+      allowedCodes = ['RCC', 'VRN'];
     } else if (email === 'payroll@dim.com' || empCode === 'ACC-DIM-3223') {
-      allowedCodes = ['DIM']; // Isko sirf DIM dikhega
+      allowedCodes = ['DIM'];
     }
 
     if (allowedCodes.length > 0) {
       return companies.filter(c => allowedCodes.includes((c.code || '').toUpperCase()));
     }
 
-    // 4. Default: User ki primary company
     const singleCompanyId = user.company_id?._id || user.company_id;
     return companies.filter(c => c._id === singleCompanyId);
     
   }, [companies, user]);
 
-  // ✅ Agar user ke paas sirf 1 company ka access hai, to auto-select ho jayega
   useEffect(() => {
     if (availableCompanies.length === 1 && !filters.company_id) {
       setFilters(prev => ({ ...prev, company_id: availableCompanies[0]._id, department: 'all' }));
@@ -432,7 +467,6 @@ const PayrollReports = () => {
                 <select value={filters.company_id} onChange={e => handleFilterChange('company_id', e.target.value)}
                   className="w-full rounded-xl border-2 border-[#E8590C]/20 bg-[#FFF8F3] py-3 px-4 text-sm font-semibold outline-none focus:border-[#E8590C]">
                   <option value="">— Select Company —</option>
-                  {/* ✅ YAHAN availableCompanies MAP KIYA HAI */}
                   {availableCompanies.map(c => <option key={c._id} value={c._id}>{c.name} ({c.code})</option>)}
                 </select>
               </div>
@@ -537,7 +571,9 @@ const PayrollReports = () => {
                     const totalHD = (emp.half_day_count || 0) + (emp.half_day_leave_count || 0);
                     const hdDed = emp.half_day_deduction !== undefined ? emp.half_day_deduction : (totalHD * 0.5);
                     const fullLeavesOnly = emp.full_day_leaves || 0;
-                    const prevLvBalance = (emp.leave_opening_balance || 0) + (emp.leave_credited || 0);
+                    
+                    // Prev Lv Carry directly equals audit opening balance (2.5)
+                    const prevLvBalance = emp.leave_opening_balance ?? 0;
 
                     return (
                       <tr key={emp.emp_id || idx} className="hover:bg-orange-50/30 transition-colors">

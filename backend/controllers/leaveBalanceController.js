@@ -1,9 +1,4 @@
 
-
-
-
-
-
 // // controllers/leaveBalanceController.js
 
 // const LeaveBalance = require('../models/LeaveBalance');
@@ -459,6 +454,7 @@
 //   }
 // };
 
+// // 🆕 Support for backdated leaves inside standard admin deductions
 // const deductBalance = async (empId, leaveId, approvedDays, fromDate, toDate, appliedDays) => {
 //   const balance = await getOrCreateBalance(empId);
 
@@ -466,18 +462,19 @@
 //   const paid = Math.min(before, Number(approvedDays || 0));
 //   const unpaid = Math.max(0, Number(approvedDays || 0) - paid);
 
-//   const now = new Date();
-//   const currentMonth = now.getMonth() + 1;
-//   const currentYear = now.getFullYear();
+//   // Parse target month/year from leave fromDate for accurate historical ledger placement
+//   const pFrom = parseDateParts(fromDate);
+//   const targetMonth = pFrom ? pFrom.month : (new Date().getMonth() + 1);
+//   const targetYear = pFrom ? pFrom.year : new Date().getFullYear();
 
 //   let monthEntry = (balance.history || []).find(
-//     (h) => Number(h.month) === currentMonth && Number(h.year) === currentYear
+//     (h) => Number(h.month) === targetMonth && Number(h.year) === targetYear
 //   );
 
 //   if (!monthEntry) {
 //     balance.history.push({
-//       month: currentMonth,
-//       year: currentYear,
+//       month: targetMonth,
+//       year: targetYear,
 //       opening_balance: 0,
 //       credited: 0,
 //       used: 0,
@@ -519,7 +516,6 @@
 //   const now = new Date();
 //   const currentMonth = now.getMonth() + 1;
 //   const currentYear = now.getFullYear();
-  
 //   const monthEntry = (balance.history || []).find(
 //     (h) => Number(h.month) === currentMonth && Number(h.year) === currentYear
 //   );
@@ -546,7 +542,6 @@
 
 //     const balance = await getOrCreateBalance(emp_id);
 //     const val = Math.abs(parseFloat(days));
-    
 //     const now = new Date();
 //     const targetMonth = month ? parseInt(month, 10) : now.getMonth() + 1;
 //     const targetYear = year ? parseInt(year, 10) : now.getFullYear();
@@ -870,7 +865,6 @@
 //       const monthEntry = balance.history[i];
 //       if (monthEntry.leaves_log && monthEntry.leaves_log.length > 0) {
 //         const logIndex = monthEntry.leaves_log.findIndex(l => l._id && String(l._id) === id);
-        
 //         if (logIndex !== -1) {
 //           const log = monthEntry.leaves_log[logIndex];
 //           daysValue = Number(log.approved_days || 0);
@@ -904,9 +898,7 @@
 //   }
 // };
 
-// // 🌟 EXPORTS (Dono Naming Convention Aliased so Node Router won't crash)
 // module.exports = {
-//   // Original names
 //   getMyBalance,
 //   getEmployeeBalance,
 //   deductBalance,
@@ -921,7 +913,6 @@
 //   getCreditedLeavesForMonth,
 //   deleteAdjustment,
 
-//   // Alias names used in Redux/Routes
 //   fetchMyBalance: getMyBalance,
 //   fetchEmployeeBalance: getEmployeeBalance,
 //   fetchAllEmployeesWithBalance: getAllEmployeesWithBalance,
@@ -933,7 +924,6 @@
 
 
 
-// controllers/leaveBalanceController.js
 
 const LeaveBalance = require('../models/LeaveBalance');
 const Employee = require('../models/Employee');
@@ -1166,11 +1156,6 @@ const backfillBalance = async (empId) => {
   return balance;
 };
 
-const recalculateAndFixLeaveBalance = async (empIdOrBalance) => {
-  if (typeof empIdOrBalance === 'object' && empIdOrBalance?._id) return empIdOrBalance;
-  return LeaveBalance.findOne({ emp_id: empIdOrBalance });
-};
-
 // READ-ONLY DISPLAY BUILDER
 const buildDisplayHistory = async (empId, rawHistory, workerType) => {
   if (!rawHistory || rawHistory.length === 0) return [];
@@ -1330,6 +1315,106 @@ const buildDisplayHistory = async (empId, rawHistory, workerType) => {
   return result.reverse();
 };
 
+// FULL RECALCULATE AND PERSIST FUNCTION
+const recalculateAndFixLeaveBalance = async (empIdOrBalance) => {
+  let empId =
+    typeof empIdOrBalance === 'object' && empIdOrBalance != null
+      ? empIdOrBalance.emp_id || empIdOrBalance._id
+      : empIdOrBalance;
+
+  if (!empId) return null;
+
+  await backfillBalance(empId);
+
+  const balance = await LeaveBalance.findOne({ emp_id: empId });
+  if (!balance) return null;
+
+  const employee = await Employee.findById(empId).select('worker_type').lean();
+  const workerType = employee?.worker_type || 'office';
+
+  const display = await buildDisplayHistory(
+    empId,
+    balance.history || [],
+    workerType
+  );
+
+  const map = {};
+  display.forEach((d) => {
+    map[`${Number(d.year)}-${Number(d.month)}`] = d;
+  });
+
+  (balance.history || []).forEach((h) => {
+    const d = map[`${Number(h.year)}-${Number(h.month)}`];
+    if (!d) return;
+    h.opening_balance = Number(d.opening_balance || 0);
+    h.credited = Number(d.credited || 0);
+    h.used = Number(d.used || 0);
+    h.closing_balance = Number(d.closing_balance || 0);
+  });
+
+  rechainBalances(balance);
+  await balance.save();
+  return balance;
+};
+
+// GET LEAVE SNAPSHOT FOR PAYROLL
+const getPayrollLeaveSnapshot = async (empId, month, year, workerType = 'office') => {
+  const m = Number(month);
+  const y = Number(year);
+
+  await backfillBalance(empId);
+
+  const balance = await LeaveBalance.findOne({ emp_id: empId }).lean();
+  if (!balance || !Array.isArray(balance.history) || balance.history.length === 0) {
+    const employee = await Employee.findById(empId).populate('company_id', 'code');
+    const credited = employee ? await getCreditedLeavesForMonth(employee, m, y) : 0;
+    return {
+      leave_opening_balance: 0,
+      leave_credited: credited,
+      leave_used: 0,
+      leave_closing_balance: Math.max(0, credited),
+    };
+  }
+
+  const display = await buildDisplayHistory(empId, balance.history, workerType);
+
+  const entry = display.find(
+    (h) => Number(h.month) === m && Number(h.year) === y
+  );
+
+  if (entry) {
+    return {
+      leave_opening_balance: Number(entry.opening_balance || 0),
+      leave_credited: Number(entry.credited || 0),
+      leave_used: Number(entry.used || 0),
+      leave_closing_balance: Number(entry.closing_balance || 0),
+    };
+  }
+
+  const chronological = [...display].sort((a, b) => {
+    if (Number(a.year) !== Number(b.year)) return Number(a.year) - Number(b.year);
+    return Number(a.month) - Number(b.month);
+  });
+
+  let opening = 0;
+  for (const h of chronological) {
+    const before =
+      Number(h.year) < y ||
+      (Number(h.year) === y && Number(h.month) < m);
+    if (before) opening = Number(h.closing_balance || 0);
+  }
+
+  const employee = await Employee.findById(empId).populate('company_id', 'code');
+  const credited = employee ? await getCreditedLeavesForMonth(employee, m, y) : 0;
+
+  return {
+    leave_opening_balance: opening,
+    leave_credited: credited,
+    leave_used: 0,
+    leave_closing_balance: Math.max(0, opening + credited),
+  };
+};
+
 const getMyBalance = async (req, res) => {
   try {
     const empId = req.employee?._id || req.user?._id;
@@ -1388,7 +1473,6 @@ const getEmployeeBalance = async (req, res) => {
   }
 };
 
-// 🆕 Support for backdated leaves inside standard admin deductions
 const deductBalance = async (empId, leaveId, approvedDays, fromDate, toDate, appliedDays) => {
   const balance = await getOrCreateBalance(empId);
 
@@ -1396,7 +1480,6 @@ const deductBalance = async (empId, leaveId, approvedDays, fromDate, toDate, app
   const paid = Math.min(before, Number(approvedDays || 0));
   const unpaid = Math.max(0, Number(approvedDays || 0) - paid);
 
-  // Parse target month/year from leave fromDate for accurate historical ledger placement
   const pFrom = parseDateParts(fromDate);
   const targetMonth = pFrom ? pFrom.month : (new Date().getMonth() + 1);
   const targetYear = pFrom ? pFrom.year : new Date().getFullYear();
@@ -1845,7 +1928,10 @@ module.exports = {
   getAdjustmentHistory,
   recalculateAndFixLeaveBalance,
   getCreditedLeavesForMonth,
+  getPayrollLeaveSnapshot,
+  rechainBalances,
   deleteAdjustment,
+  buildDisplayHistory,
 
   fetchMyBalance: getMyBalance,
   fetchEmployeeBalance: getEmployeeBalance,
