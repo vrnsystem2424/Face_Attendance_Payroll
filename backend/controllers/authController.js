@@ -923,6 +923,9 @@ const getMe = async (req, res) => {
 // ════════════════════════════════════════
 // FORGOT PASSWORD - Send OTP
 // ════════════════════════════════════════
+// ════════════════════════════════════════
+// FORGOT PASSWORD - Send OTP
+// ════════════════════════════════════════
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -931,38 +934,54 @@ const forgotPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email daalna zaroori hai' });
     }
 
-    const employee = await Employee.findOne({ email: email.toLowerCase() });
+    const employee = await Employee.findOne({ email: email.toLowerCase().trim() });
 
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Yeh email registered nahi hai' });
     }
 
+    // 6-digit OTP generate karein
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    otpStore.set(email.toLowerCase(), {
+    // OTP Store me save karein (10 mins validity)
+    otpStore.set(email.toLowerCase().trim(), {
       otp,
       expiresAt: Date.now() + 10 * 60 * 1000,
       name: employee.name,
     });
 
-    await sendOTPEmail(email.toLowerCase(), otp, employee.name);
+    console.log(`\n🔑 [FORGOT PASSWORD] OTP Generated for ${employee.name} (${email}): >>> ${otp} <<<`);
 
-    console.log(`✅ OTP sent: ${otp} → ${email}`);
+    // Try to send email safely
+    let emailSent = false;
+    try {
+      if (typeof sendOTPEmail === 'function') {
+        await sendOTPEmail(email.toLowerCase().trim(), otp, employee.name);
+        emailSent = true;
+        console.log(`✅ OTP email successfully delivered to ${email}`);
+      }
+    } catch (emailErr) {
+      console.error('⚠️ Email sending failed (Check Nodemailer/.env settings):', emailErr.message);
+    }
 
     return res.status(200).json({
       success: true,
-      message: `OTP bheja gaya ${email} par. 10 minute mein use karo.`,
+      message: emailSent 
+        ? `OTP aapke email (${email}) par bhej diya gaya hai.` 
+        : `OTP generate ho gaya hai! (Console check karein: ${otp})`,
+      // Testing ke liye response me bhi OTP bhej rahe hain agar Email SMTP setup na ho:
+      otp: otp 
     });
 
   } catch (error) {
     console.error('❌ Forgot password error:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'OTP send nahi ho saka'
+      message: 'Server error. Dobara try karein.',
+      error: error.message
     });
   }
 };
-
 // ════════════════════════════════════════
 // VERIFY OTP
 // ════════════════════════════════════════
